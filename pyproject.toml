@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "regional-input-output"
+version = "0.1.0"
+description = "RINO: Regional INput Output Economics"
+authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+geopandas = "^0.10.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+jupyterlab = "^3.2.2"
+plotly = "^5.3.1"
+openpyxl = "^3.0.9"
+xlrd = "^2.0.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
