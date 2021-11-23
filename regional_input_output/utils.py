@@ -126,6 +126,21 @@ def load_centre_for_cities_gis(
     return read_file(path, driver=driver, **kwargs)
 
 
+def load_and_join_centre_for_cities_data(
+    city_path: PathLike = CENTRE_FOR_CITIES_PATH,
+    spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH,
+    **kwargs,
+) -> GeoDataFrame:
+    """Import and join Centre for Cities data (demographics and coordinates)."""
+    cities: DataFrame = load_centre_for_cities_csv(city_path, **kwargs)
+    cities_spatial: GeoDataFrame = load_centre_for_cities_gis(spatial_path, **kwargs)
+    return GeoDataFrame(
+        centre_for_cities.join(
+            cities.set_index("NAME1")[["REGION", "COUNTRY", "geometry"]], how="inner"
+        )
+    )
+
+
 def load_uk_io_table(
     path: PathLike = IO_TABLE_2017_EXCEL_PATH,
     sheet_name: str = IO_TABLE_NAME,
@@ -178,6 +193,7 @@ def load_employment_by_city_and_sector(
     index_col: int = CITY_SECTOR_INDEX_COL,
     **kwargs,
 ) -> DataFrame:
+    """Import city level sector employment data as a DataFrame."""
     if path is CITY_SECTOR_EMPLOYMENT_PATH:
         path = open_binary(data, path)
     return read_csv(
@@ -215,6 +231,7 @@ def aggregate_sector_dict(
     sector_aggregation_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT,
     sector_code_prefix: str = CPA_COLUMN_NAME,
 ) -> AggregatedSectorDict:
+    """Generate a dictionary to aid aggregating sector data."""
     aggregated_sectors: AggregatedSectorDict = {}
     for sector, code_letters in sector_aggregation_dict.items():
         sector_list: list[str] = []
@@ -230,6 +247,8 @@ def aggregate_sector_dict(
 
 @dataclass
 class ONSInputOutputTable:
+
+    """Manage reading and aggregating Input Output Tables."""
 
     path: PathLike = IO_TABLE_2017_EXCEL_PATH
     io_sheet_name: str = IO_TABLE_NAME
@@ -273,6 +292,7 @@ class ONSInputOutputTable:
         dog_leg_columns: list[str] = IO_DOG_LEG_CODES["columns"],
         dog_leg_rows: list[str] = IO_DOG_LEG_CODES["rows"],
     ) -> DataFrame:
+        """Return an aggregated Input Output table via an aggregated mapping of sectors."""
         agg_sector_dict: AggregatedSectorDict = self._aggregated_sectors_dict(
             sector_aggregation_dict
         )
@@ -348,6 +368,7 @@ def aggregate_rows(
     trim_column_names: bool = False,
     sector_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT,
 ) -> DataFrame:
+    """Aggregate DataFrame rows to reflect aggregated sectors."""
     if trim_column_names:
         full_df.rename(
             columns={column: column[0] for column in full_df.columns}, inplace=True

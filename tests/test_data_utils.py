@@ -67,7 +67,9 @@ class TestLoadingONSIOTableData:
     def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
-        sectors_aggregated: AggregatedSectorDict = test_ons_io_table._aggregated_sectors_dict()
+        sectors_aggregated: AggregatedSectorDict = (
+            test_ons_io_table._aggregated_sectors_dict()
+        )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
     def test_ons_io_table_aggregation(self, test_ons_io_table) -> None:
