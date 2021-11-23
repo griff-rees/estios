@@ -7,6 +7,7 @@ from regional_input_output.utils import (
     ONSInputOutputTable,
     aggregate_rows,
     filter_by_region_name_and_type,
+    load_and_join_centre_for_cities_data,
     load_centre_for_cities_csv,
     load_centre_for_cities_gis,
     load_employment_by_city_and_sector,
@@ -20,24 +21,32 @@ import pytest
 
 
 class TestLoadingCentreForCitiesData:
+
+    SECTION_OF_COLUMNS: tuple[str] = (
+        "Commuting by Bicycle 2001  (%)",
+        "Commuting by Bicycle 2011  (%)",
+        "Commuting by Bus, Train or Metro 2001  (%)",
+        "Commuting by Bus, Train or Metro 2011  (%)",
+        "Commuting by Other Methods 2001  (%)",
+        "Commuting by Other Methods 2011  (%)",
+    )
+
     def test_load_centre_for_cities_csv(self) -> None:
         """Test loading default Centre for Cities csv from the local package."""
-        SECTION_OF_COLUMNS: tuple[str] = (
-            "Commuting by Bicycle 2001  (%)",
-            "Commuting by Bicycle 2011  (%)",
-            "Commuting by Bus, Train or Metro 2001  (%)",
-            "Commuting by Bus, Train or Metro 2011  (%)",
-            "Commuting by Other Methods 2001  (%)",
-            "Commuting by Other Methods 2011  (%)",
-        )
         centre_for_cities: DataFrame = load_centre_for_cities_csv()
-        for section in SECTION_OF_COLUMNS:
+        for section in self.SECTION_OF_COLUMNS:
             assert section in centre_for_cities.columns
 
     def test_load_centre_for_cities_geojson(self) -> None:
         """Test loading Centre for Cities GeoJSON as a GeoDataFrame."""
         cities_geo: GeoDataFrame = load_centre_for_cities_gis()
         assert "Leeds" in cities_geo["NAME1"].values
+
+    def test_load_and_join(self) -> None:
+        cities_geo: GeoDataFrame = load_and_join_centre_for_cities_data()
+        assert "Leeds" in cities_geo.index
+        for section in self.SECTION_OF_COLUMNS:
+            assert section in cities_geo.columns
 
 
 @pytest.fixture

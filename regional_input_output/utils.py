@@ -135,8 +135,9 @@ def load_and_join_centre_for_cities_data(
     cities: DataFrame = load_centre_for_cities_csv(city_path, **kwargs)
     cities_spatial: GeoDataFrame = load_centre_for_cities_gis(spatial_path, **kwargs)
     return GeoDataFrame(
-        centre_for_cities.join(
-            cities.set_index("NAME1")[["REGION", "COUNTRY", "geometry"]], how="inner"
+        cities.join(
+            cities_spatial.set_index("NAME1")[["REGION", "COUNTRY", "geometry"]],
+            how="inner",
         )
     )
 
