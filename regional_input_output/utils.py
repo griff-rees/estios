@@ -85,6 +85,7 @@ IO_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
 JOBS_BY_SECTOR_PATH: Final[PathLike] = Path("jobs05sep2021.xls")
 DATE_COLUMN_NAME: Final[str] = "SIC 2007 section"
 COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
+NATIONAL_EMPLOYMENT_SHEET: Final[str] = "15. United Kingdom"
 
 # Census export Nomis city and sector employment data
 CITY_SECTOR_EMPLOYMENT_PATH: Final[PathLike] = Path("2423324239.csv")
@@ -339,7 +340,7 @@ def enforce_date_format(cell: str) -> str:
 
 
 def load_region_employment(
-    sheet: str,
+    sheet: str = NATIONAL_EMPLOYMENT_SHEET,
     path: str = JOBS_BY_SECTOR_PATH,
     date_column_name: str = DATE_COLUMN_NAME,
     covid_flags_column: str = COVID_FLAGS_COLUMN,
