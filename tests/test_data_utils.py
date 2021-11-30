@@ -13,6 +13,7 @@ from regional_input_output.utils import (
     load_employment_by_city_and_sector,
     load_region_employment,
     load_uk_io_table,
+    get_all_centre_for_cities_dict,
 )
 
 from geopandas import GeoDataFrame
@@ -99,16 +100,18 @@ def aggregated_city_sector() -> DataFrame:
     return aggregate_rows(city_sector, True)
 
 
+CITY_REGIONS: dict[str, str] = {
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",
+    "Manchester": "North West",
+}
+
+
 class TestLoadingEmploymentData:
 
     DATE_1997: str = "1997-03-01"
     DATE_2021: str = "2021-06-01"
     GREATER_MANCHESTER: str = "combauth:Greater Manchester"
-    CITY_REGIONS: dict[str, str] = {
-        "Leeds": "Yorkshire and the Humber",
-        "Liverpool": "North West",
-        "Manchester": "North West",
-    }
 
     def test_load_ons_jobs(self, national_jobs) -> None:
         """Test importing National data from an ONS export."""
@@ -128,7 +131,15 @@ class TestLoadingEmploymentData:
     def test_filtering_for_specific_regions(self, aggregated_city_sector) -> None:
         """Test filtering for specific regions."""
         filtered_aggregate_city: DataFrame = filter_by_region_name_and_type(
-            aggregated_city_sector, self.CITY_REGIONS
+            aggregated_city_sector, CITY_REGIONS
         )
-        for city in self.CITY_REGIONS:
+        for city in CITY_REGIONS:
             assert city in filtered_aggregate_city.index
+
+
+def test_get_all_cities() -> None:
+    """Test generating city: region dictionary from Centre for Cities."""
+    test_dict: dict[str, str] = get_all_centre_for_cities_dict()
+    assert len(test_dict) == 48
+    for city, region in CITY_REGIONS.items():
+        assert test_dict[city] == region

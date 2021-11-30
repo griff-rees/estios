@@ -47,6 +47,17 @@ IO_TABLE_USECOLS: Final[str] = "A:DO"
 IO_TABLE_SKIPROWS: Final[list[int]] = [0, 1, 2, 5]  # Skips Rows 3 and 4
 IO_TABLE_INDEX_COL: Final[int] = 1  # Sets index to what was the 4th (now 2nd) row
 IO_TABLE_HEADER: Final[Union[int, list[int], None]] = None
+IO_TABLE_TOTAL_PRODUCTION_COLUMN: Final[str] = "Total Sales"
+IO_TABLE_FINAL_DEMAND_COLUMN_NAMES: Final[list[str]] = [
+    "Household Purchase",
+    "Government Purchase",
+    "Non-profit Purchase",
+]
+IO_TABLE_EXPORT_COLUMN_NAMES: Final[list[str]] = [
+    "Exports to EU",
+    "Exports outside EU",
+    "Exports of services",
+]
 
 CPA_COLUMN_NAME: Final[str] = "CPA"
 SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
@@ -382,3 +393,31 @@ def aggregate_rows(
         else:
             aggregated_df[sector] = full_df[letters]
     return aggregated_df
+
+
+SKIP_CITIES: Final[tuple[str, ...]] = (
+    "Aberdeen",
+    "Aldershot",
+    "Cardiff",
+    "Dundee",
+    "Edinburgh",
+    "Glasgow",
+    "Newcastle",
+    "Newport",
+    "Swansea",
+)
+
+
+def get_all_centre_for_cities_dict(
+    skip_cities: Iterable = SKIP_CITIES, **kwargs
+) -> dict[str, str]:
+    """Return a dict of all centre for cities with region.
+
+    Todo:
+        * Currently only works for England and skips Newcastle.
+    """
+    cities_df: DataFrame = load_and_join_centre_for_cities_data(**kwargs)
+    cities_dict: dict[str, str] = cities_df["REGION"].to_dict()
+    return {
+        city: region for city, region in cities_dict.items() if city not in skip_cities
+    }
