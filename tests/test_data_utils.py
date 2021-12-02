@@ -138,7 +138,13 @@ class TestLoadingEmploymentData:
 
 
 def test_get_all_cities() -> None:
-    """Test generating city: region dictionary from Centre for Cities."""
+    """Test generating city: region dictionary from Centre for Cities.
+
+    Note:
+        * Currently this filters Blackburn, Newcastle and all cities from
+        Scotland and Wales,
+        * Total English cities 50
+    """
     test_dict: dict[str, str] = get_all_centre_for_cities_dict()
     assert len(test_dict) == 48
     for city, region in CITY_REGIONS.items():

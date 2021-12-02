@@ -402,9 +402,10 @@ SKIP_CITIES: Final[tuple[str, ...]] = (
     "Dundee",
     "Edinburgh",
     "Glasgow",
-    "Newcastle",
+    "Newcastle",  # In England, issues with name variation
     "Newport",
     "Swansea",
+    "Blackburn",  # 2 in Scotland
 )
 
 
@@ -415,6 +416,7 @@ def get_all_centre_for_cities_dict(
 
     Todo:
         * Currently only works for England and skips Newcastle.
+        * Try filtering by "COUNTRY" and "REGION"
     """
     cities_df: DataFrame = load_and_join_centre_for_cities_data(**kwargs)
     cities_dict: dict[str, str] = cities_df["REGION"].to_dict()
