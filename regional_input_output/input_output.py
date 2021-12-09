@@ -9,6 +9,7 @@ from os import PathLike
 from typing import Final, Iterable, Optional
 
 from geopandas import GeoDataFrame
+from numpy import exp
 from pandas import DataFrame, MultiIndex
 from plotly.graph_objects import Figure
 
@@ -42,6 +43,7 @@ OTHER_CITY_COLUMN: Final[str] = "Other_City"
 SECTOR_COLUMN: Final[str] = "Sector"
 DISTANCE_COLUMN: Final[str] = "Distance"
 DISTANCE_COLUMN_SUFFIX: Final[str] = "_Point"
+CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
 
 CITY_REGIONS: Final[dict[str, str]] = {
     "Birmingham": "West Midlands",  # BIRMINGHAM & SMETHWICK
@@ -72,6 +74,72 @@ MODEL_APPREVIATIONS: Final[dict[str, str]] = {
 
 
 @dataclass
+class SpatialConstrainedBaseClass:
+
+    distances: GeoDataFrame
+    employment: DataFrame
+    employment_column_name: str = CITY_POPULATION_COLUMN_NAME
+
+    @property
+    def y_ij_m(self) -> DataFrame:
+        """A dataframe initial conditions for model y_ij_m DataFrame."""
+        raise NotImplemented("This is not implemented in the BaseClass")
+
+
+@dataclass
+class SinglyConstrained(SpatialConstrainedBaseClass):
+
+    beta: float = 0.0002
+    constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
+
+    def __repr__(self) -> str:
+        """Return base config of model."""
+        return f"Singly constrained attraction β = {self.beta}"
+
+    @property
+    def _ij_m_index(self) -> MultiIndex:
+        """Return sector x city x other city MultiIndex."""
+        return generate_ij_m_index(self.employment.index, self.employment.columns)
+
+    def __post_init__(self) -> None:
+        """Calculate core singly constrained spatial components."""
+        self.B_j_m: DataFrame = DataFrame({"Q_i^m": None}, index=self._ij_m_index)
+
+        # Inefficient, should just be reindexing distances
+        self.B_j_m["Distance"] = self.B_j_m.apply(
+            lambda row: self.distances["Distance"][row.name[0]][row.name[1]], axis=1
+        )
+        self.B_j_m[self.employment_column_name] = self.B_j_m.apply(
+            lambda row: self.employment.loc[row.name[0]][row.name[2]], axis=1
+        )
+        self.B_j_m["-β c_{ij}"] = -1 * self.B_j_m["Distance"] * self.beta
+        self.B_j_m["exp(-β c_{ij})"] = self.B_j_m["-β c_{ij}"].apply(lambda x: exp(x))
+        self.B_j_m["Q_i^m * exp(-β c_{ij})"] = (
+            self.B_j_m[self.employment_column_name] * self.B_j_m["exp(-β c_{ij})"]
+        )
+        self.B_j_m["sum Q_i^m * exp(-β c_{ij})"] = self.B_j_m.groupby(
+            ["Other_City", "Sector"]
+        )["Q_i^m * exp(-β c_{ij})"].transform("sum")
+
+        # Equation 16
+        self.B_j_m["B_j^m"] = 1 / self.B_j_m["sum Q_i^m * exp(-β c_{ij})"]
+
+    @property
+    def y_ij_m(self) -> DataFrame:
+        """A dataframe initial conditions for model y_ij_m DataFrame."""
+        return DataFrame(
+            data={
+                self.employment_column_name: self.B_j_m[self.employment_column_name],
+                "B_j^m": self.B_j_m["B_j^m"],
+                "exp(-β c_{ij})": self.B_j_m["exp(-β c_{ij})"],
+                self.constrained_column_name: (
+                    self.B_j_m["B_j^m"] * self.B_j_m["Q_i^m * exp(-β c_{ij})"]
+                ),
+            }
+        )
+
+
+@dataclass
 class InterRegionInputOutput:
 
     """Manage Inter Region input output model runs."""
@@ -99,6 +167,7 @@ class InterRegionInputOutput:
     export_column_names: list[str] = field(
         default_factory=lambda: IO_TABLE_EXPORT_COLUMN_NAMES
     )
+    # self._spatial_model_cls: SpatialConstrainedBaseClass = SinglyConstrained
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
@@ -116,11 +185,21 @@ class InterRegionInputOutput:
             load_employment_by_city_and_sector(path=self.city_sector_employment_path)
         )
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return (
-            f"Input output model of {len(self.sectors)} sectors "
-            f"between {len(self.regions)} cities in {self.year}"
+            f"Input output model of {self.year}: "
+            f"{len(self.sectors)} sectors, {len(self.regions)} cities"
         )
+
+    @property
+    def _ij_index(self) -> MultiIndex:
+        """Return self.city x self.city MultiIndex."""
+        return generate_ij_index(self.regions, self.regions)
+
+    @property
+    def _ij_m_index(self) -> MultiIndex:
+        """Return self.city x self.city MultiIndex."""
+        return generate_ij_m_index(self.regions, self.sectors)
 
     @property
     def year(self) -> int:
@@ -240,6 +319,29 @@ class InterRegionInputOutput:
             unit_divide_conversion=self.distance_unit_factor,
         )
 
+    @cached_property
+    def x_i_mn_summed(self) -> DataFrame:
+        """Return sum of all total demands for good 𝑚 in city 𝑖.
+
+        Equation 1:
+        x_i^{mn} = a_i^{mn}X_i^n
+
+        Equation 2:
+        X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n}
+        """
+        return self.X_i_m.apply(
+            lambda row: (row * self.technical_coefficients.T).sum(),
+            axis=1,
+        )
+
+    @cached_property
+    def y_ij_m(self) -> DataFrame:
+        return self.spatial_interaction.y_ij_m
+
+    @cached_property
+    def spatial_interaction(self) -> SpatialConstrainedBaseClass:
+        return SinglyConstrained(self.distances, self.employment_table)
+
 
 @dataclass
 class InterRegionInputOutputTimeSeries(InterRegionInputOutput):
@@ -286,7 +388,7 @@ def generate_ij_index(
     )
 
 
-def generate_ijm_index(
+def generate_ij_m_index(
     regions: Iterable[str] = CITY_REGIONS,
     sectors: Iterable[str] = SECTOR_10_CODE_DICT,
     include_national: bool = False,
