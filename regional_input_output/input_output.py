@@ -6,7 +6,7 @@ from datetime import date, datetime
 from copy import deepcopy
 from functools import cached_property
 from os import PathLike
-from typing import Final, Iterable, Optional
+from typing import Final, Iterable, Optional, Type
 
 from geopandas import GeoDataFrame
 from numpy import exp
@@ -87,7 +87,7 @@ class SpatialConstrainedBaseClass:
 
 
 @dataclass
-class SinglyConstrained(SpatialConstrainedBaseClass):
+class AttractionConstrained(SpatialConstrainedBaseClass):
 
     beta: float = 0.0002
     constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
@@ -167,7 +167,7 @@ class InterRegionInputOutput:
     export_column_names: list[str] = field(
         default_factory=lambda: IO_TABLE_EXPORT_COLUMN_NAMES
     )
-    # self._spatial_model_cls: SpatialConstrainedBaseClass = SinglyConstrained
+    _spatial_model_cls: Type[SpatialConstrainedBaseClass] = AttractionConstrained
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
@@ -238,7 +238,7 @@ class InterRegionInputOutput:
             )
         else:
             raise NotImplementedError(
-                "Currently io_table requires an " "aggregation dictionary."
+                "Currently io_table requires an aggregation dictionary."
             )
 
     @cached_property
@@ -340,7 +340,7 @@ class InterRegionInputOutput:
 
     @cached_property
     def spatial_interaction(self) -> SpatialConstrainedBaseClass:
-        return SinglyConstrained(self.distances, self.employment_table)
+        return self._spatial_model_cls(self.distances, self.employment_table)
 
 
 @dataclass
@@ -360,7 +360,7 @@ def technical_coefficients(
     return (io_matrix / final_output).astype("float64")
 
 
-def generate_im_index(
+def generate_i_m_index(
     i_column: Iterable[str] = CITY_REGIONS,
     m_column: Iterable[str] = SECTOR_10_CODE_DICT,
     include_national: bool = False,
@@ -382,8 +382,8 @@ def generate_ij_index(
     *args,
     **kwargs,
 ) -> MultiIndex:
-    """Wrappy around generate_im_index with CITY_REGIONS instead of SECTORS."""
-    return generate_im_index(
+    """Wrappy around generate_i_m_index with other_regions instead of sectors."""
+    return generate_i_m_index(
         regions, other_regions, m_column_name=m_column_name, *args, **kwargs
     )
 
