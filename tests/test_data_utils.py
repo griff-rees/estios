@@ -1,29 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from regional_input_output.utils import (
+import pytest
+from geopandas import GeoDataFrame
+from pandas import DataFrame
+
+from regional_input_output.uk_data.utils import (
     COVID_FLAGS_COLUMN,
-    AggregatedSectorDict,
+    AggregatedSectorDictType,
     ONSInputOutputTable,
     aggregate_rows,
     filter_by_region_name_and_type,
+    get_all_centre_for_cities_dict,
     load_and_join_centre_for_cities_data,
     load_centre_for_cities_csv,
     load_centre_for_cities_gis,
     load_employment_by_city_and_sector,
     load_region_employment,
     load_uk_io_table,
-    get_all_centre_for_cities_dict,
 )
-
-from geopandas import GeoDataFrame
-from pandas import DataFrame
-import pytest
 
 
 class TestLoadingCentreForCitiesData:
 
-    SECTION_OF_COLUMNS: tuple[str] = (
+    SECTION_OF_COLUMNS: tuple[str, ...] = (
         "Commuting by Bicycle 2001  (%)",
         "Commuting by Bicycle 2011  (%)",
         "Commuting by Bus, Train or Metro 2001  (%)",
@@ -77,7 +77,7 @@ class TestLoadingONSIOTableData:
     def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
-        sectors_aggregated: AggregatedSectorDict = (
+        sectors_aggregated: AggregatedSectorDictType = (
             test_ons_io_table._aggregated_sectors_dict()
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
@@ -131,7 +131,7 @@ class TestLoadingEmploymentData:
     def test_filtering_for_specific_regions(self, aggregated_city_sector) -> None:
         """Test filtering for specific regions."""
         filtered_aggregate_city: DataFrame = filter_by_region_name_and_type(
-            aggregated_city_sector, CITY_REGIONS
+            aggregated_city_sector, CITY_REGIONS.keys()
         )
         for city in CITY_REGIONS:
             assert city in filtered_aggregate_city.index

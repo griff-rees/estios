@@ -2,22 +2,35 @@
 # -*- coding: utf-8 -*-
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from importlib.resources import open_binary, open_text
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, Final, Iterable, Optional, Union
+from typing import IO, Any, Callable, Final, Iterable, Optional, Union
 
 from geopandas import GeoDataFrame, read_file
 from pandas import DataFrame, Series, read_csv, read_excel
 
-from . import data
-
 # https://www.ons.gov.uk/economy/nationalaccounts/supplyandusetables/datasets/inputoutputsupplyandusetables
 
-AggregatedSectorDict = dict[str, list[str]]
+AggregatedSectorDictType = dict[str, list[str]]
 
-SECTOR_10_CODE_DICT: Final[AggregatedSectorDict] = {
+CITY_REGIONS: Final[dict[str, str]] = {
+    "Birmingham": "West Midlands",  # BIRMINGHAM & SMETHWICK
+    "Bradford": "Yorkshire and the Humber",
+    "Bristol": "South West",
+    "Derby": "East Midlands",
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
+    "Manchester": "North West",  # SALFORD 'MANCHESTER & SALFORD
+    # Skip because of name inconsistency
+    # 'Newcastle upon Tyne':  'North East',  # NEWCASTLE & GATESHEAD'
+    "Nottingham": "East Midlands",
+    "Southampton": "South East",
+    "London": "London",
+}
+
+SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
     "Agriculture": ["A"],
     "Production": ["B", "C", "D", "E"],
     "Construction": ["F"],
@@ -30,7 +43,10 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDict] = {
     "Other services": ["R", "S", "T"],
 }
 
-# Example Data files
+# UK Example Data files
+
+NATIONAL_COLUMN_NAME: Final[str] = "UK"
+EMPLOYMENT_QUARTER_DEC_2017: Final[date] = date(2017, 12, 1)
 
 CENTRE_FOR_CITIES_PATH: Final[PathLike] = Path("data-tool-export.csv")
 CITIES_TOWNS_SHAPE_PATH: Final[PathLike] = Path("cities_towns.geojson")
@@ -42,6 +58,7 @@ CENTRE_FOR_CITIES_NA_VALUES: Final[str] = " "
 # Input-Ouput Table excel data file and configuration
 
 IO_TABLE_2017_EXCEL_PATH: Final[PathLike] = Path("nasu1719pr.xlsx")
+IO_TABLE_FIST_CODE_ROW: Final[int] = 1
 IO_TABLE_NAME: Final[str] = "IOT"
 IO_TABLE_USECOLS: Final[str] = "A:DO"
 IO_TABLE_SKIPROWS: Final[list[int]] = [0, 1, 2, 5]  # Skips Rows 3 and 4
@@ -93,13 +110,13 @@ IO_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
 
 # ONS jobs data
 
-JOBS_BY_SECTOR_PATH: Final[PathLike] = Path("jobs05sep2021.xls")
+JOBS_BY_SECTOR_PATH: Final[Path] = Path("jobs05sep2021.xls")
 DATE_COLUMN_NAME: Final[str] = "SIC 2007 section"
 COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
 NATIONAL_EMPLOYMENT_SHEET: Final[str] = "15. United Kingdom"
 
 # Census export Nomis city and sector employment data
-CITY_SECTOR_EMPLOYMENT_PATH: Final[PathLike] = Path("2423324239.csv")
+CITY_SECTOR_EMPLOYMENT_PATH: Final[Path] = Path("2423324239.csv")
 CITY_SECTOR_SKIPROWS: Final[int] = 7
 CITY_SECTOR_SKIPFOOTER: Final[int] = 8
 CITY_SECTOR_ENGINE: Final[str] = "python"
@@ -110,7 +127,7 @@ CITY_SECTOR_REGION_PREFIX: Final[str] = "towncity:"
 
 
 def load_centre_for_cities_csv(
-    path: PathLike = CENTRE_FOR_CITIES_PATH,
+    path: Union[PathLike, IO] = CENTRE_FOR_CITIES_PATH,
     index_col: Optional[str] = CENTRE_FOR_CITIES_INDEX_COL,
     nrows: Optional[int] = CENTRE_FOR_CITIES_NROWS,
     na_values: Optional[str] = CENTRE_FOR_CITIES_NA_VALUES,
@@ -118,8 +135,8 @@ def load_centre_for_cities_csv(
     **kwargs,
 ) -> DataFrame:
     """Load a Centre for Cities data tool export csv file."""
-    if path is CENTRE_FOR_CITIES_PATH:
-        path = open_text(data, path)
+    if path is CENTRE_FOR_CITIES_PATH and isinstance(path, Path):
+        path = open_text(__package__, path)
     base_centre_for_cities_df: DataFrame = read_csv(
         path, index_col=index_col, nrows=nrows, na_values=na_values, **kwargs
     )
@@ -130,11 +147,13 @@ def load_centre_for_cities_csv(
 
 
 def load_centre_for_cities_gis(
-    path: PathLike = CITIES_TOWNS_SHAPE_PATH, driver: str = "GeoJSON", **kwargs
+    path: Union[PathLike, IO] = CITIES_TOWNS_SHAPE_PATH,
+    driver: str = "GeoJSON",
+    **kwargs,
 ) -> GeoDataFrame:
     """Load a Centre for Cities Spartial file (defualt GeoJSON)."""
-    if path is CITIES_TOWNS_SHAPE_PATH:
-        path = open_text(data, path)
+    if path is CITIES_TOWNS_SHAPE_PATH and isinstance(path, Path):
+        path = open_text(__package__, path)
     return read_file(path, driver=driver, **kwargs)
 
 
@@ -155,7 +174,7 @@ def load_and_join_centre_for_cities_data(
 
 
 def load_uk_io_table(
-    path: PathLike = IO_TABLE_2017_EXCEL_PATH,
+    path: Union[PathLike, IO] = IO_TABLE_2017_EXCEL_PATH,
     sheet_name: str = IO_TABLE_NAME,
     usecols: Optional[str] = IO_TABLE_USECOLS,
     skiprows: Optional[list[int]] = IO_TABLE_SKIPROWS,  # Default skips Rows 3 and 4
@@ -169,8 +188,8 @@ def load_uk_io_table(
     **kwargs,
 ) -> DataFrame:
     """Import a Input-Ouput Table as a DataFrame from an ONS xlsx file."""
-    if path is IO_TABLE_2017_EXCEL_PATH:
-        path = open_binary(data, path)
+    if path is IO_TABLE_2017_EXCEL_PATH and isinstance(path, Path):
+        path = open_binary(__package__, path)
     uk_io_table: DataFrame = read_excel(
         path,
         sheet_name=sheet_name,
@@ -198,7 +217,7 @@ def load_uk_io_table(
 
 
 def load_employment_by_city_and_sector(
-    path: PathLike = CITY_SECTOR_EMPLOYMENT_PATH,
+    path: Union[PathLike, IO] = CITY_SECTOR_EMPLOYMENT_PATH,
     skiprows: int = CITY_SECTOR_SKIPROWS,
     skipfooter: int = CITY_SECTOR_SKIPFOOTER,
     engine: str = CITY_SECTOR_ENGINE,
@@ -207,8 +226,8 @@ def load_employment_by_city_and_sector(
     **kwargs,
 ) -> DataFrame:
     """Import city level sector employment data as a DataFrame."""
-    if path is CITY_SECTOR_EMPLOYMENT_PATH:
-        path = open_binary(data, path)
+    if path is CITY_SECTOR_EMPLOYMENT_PATH and isinstance(path, Path):
+        path = open_binary(__package__, path)
     return read_csv(
         path,
         skiprows=skiprows,
@@ -222,7 +241,7 @@ def load_employment_by_city_and_sector(
 
 def filter_by_region_name_and_type(
     df: DataFrame,
-    regions: list[str],
+    regions: Iterable[str],
     region_type_prefix: str = CITY_SECTOR_REGION_PREFIX,
 ) -> DataFrame:
     """Filter a DataFrame with region indicies to specific regions."""
@@ -240,12 +259,12 @@ def ons_io_table_to_codes(
 
 
 def aggregate_sector_dict(
-    sectors: Iterable,
-    sector_aggregation_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT,
+    sectors: Iterable[str],
+    sector_aggregation_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT,
     sector_code_prefix: str = CPA_COLUMN_NAME,
-) -> AggregatedSectorDict:
+) -> AggregatedSectorDictType:
     """Generate a dictionary to aid aggregating sector data."""
-    aggregated_sectors: AggregatedSectorDict = {}
+    aggregated_sectors: AggregatedSectorDictType = {}
     for sector, code_letters in sector_aggregation_dict.items():
         sector_list: list[str] = []
         for letter in code_letters:
@@ -268,6 +287,8 @@ class ONSInputOutputTable:
     cpa_column_name: str = CPA_COLUMN_NAME
     sector_prefix_str: str = CPA_COLUMN_NAME
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
+    _first_code_row: int = IO_TABLE_FIST_CODE_ROW
+    _sector_prefix_str: str = CPA_COLUMN_NAME
 
     def __post_init__(self) -> None:
         self.full_io_table: DataFrame = load_uk_io_table(
@@ -278,22 +299,24 @@ class ONSInputOutputTable:
         )
 
     @property
-    def row_codes(self, first_code_row: int = 1) -> Series:  # Default skip first row
+    def row_codes(self) -> Series:  # Default skip first row
         """Return the values in the index_column (intended to return sector codes)."""
         return (
             self.full_io_table.reset_index()
             .set_index(self.cpa_column_name)
-            .iloc[:, 0][first_code_row:]
+            .iloc[:, 0][self._first_code_row :]
         )
 
     @property
-    def sectors(self, sector_prefix_str: str = CPA_COLUMN_NAME) -> Series:
+    def sectors(self) -> Series:
         """Return all column names preceded by the sector_prefix_str code."""
-        return self.row_codes[self.row_codes.index.str.startswith(sector_prefix_str)]
+        return self.row_codes[
+            self.row_codes.index.str.startswith(self._sector_prefix_str)
+        ]
 
     def _aggregated_sectors_dict(
-        self, sector_aggregation_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT
-    ) -> AggregatedSectorDict:
+        self, sector_aggregation_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT
+    ) -> AggregatedSectorDictType:
         """Call aggregate_sector_dict on the sectors property."""
         return aggregate_sector_dict(
             self.sectors.index, sector_aggregation_dict, self.sector_prefix_str
@@ -301,12 +324,12 @@ class ONSInputOutputTable:
 
     def get_aggregated_io_table(
         self,
-        sector_aggregation_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT,
-        dog_leg_columns: list[str] = IO_DOG_LEG_CODES["columns"],
-        dog_leg_rows: list[str] = IO_DOG_LEG_CODES["rows"],
+        sector_aggregation_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT,
+        dog_leg_columns: dict[str, str] = IO_DOG_LEG_CODES["columns"],
+        dog_leg_rows: dict[str, str] = IO_DOG_LEG_CODES["rows"],
     ) -> DataFrame:
         """Return an aggregated Input Output table via an aggregated mapping of sectors."""
-        agg_sector_dict: AggregatedSectorDict = self._aggregated_sectors_dict(
+        agg_sector_dict: AggregatedSectorDictType = self._aggregated_sectors_dict(
             sector_aggregation_dict
         )
         aggregated_sector_io_table = DataFrame(
@@ -352,14 +375,14 @@ def enforce_date_format(cell: str) -> str:
 
 def load_region_employment(
     sheet: str = NATIONAL_EMPLOYMENT_SHEET,
-    path: str = JOBS_BY_SECTOR_PATH,
+    path: Union[PathLike, IO] = JOBS_BY_SECTOR_PATH,
     date_column_name: str = DATE_COLUMN_NAME,
     covid_flags_column: str = COVID_FLAGS_COLUMN,
     **kwargs,
 ) -> DataFrame:
     """Load regional employment data from https://www.nomisweb.co.uk/ excel exports."""
-    if path is JOBS_BY_SECTOR_PATH:
-        path = open_binary(data, path)
+    if path is JOBS_BY_SECTOR_PATH and isinstance(path, Path):
+        path = open_binary(__package__, path)
     region: DataFrame = read_excel(
         path,
         sheet_name=sheet,
@@ -379,7 +402,7 @@ def load_region_employment(
 def aggregate_rows(
     full_df: DataFrame,
     trim_column_names: bool = False,
-    sector_dict: AggregatedSectorDict = SECTOR_10_CODE_DICT,
+    sector_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT,
 ) -> DataFrame:
     """Aggregate DataFrame rows to reflect aggregated sectors."""
     if trim_column_names:

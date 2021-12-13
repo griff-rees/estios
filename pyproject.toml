@@ -5,7 +5,7 @@ description = "RINO: Regional INput Output Economics"
 authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "~3.9"
 geopandas = "^0.10.2"
 
 [tool.poetry.dev-dependencies]
@@ -19,3 +19,6 @@ pre-commit = "^2.15.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
