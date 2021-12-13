@@ -9,12 +9,13 @@ python = "~3.9"
 geopandas = "^0.10.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^6.1"
 jupyterlab = "^3.2.2"
 plotly = "^5.3.1"
 openpyxl = "^3.0.9"
 xlrd = "^2.0.1"
 pre-commit = "^2.15.0"
+pytest-cov = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -22,3 +23,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+addopts = "--cov=regional_input_output --cov-report=term:skip-covered"
