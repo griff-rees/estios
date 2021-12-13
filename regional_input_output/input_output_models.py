@@ -14,10 +14,15 @@ from pandas import DataFrame, MultiIndex
 
 from .input_output_func import (
     DISTANCE_UNIT_DIVIDE,
+    E_i_m,
+    F_i_m,
+    M_i_m,
+    X_i_m,
     calc_city_distance,
     generate_ij_index,
     generate_ij_m_index,
     technical_coefficients,
+    x_i_mn_summed,
 )
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_PATH,
@@ -28,7 +33,8 @@ from .uk_data.utils import (
     IO_TABLE_2017_EXCEL_PATH,
     IO_TABLE_EXPORT_COLUMN_NAMES,
     IO_TABLE_FINAL_DEMAND_COLUMN_NAMES,
-    IO_TABLE_TOTAL_PRODUCTION_COLUMN,
+    IO_TABLE_IMPORTS_COLUMN_NAME,
+    IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME,
     JOBS_BY_SECTOR_PATH,
     SECTOR_10_CODE_DICT,
     TOTAL_OUTPUT_COLUMN,
@@ -138,6 +144,8 @@ class InterRegionInputOutput:
     export_column_names: list[str] = field(
         default_factory=lambda: IO_TABLE_EXPORT_COLUMN_NAMES
     )
+    imports_column_name: str = IO_TABLE_IMPORTS_COLUMN_NAME
+    total_production_column_name: str = IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME
     _spatial_model_cls: Type[SpatialConstrainedBaseClass] = AttractionConstrained
 
     def __post_init__(self) -> None:
@@ -243,10 +251,10 @@ class InterRegionInputOutput:
 
         X_i^m = X_*^m * Q_i^m/Q_*^m
         """
-        return (
-            self.io_table[self.sectors].loc["Total Sales"]
-            * self.employment_table
-            / self.national_employment
+        return X_i_m(
+            total_sales=self.io_table[self.sectors].loc["Total Sales"],
+            employment=self.employment_table,
+            national_employment=self.national_employment,
         )
 
     @cached_property
@@ -255,10 +263,10 @@ class InterRegionInputOutput:
 
         M_i^m = M_*^m * Q_i^m/Q_*^m
         """
-        return (
-            self.io_table[self.sectors].loc["Imports"]
-            * self.employment_table
-            / self.national_employment
+        return M_i_m(
+            imports=self.io_table[self.sectors].loc["Imports"],
+            employment=self.employment_table,
+            national_employment=self.national_employment,
         )
 
     @cached_property
@@ -267,22 +275,26 @@ class InterRegionInputOutput:
 
         F_i^m = F_*^m * Q_i^m/Q_*^m
         """
-        return (
-            self.io_table.loc[self.sectors, self.final_demand_column_names].sum(axis=1)
-            * self.employment_table
-            / self.national_employment
+        return F_i_m(
+            final_demand=self.io_table.loc[
+                self.sectors, self.final_demand_column_names
+            ].sum(axis=1),
+            employment=self.employment_table,
+            national_employment=self.national_employment,
         )
 
     @cached_property
     def E_i_m(self) -> DataFrame:
-        """Return the final demand of sector 𝑚 in city 𝑖and cache results.
+        """Return the exports of sector 𝑚 in city 𝑖and cache results.
 
         E_i^m = E_*^m * Q_i^m/Q_*^m
         """
-        return (
-            self.io_table.loc[self.sectors, self.export_column_names].sum(axis=1)
-            * self.employment_table
-            / self.national_employment
+        return E_i_m(
+            exports=self.io_table.loc[self.sectors, self.export_column_names].sum(
+                axis=1
+            ),
+            employment=self.employment_table,
+            national_employment=self.national_employment,
         )
 
     @cached_property
@@ -309,9 +321,8 @@ class InterRegionInputOutput:
 
         Note: the \\s is to avoid a docstring warning, and should have a single \
         """
-        return self.X_i_m.apply(
-            lambda row: (row * self.technical_coefficients.T).sum(),
-            axis=1,
+        return x_i_mn_summed(
+            X_i_m=self.X_i_m, technical_coefficients=self.technical_coefficients
         )
 
     @cached_property

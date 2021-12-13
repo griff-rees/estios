@@ -64,7 +64,8 @@ IO_TABLE_USECOLS: Final[str] = "A:DO"
 IO_TABLE_SKIPROWS: Final[list[int]] = [0, 1, 2, 5]  # Skips Rows 3 and 4
 IO_TABLE_INDEX_COL: Final[int] = 1  # Sets index to what was the 4th (now 2nd) row
 IO_TABLE_HEADER: Final[Union[int, list[int], None]] = None
-IO_TABLE_TOTAL_PRODUCTION_COLUMN: Final[str] = "Total Sales"
+IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME: Final[str] = "Total Sales"
+IO_TABLE_IMPORTS_COLUMN_NAME: Final[str] = "Imports"
 IO_TABLE_FINAL_DEMAND_COLUMN_NAMES: Final[list[str]] = [
     "Household Purchase",
     "Government Purchase",
@@ -78,7 +79,6 @@ IO_TABLE_EXPORT_COLUMN_NAMES: Final[list[str]] = [
 
 CPA_COLUMN_NAME: Final[str] = "CPA"
 SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
-IMPORTS_COLUMN_NAME: Final[str] = "Imports"
 NET_SUBSIDIES_COLUMN_NAME: Final[str] = "Net subsidies"
 INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 
@@ -182,7 +182,7 @@ def load_uk_io_table(
     header: Optional[Union[int, list[int]]] = IO_TABLE_HEADER,
     cpa_column_name: str = CPA_COLUMN_NAME,
     sector_desc_column_name: str = SECTOR_DESC_COLUMN_NAME,
-    imports_column_name: str = IMPORTS_COLUMN_NAME,
+    imports_column_name: str = IO_TABLE_IMPORTS_COLUMN_NAME,
     net_subsidies_column_name: str = NET_SUBSIDIES_COLUMN_NAME,
     intermediate_column_name: str = INTERMEDIATE_COLUMN_NAME,
     **kwargs,
