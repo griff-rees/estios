@@ -6,21 +6,23 @@ from dataclasses import dataclass, field
 from datetime import date
 from functools import cached_property
 from os import PathLike
-from typing import Final, Type
+from typing import Callable, Final, Type
 
 from geopandas import GeoDataFrame
 from numpy import exp
 from pandas import DataFrame, MultiIndex
 
 from .input_output_func import (
+    DEFAULT_IMPORT_EXPORT_ITERATIONS,
     DISTANCE_UNIT_DIVIDE,
+    INITIAL_P,
     E_i_m,
     F_i_m,
     M_i_m,
     X_i_m,
     calc_city_distance,
-    generate_ij_index,
-    generate_ij_m_index,
+    generate_e_m_dataframe,
+    import_export_force_convergence,
     technical_coefficients,
     x_i_mn_summed,
 )
@@ -46,6 +48,7 @@ from .uk_data.utils import (
     load_employment_by_city_and_sector,
     load_region_employment,
 )
+from .utils import generate_ij_index, generate_ij_m_index
 
 CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
 
@@ -125,12 +128,14 @@ class InterRegionInputOutput:
     # _start_run_time: Optional[datetime] = field(default_factory=datetime.now)
     # _end_run_time: Optional[datetime] = None
 
+    import_export_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
     regions: dict[str, str] = field(default_factory=lambda: deepcopy(CITY_REGIONS))
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
 
     sector_aggregation: AggregatedSectorDictType = field(
         default_factory=lambda: deepcopy(SECTOR_10_CODE_DICT)
     )
+    P_initial_export_proportion: float = INITIAL_P
 
     centre_for_cities_path: PathLike = CENTRE_FOR_CITIES_PATH
     centre_for_cities_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
@@ -147,6 +152,9 @@ class InterRegionInputOutput:
     imports_column_name: str = IO_TABLE_IMPORTS_COLUMN_NAME
     total_production_column_name: str = IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME
     _spatial_model_cls: Type[SpatialConstrainedBaseClass] = AttractionConstrained
+    _import_export_convergence: Callable[
+        ..., DataFrame
+    ] = import_export_force_convergence
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
@@ -326,12 +334,43 @@ class InterRegionInputOutput:
         )
 
     @cached_property
-    def y_ij_m(self) -> DataFrame:
+    def _y_ij_m(self) -> DataFrame:
         return self.spatial_interaction.y_ij_m
 
     @cached_property
     def spatial_interaction(self) -> SpatialConstrainedBaseClass:
         return self._spatial_model_cls(self.distances, self.employment_table)
+
+    @cached_property
+    def _initial_e_m(self) -> DataFrame:
+        """Return the initial e_m DataFrame for import_export_convergence."""
+        return generate_e_m_dataframe(
+            E_i_m=self.E_i_m,
+            initial_p=self.P_initial_export_proportion,
+            city_names=self.region_names,
+            sector_names=self.sectors,
+        )
+
+    def import_export_convergence(self) -> tuple[DataFrame, DataFrame]:
+        """Return the final results of model convergence in two dataframes.
+
+        Todo:
+            * Refactor to minimise call configuration.
+            * Rename e_i_m_summed to x_i_mn_summed
+            * Consider refactoring convergence as class
+        """
+        self.e_m_model, self.y_ij_m_model = import_export_force_convergence(
+            e_m_cities=self._initial_e_m,
+            y_ij_m=self._y_ij_m,
+            F_i_m=self.F_i_m,
+            E_i_m=self.E_i_m,
+            x_i_m_summed=self.x_i_mn_summed,
+            X_i_m=self.X_i_m,
+            M_i_m=self.M_i_m,
+            employment=self.employment_table,
+            iterations=self.import_export_iterations,
+        )
+        return self.e_m_model, self.y_ij_m_model
 
 
 @dataclass

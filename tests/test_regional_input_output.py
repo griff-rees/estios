@@ -10,20 +10,6 @@ from regional_input_output.uk_data.utils import (
     get_all_centre_for_cities_dict,
 )
 
-THREE_CITIES: tuple[str, str, str] = ("Manchester", "Leeds", "Liverpool")
-
-
-@pytest.fixture
-def three_cities() -> dict[str, str]:
-    return {
-        city: region for city, region in CITY_REGIONS.items() if city in THREE_CITIES
-    }
-
-
-@pytest.fixture
-def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutput:
-    return InterRegionInputOutput(regions=three_cities)
-
 
 @pytest.fixture
 def all_cities() -> dict[str, str]:
@@ -67,7 +53,7 @@ class TestInputOutputModel:
         )
         assert_series_equal(three_cities_io.distances["Distance"], CORRECT_DISTANCES)
 
-    def test_3_city_singly_constrained(self, three_cities_io) -> None:
+    def test_3_city_singly_constrained(self, three_cities_results) -> None:
         CORRECT_Q_i_m = [
             40,
             22035,
@@ -200,11 +186,14 @@ class TestInputOutputModel:
                 "exp(-β c_{ij})": None,
                 B_j_m_im_column: CORRECT_B_j_m_Q_im_distance,
             },
-            index=three_cities_io._ij_m_index,
+            index=three_cities_results._ij_m_index,
         )
-        assert_series_equal(CORRECT_y_ij_m_df["Q_i^m"], three_cities_io.y_ij_m["Q_i^m"])
         assert_series_equal(
-            CORRECT_y_ij_m_df[B_j_m_im_column], three_cities_io.y_ij_m[B_j_m_im_column]
+            CORRECT_y_ij_m_df["Q_i^m"], three_cities_results._y_ij_m["Q_i^m"]
+        )
+        assert_series_equal(
+            CORRECT_y_ij_m_df[B_j_m_im_column],
+            three_cities_results._y_ij_m[B_j_m_im_column],
         )
 
 

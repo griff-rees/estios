@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Final, Iterable
+from logging import getLogger
+from typing import Final, Iterable, Optional
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 from plotly.graph_objects import Figure
 
-from .uk_data.utils import CENTRE_FOR_CITIES_PATH  # IO_DOG_LEG_COEFFICIENTS,
 from .uk_data.utils import (
+    CENTRE_FOR_CITIES_PATH,
     CITIES_TOWNS_SHAPE_PATH,
     CITY_REGIONS,
     CITY_SECTOR_EMPLOYMENT_PATH,
@@ -17,13 +18,19 @@ from .uk_data.utils import (
     SECTOR_10_CODE_DICT,
     TOTAL_OUTPUT_COLUMN,
 )
+from .utils import (
+    CITY_COLUMN,
+    OTHER_CITY_COLUMN,
+    SECTOR_COLUMN,
+    generate_i_m_index,
+    generate_ij_index,
+)
+
+logger = getLogger(__name__)
 
 UK_CRS: Final[str] = "EPSG:27700"
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
 
-CITY_COLUMN: Final[str] = "City"
-OTHER_CITY_COLUMN: Final[str] = "Other_City"
-SECTOR_COLUMN: Final[str] = "Sector"
 DISTANCE_COLUMN: Final[str] = "Distance"
 DISTANCE_COLUMN_SUFFIX: Final[str] = "_Point"
 
@@ -36,6 +43,10 @@ MODEL_APPREVIATIONS: Final[dict[str, str]] = {
     "import": LATEX_m_i_m,
     "flows": LATEX_y_ij_m,
 }
+INITIAL_E_COLUMN_PREFIX: str = "initial "
+
+INITIAL_P: Final[float] = 0.1  # For initial e_m_iteration e calculation
+DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
 
 def technical_coefficients(
@@ -96,12 +107,38 @@ def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFr
     x_i^{mn} = a_i^{mn}X_i^n
 
     Equation 2:
-    X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n}
+
+        .. math::
+            X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{a_i^{mn}X_i^n}
+
+    Note: the \\s is to avoid a docstring warning, and should have a single \
     """
     return X_i_m.apply(
         lambda row: (row * technical_coefficients.T).sum(),
         axis=1,
     )
+
+
+def generate_e_m_dataframe(
+    E_i_m: DataFrame,
+    initial_p: float = INITIAL_P,
+    national_E: Optional[Series] = None,
+    city_names: Iterable[str] = CITY_REGIONS,
+    sector_names: Iterable[str] = SECTOR_10_CODE_DICT,
+    e_i_m_column_name: str = LATEX_e_i_m,
+    initial_e_column_prefix: str = INITIAL_E_COLUMN_PREFIX,
+) -> DataFrame:
+    """Return an e_m dataframe with an intial e_i^m column."""
+    index: MultiIndex
+    if national_E:
+        E_i_m = E_i_m.append(national_E)
+        index = generate_i_m_index(city_names, sector_names, include_national=True)
+    else:
+        index = generate_i_m_index(city_names, sector_names)
+    initial_e_column_name: str = initial_e_column_prefix + e_i_m_column_name
+    e_m_iter_df = DataFrame(index=index, columns=[initial_e_column_name])
+    e_m_iter_df[initial_e_column_name] = initial_p * E_i_m.stack().astype("float64")
+    return e_m_iter_df
 
 
 def calc_city_distance(
@@ -141,10 +178,92 @@ def calc_city_distance(
     return city_distances
 
 
+def import_export_force_convergence(
+    e_m_cities: DataFrame,
+    y_ij_m: DataFrame,
+    F_i_m: DataFrame,
+    E_i_m: DataFrame,
+    x_i_m_summed: DataFrame,
+    X_i_m: DataFrame,
+    M_i_m: DataFrame,
+    employment: DataFrame,
+    iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS,
+    e_i_m_symbol: str = LATEX_e_i_m,
+    m_i_m_symbol: str = LATEX_m_i_m,
+    y_ij_m_symbol: str = LATEX_y_ij_m,
+) -> tuple[DataFrame, DataFrame]:
+    """Iterate i times of step 2 (eq 14, 15 18) of the spatial interaction model."""
+    model_e_m: DataFrame = e_m_cities.copy()
+    model_y_ij_m: DataFrame = y_ij_m.copy()
+
+    # Equation 14
+    # (Rearranged equation 2)
+    # Implies a constant in the current form of the model
+    # m_i^m = F_i^m + e_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
+    # m_i^m = e_i^m + exogenous_i_m_constant
+    exogenous_i_m_constant: Final[Series] = (
+        F_i_m.stack()
+        + E_i_m.stack()
+        + x_i_m_summed.stack()
+        - X_i_m.stack()
+        - M_i_m.stack()
+    )
+    exogenous_i_m_constant.index.set_names(["City", "Sector"], inplace=True)
+
+    # Convergence element
+    convergence_by_sector: Series = exogenous_i_m_constant.groupby("Sector").apply(
+        lambda sector: employment[sector.name]
+        * sector.sum()
+        / employment[sector.name].sum()
+    )
+
+    # Need to replace Area with City in future
+    convergence_by_city: Series = convergence_by_sector.reorder_levels(
+        ["Area", "Sector"]
+    )
+    convergence_by_city = convergence_by_city.reindex(exogenous_i_m_constant.index)
+
+    # net_constraint = exogenous_i_m_constant - convergence_by_city
+    # This accounts for economic activity outside the 3 cities included in the model enforcing convergence
+    net_constraint = exogenous_i_m_constant - convergence_by_city
+
+    for i in range(iterations):
+        e_column: str = (
+            f"{e_i_m_symbol} {i - 1}" if i > 0 else f"initial {e_i_m_symbol}"
+        )
+
+        # Equation 14
+        # (Rearranged equation 2)
+        # m_i^m = F_i^m + e_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
+        # m_i^m = e_i^m + exogenous_i_m_constant
+        model_e_m[f"{m_i_m_symbol} {i}"] = model_e_m[e_column] + net_constraint
+
+        # Equation 15
+        # y_{ij}^m = B_j^m Q_i^m m_j^m \exp(-\beta c_{ij})
+        # Note: this groups by Other City and Sector
+        model_y_ij_m[f"{y_ij_m_symbol} {i}"] = model_y_ij_m.apply(
+            lambda row: row["B_j^m * Q_i^m * exp(-β c_{ij})"]
+            * model_e_m[f"{m_i_m_symbol} {i}"][row.name[1]][row.name[2]],
+            axis=1,
+        )
+        logger.info("Iteration", i)
+        logger.debug(model_y_ij_m[f"{y_ij_m_symbol} {i}"].head())
+        logger.debug(model_y_ij_m[f"{y_ij_m_symbol} {i}"].tail())
+
+        # Equation 18
+        # e_i^m = \sum_j{y_{ij}^m}
+        # Note: this section groups by City and Sector
+        model_e_m[f"{e_i_m_symbol} {i}"] = (
+            model_y_ij_m[f"{y_ij_m_symbol} {i}"].groupby(["City", "Sector"]).sum()
+        )
+    return model_e_m, model_y_ij_m
+
+
 def plot_iterations(
     df: DataFrame,
     model_variable: str,
     model_abbreviations: dict[str, str] = MODEL_APPREVIATIONS,
+    **kwargs,
 ) -> Figure:
     """Plot iterations of exports (e) or imports (m)."""
     if model_variable in model_abbreviations:
@@ -156,53 +275,11 @@ def plot_iterations(
     plot_df = df[columns]
     plot_df.index = [" ".join(label) for label in plot_df.index.values]
     region_names: list[str] = list(df.index.get_level_values(0).unique().values)
+    if len(region_names) < 4:
+        regions_title_str = f'{", ".join(region_names[:-1])} and {region_names[-1]}'
+    else:
+        regions_title_str = f"{len(region_names)} Cities"
     print(plot_df.columns)
     return plot_df.transpose().plot(
-        title=f'Iterations of {model_variable}s between {", ".join(region_names[:-1])} and {region_names[-1]}'
-    )
-
-
-def generate_i_m_index(
-    i_column: Iterable[str] = CITY_REGIONS,
-    m_column: Iterable[str] = SECTOR_10_CODE_DICT,
-    include_national: bool = False,
-    national_name: str = NATIONAL_COLUMN_NAME,
-    i_column_name: str = CITY_COLUMN,
-    m_column_name: str = SECTOR_COLUMN,
-) -> MultiIndex:
-    """Return an IM index, conditionally adding `national_name` as a region."""
-    if include_national:
-        i_column = list(i_column) + [national_name]
-    index_tuples: list = [(i, m) for i in i_column for m in m_column]
-    return MultiIndex.from_tuples(index_tuples, names=(i_column_name, m_column_name))
-
-
-def generate_ij_index(
-    regions: Iterable[str] = CITY_REGIONS,
-    other_regions: Iterable[str] = CITY_REGIONS,
-    m_column_name: str = OTHER_CITY_COLUMN,
-    **kwargs,
-) -> MultiIndex:
-    """Wrappy around generate_i_m_index with other_regions instead of sectors."""
-    return generate_i_m_index(
-        regions, other_regions, m_column_name=m_column_name, **kwargs
-    )
-
-
-def generate_ij_m_index(
-    regions: Iterable[str] = CITY_REGIONS,
-    sectors: Iterable[str] = SECTOR_10_CODE_DICT,
-    include_national: bool = False,
-    national_name: str = NATIONAL_COLUMN_NAME,
-    region_name: str = CITY_COLUMN,
-    alter_prefix: str = "Other_",
-) -> MultiIndex:
-    """Return an IJM index, conditionally adding `national_name` as a region."""
-    if include_national:
-        regions = list(regions) + [national_name]
-    index_tuples: list[tuple[str, str, str]] = [
-        (i, j, m) for i in regions for j in regions for m in sectors if i != j
-    ]
-    return MultiIndex.from_tuples(
-        index_tuples, names=(region_name, alter_prefix + region_name, SECTOR_COLUMN)
+        title=f"Iterations of {model_variable}s between {regions_title_str}", **kwargs
     )
