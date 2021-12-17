@@ -191,7 +191,7 @@ def import_export_force_convergence(
     e_i_m_symbol: str = LATEX_e_i_m,
     m_i_m_symbol: str = LATEX_m_i_m,
     y_ij_m_symbol: str = LATEX_y_ij_m,
-) -> tuple[DataFrame, DataFrame]:
+) -> tuple[DataFrame, DataFrame, Series]:
     """Iterate i times of step 2 (eq 14, 15 18) of the spatial interaction model."""
     model_e_m: DataFrame = e_m_cities.copy()
     model_y_ij_m: DataFrame = y_ij_m.copy()
@@ -225,7 +225,7 @@ def import_export_force_convergence(
 
     # net_constraint = exogenous_i_m_constant - convergence_by_city
     # This accounts for economic activity outside the 3 cities included in the model enforcing convergence
-    net_constraint = exogenous_i_m_constant - convergence_by_city
+    net_constraint: Final[Series] = exogenous_i_m_constant - convergence_by_city
 
     for i in range(iterations):
         e_column: str = (
@@ -256,7 +256,7 @@ def import_export_force_convergence(
         model_e_m[f"{e_i_m_symbol} {i}"] = (
             model_y_ij_m[f"{y_ij_m_symbol} {i}"].groupby(["City", "Sector"]).sum()
         )
-    return model_e_m, model_y_ij_m
+    return model_e_m, model_y_ij_m, net_constraint
 
 
 def plot_iterations(

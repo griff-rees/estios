@@ -14,6 +14,7 @@ from pandas import DataFrame, MultiIndex
 
 from .input_output_func import (
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
+    DISTANCE_COLUMN,
     DISTANCE_UNIT_DIVIDE,
     INITIAL_P,
     E_i_m,
@@ -36,8 +37,10 @@ from .uk_data.utils import (
     IO_TABLE_EXPORT_COLUMN_NAMES,
     IO_TABLE_FINAL_DEMAND_COLUMN_NAMES,
     IO_TABLE_IMPORTS_COLUMN_NAME,
+    IO_TABLE_SCALING,
     IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME,
     JOBS_BY_SECTOR_PATH,
+    JOBS_BY_SECTOR_SCALING,
     SECTOR_10_CODE_DICT,
     TOTAL_OUTPUT_COLUMN,
     AggregatedSectorDictType,
@@ -54,20 +57,59 @@ CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
 
 
 @dataclass
-class SpatialConstrainedBaseClass:
+class SpatialInteractionBaseClass:
 
+    # beta: float
     distances: GeoDataFrame
     employment: DataFrame
     employment_column_name: str = CITY_POPULATION_COLUMN_NAME
+    distance_column_name: str = DISTANCE_COLUMN
+
+    _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
 
     @property
     def y_ij_m(self) -> DataFrame:
         """Placeholder for initial conditions for model y_ij_m DataFrame."""
         raise NotImplementedError("This is not implemented in the BaseClass")
 
+    @property
+    def ij_m_index(self) -> MultiIndex:
+        """Return city x other city x sector MultiIndex."""
+        return self._gen_ij_m_func(self.employment.index, self.employment.columns)
+
+    def _func_by_index(self, func):
+        return [
+            func(city, other_city, sector)
+            for city, other_city, sector in self.ij_m_index
+        ]
+
+    def _Q_i_m_func(self, city, other_city, sector) -> float:
+        return self.employment.loc[city][sector]
+
+    def _distance_func(self, city, other_city, sector) -> float:
+        return self.distances[self.distance_column_name][city][other_city]
+
+    @property
+    def Q_i_m_list(self) -> list[float]:
+        return self._func_by_index(self._Q_i_m_func)
+
+    @property
+    def distance_list(self) -> list[float]:
+        return self._func_by_index(self._distance_func)
+
+    def distance_and_Q(self) -> DataFrame:
+        """Return basic DataFrame with Distance and Q_i^m columns."""
+        return DataFrame(
+            {
+                self.employment_column_name: self.Q_i_m_list,
+                self.distance_column_name: self.distance_list,
+            },
+            index=self.ij_m_index,
+        )
+
 
 @dataclass
-class AttractionConstrained(SpatialConstrainedBaseClass):
+class AttractionConstrained(SpatialInteractionBaseClass):
 
     beta: float = 0.0002
     constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
@@ -76,23 +118,10 @@ class AttractionConstrained(SpatialConstrainedBaseClass):
         """Return base config of model."""
         return f"Singly constrained attraction β = {self.beta}"
 
-    @property
-    def _ij_m_index(self) -> MultiIndex:
-        """Return sector x city x other city MultiIndex."""
-        return generate_ij_m_index(self.employment.index, self.employment.columns)
-
     def __post_init__(self) -> None:
         """Calculate core singly constrained spatial components."""
-        self.B_j_m: DataFrame = DataFrame({"Q_i^m": None}, index=self._ij_m_index)
-
-        # Inefficient, should just be reindexing distances
-        self.B_j_m["Distance"] = self.B_j_m.apply(
-            lambda row: self.distances["Distance"][row.name[0]][row.name[1]], axis=1
-        )
-        self.B_j_m[self.employment_column_name] = self.B_j_m.apply(
-            lambda row: self.employment.loc[row.name[0]][row.name[2]], axis=1
-        )
-        self.B_j_m["-β c_{ij}"] = -1 * self.B_j_m["Distance"] * self.beta
+        self.B_j_m = self.distance_and_Q()
+        self.B_j_m["-β c_{ij}"] = -1 * self.B_j_m[self.distance_column_name] * self.beta
         self.B_j_m["exp(-β c_{ij})"] = self.B_j_m["-β c_{ij}"].apply(lambda x: exp(x))
         self.B_j_m["Q_i^m * exp(-β c_{ij})"] = (
             self.B_j_m[self.employment_column_name] * self.B_j_m["exp(-β c_{ij})"]
@@ -151,7 +180,9 @@ class InterRegionInputOutput:
     )
     imports_column_name: str = IO_TABLE_IMPORTS_COLUMN_NAME
     total_production_column_name: str = IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME
-    _spatial_model_cls: Type[SpatialConstrainedBaseClass] = AttractionConstrained
+    national_employment_scale: float = JOBS_BY_SECTOR_SCALING
+    io_table_scale: float = IO_TABLE_SCALING
+    _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _import_export_convergence: Callable[
         ..., DataFrame
     ] = import_export_force_convergence
@@ -209,9 +240,15 @@ class InterRegionInputOutput:
             self._aggregated_national_employment: DataFrame = aggregate_rows(
                 self._national_employment
             )
-            return self._aggregated_national_employment.loc[str(self.employment_date)]
+            return (
+                self._aggregated_national_employment.loc[str(self.employment_date)]
+                * self.national_employment_scale
+            )
         else:
-            return self._national_employment.loc[str(self.employment_date)]
+            return (
+                self._national_employment.loc[str(self.employment_date)]
+                * self.national_employment_scale
+            )
 
     @cached_property
     def region_data(self) -> GeoDataFrame:
@@ -225,8 +262,11 @@ class InterRegionInputOutput:
             * Check ways of skipping aggregation
         """
         if self.sector_aggregation:
-            return self._raw_io_table.get_aggregated_io_table(
-                sector_aggregation_dict=self.sector_aggregation
+            return (
+                self._raw_io_table.get_aggregated_io_table(
+                    sector_aggregation_dict=self.sector_aggregation
+                )
+                * self.io_table_scale
             )
         else:
             raise NotImplementedError(
@@ -338,7 +378,7 @@ class InterRegionInputOutput:
         return self.spatial_interaction.y_ij_m
 
     @cached_property
-    def spatial_interaction(self) -> SpatialConstrainedBaseClass:
+    def spatial_interaction(self) -> SpatialInteractionBaseClass:
         return self._spatial_model_cls(self.distances, self.employment_table)
 
     @cached_property
@@ -359,7 +399,11 @@ class InterRegionInputOutput:
             * Rename e_i_m_summed to x_i_mn_summed
             * Consider refactoring convergence as class
         """
-        self.e_m_model, self.y_ij_m_model = import_export_force_convergence(
+        (
+            self.e_m_model,
+            self.y_ij_m_model,
+            self._net_converge,
+        ) = self._import_export_convergence(
             e_m_cities=self._initial_e_m,
             y_ij_m=self._y_ij_m,
             F_i_m=self.F_i_m,
@@ -380,4 +424,4 @@ class InterRegionInputOutputTimeSeries(InterRegionInputOutput):
 
     years: list[int] = field(default_factory=list)
     _input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput
-    _spatial_model_cls: Type[SpatialConstrainedBaseClass] = AttractionConstrained
+    _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained

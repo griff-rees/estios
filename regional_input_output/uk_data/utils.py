@@ -107,6 +107,8 @@ IO_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
     },
 }
 
+IO_TABLE_SCALING: Final[float] = 100000
+
 
 # ONS jobs data
 
@@ -114,6 +116,7 @@ JOBS_BY_SECTOR_PATH: Final[Path] = Path("jobs05sep2021.xls")
 DATE_COLUMN_NAME: Final[str] = "SIC 2007 section"
 COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
 NATIONAL_EMPLOYMENT_SHEET: Final[str] = "15. United Kingdom"
+JOBS_BY_SECTOR_SCALING: Final[float] = 1000
 
 # Census export Nomis city and sector employment data
 CITY_SECTOR_EMPLOYMENT_PATH: Final[Path] = Path("2423324239.csv")
@@ -287,6 +290,7 @@ class ONSInputOutputTable:
     cpa_column_name: str = CPA_COLUMN_NAME
     sector_prefix_str: str = CPA_COLUMN_NAME
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
+    io_scaling_factor: int = 1000000
     _first_code_row: int = IO_TABLE_FIST_CODE_ROW
     _sector_prefix_str: str = CPA_COLUMN_NAME
 
@@ -297,6 +301,7 @@ class ONSInputOutputTable:
         self.code_io_table: DataFrame = ons_io_table_to_codes(
             self.full_io_table, self.cpa_column_name
         )
+        self.io_table_scaled: DataFrame = self.code_io_table * self.io_scaling_factor
 
     @property
     def row_codes(self) -> Series:  # Default skip first row
