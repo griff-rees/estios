@@ -48,7 +48,7 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
 NATIONAL_COLUMN_NAME: Final[str] = "UK"
 EMPLOYMENT_QUARTER_DEC_2017: Final[date] = date(2017, 12, 1)
 
-CENTRE_FOR_CITIES_PATH: Final[PathLike] = Path("data-tool-export.csv")
+CENTRE_FOR_CITIES_PATH: Final[PathLike] = Path("centre-for-cities-data-tool.csv")
 CITIES_TOWNS_SHAPE_PATH: Final[PathLike] = Path("cities_towns.geojson")
 CENTRE_FOR_CITIES_INDEX_COL: Final[str] = "City"
 CENTRE_FOR_CITIES_NROWS: Final[int] = 63
@@ -119,7 +119,7 @@ NATIONAL_EMPLOYMENT_SHEET: Final[str] = "15. United Kingdom"
 JOBS_BY_SECTOR_SCALING: Final[float] = 1000
 
 # Census export Nomis city and sector employment data
-CITY_SECTOR_EMPLOYMENT_PATH: Final[Path] = Path("2423324239.csv")
+CITY_SECTOR_EMPLOYMENT_PATH: Final[Path] = Path("nomis-city-employment-2017.csv")
 CITY_SECTOR_SKIPROWS: Final[int] = 7
 CITY_SECTOR_SKIPFOOTER: Final[int] = 8
 CITY_SECTOR_ENGINE: Final[str] = "python"
