@@ -54,6 +54,8 @@ CENTRE_FOR_CITIES_INDEX_COL: Final[str] = "City"
 CENTRE_FOR_CITIES_NROWS: Final[int] = 63
 CENTRE_FOR_CITIES_DROP_COL_NAME: Final[str] = "Unnamed: 708"
 CENTRE_FOR_CITIES_NA_VALUES: Final[str] = " "
+CENTRE_FOR_CITIES_REGION_COLUMN: Final[str] = "REGION"
+CENTRE_FOR_CITIES_EPSG: Final[str] = "EPSG:27700"
 
 # Input-Ouput Table excel data file and configuration
 
@@ -125,6 +127,7 @@ CITY_SECTOR_SKIPFOOTER: Final[int] = 8
 CITY_SECTOR_ENGINE: Final[str] = "python"
 CITY_SECTOR_USECOLS: Final[Callable[[str], bool]] = lambda x: "Unnamed" not in x
 CITY_SECTOR_INDEX_COL: Final[int] = 0
+CITY_SECTOR_YEARS: Final[list] = [2011, 2017]
 
 CITY_SECTOR_REGION_PREFIX: Final[str] = "towncity:"
 
@@ -163,6 +166,7 @@ def load_centre_for_cities_gis(
 def load_and_join_centre_for_cities_data(
     city_path: PathLike = CENTRE_FOR_CITIES_PATH,
     spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH,
+    region_column: str = CENTRE_FOR_CITIES_REGION_COLUMN,
     **kwargs,
 ) -> GeoDataFrame:
     """Import and join Centre for Cities data (demographics and coordinates)."""
@@ -170,7 +174,7 @@ def load_and_join_centre_for_cities_data(
     cities_spatial: GeoDataFrame = load_centre_for_cities_gis(spatial_path, **kwargs)
     return GeoDataFrame(
         cities.join(
-            cities_spatial.set_index("NAME1")[["REGION", "COUNTRY", "geometry"]],
+            cities_spatial.set_index("NAME1")[[region_column, "COUNTRY", "geometry"]],
             how="inner",
         )
     )
@@ -438,7 +442,9 @@ SKIP_CITIES: Final[tuple[str, ...]] = (
 
 
 def get_all_centre_for_cities_dict(
-    skip_cities: Iterable = SKIP_CITIES, **kwargs
+    skip_cities: Iterable = SKIP_CITIES,
+    region_column: str = CENTRE_FOR_CITIES_REGION_COLUMN,
+    **kwargs,
 ) -> dict[str, str]:
     """Return a dict of all centre for cities with region.
 
@@ -447,7 +453,20 @@ def get_all_centre_for_cities_dict(
         * Try filtering by "COUNTRY" and "REGION"
     """
     cities_df: DataFrame = load_and_join_centre_for_cities_data(**kwargs)
-    cities_dict: dict[str, str] = cities_df["REGION"].to_dict()
+    cities_dict: dict[str, str] = cities_df[region_column].to_dict()
     return {
         city: region for city, region in cities_dict.items() if city not in skip_cities
     }
+
+
+def generate_employment_quarterly_dates(
+    years: Iterable[int], reverse: bool = False
+) -> Iterable[date]:
+    """Return quaterly dates for UK employment data in reverse chronological order."""
+    for year in years:
+        if reverse:
+            for month in range(12, 0, -3):
+                yield date(year, month, 1)
+        else:
+            for month in range(3, 13, 3):
+                yield date(year, month, 1)

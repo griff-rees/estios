@@ -4,7 +4,7 @@
 import pytest
 from pandas import MultiIndex
 
-from regional_input_output.input_output_func import plot_iterations
+from regional_input_output.visualisation import plot_iterations
 
 
 class TestPlotIterations:

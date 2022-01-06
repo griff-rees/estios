@@ -1,18 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections.abc import MutableSequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
 from functools import cached_property
+from logging import getLogger
 from os import PathLike
-from typing import Callable, Final, Type
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    Optional,
+    Type,
+    Union,
+    get_type_hints,
+    overload,
+)
 
 from geopandas import GeoDataFrame
 from numpy import exp
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 
 from .input_output_func import (
+    CITY_POPULATION_COLUMN_NAME,
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
     DISTANCE_COLUMN,
     DISTANCE_UNIT_DIVIDE,
@@ -21,9 +34,10 @@ from .input_output_func import (
     F_i_m,
     M_i_m,
     X_i_m,
+    andrews_suggestion,
     calc_city_distance,
     generate_e_m_dataframe,
-    import_export_force_convergence,
+    import_export_convergence,
     technical_coefficients,
     x_i_mn_summed,
 )
@@ -32,6 +46,7 @@ from .uk_data.utils import (
     CITIES_TOWNS_SHAPE_PATH,
     CITY_REGIONS,
     CITY_SECTOR_EMPLOYMENT_PATH,
+    CITY_SECTOR_YEARS,
     EMPLOYMENT_QUARTER_DEC_2017,
     IO_TABLE_2017_EXCEL_PATH,
     IO_TABLE_EXPORT_COLUMN_NAMES,
@@ -41,6 +56,7 @@ from .uk_data.utils import (
     IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME,
     JOBS_BY_SECTOR_PATH,
     JOBS_BY_SECTOR_SCALING,
+    NATIONAL_COLUMN_NAME,
     SECTOR_10_CODE_DICT,
     TOTAL_OUTPUT_COLUMN,
     AggregatedSectorDictType,
@@ -53,7 +69,13 @@ from .uk_data.utils import (
 )
 from .utils import generate_ij_index, generate_ij_m_index
 
-CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
+logger = getLogger(__name__)
+
+DEFAULT_TIME_SERIES_CONFIG = {
+    EMPLOYMENT_QUARTER_DEC_2017: {
+        "io_table_file_path": IO_TABLE_2017_EXCEL_PATH,
+    }
+}
 
 
 @dataclass
@@ -64,6 +86,8 @@ class SpatialInteractionBaseClass:
     employment: DataFrame
     employment_column_name: str = CITY_POPULATION_COLUMN_NAME
     distance_column_name: str = DISTANCE_COLUMN
+    national_term: bool = True
+    national_column_name: str = NATIONAL_COLUMN_NAME
 
     _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
 
@@ -149,17 +173,34 @@ class AttractionConstrained(SpatialInteractionBaseClass):
 
 
 @dataclass
-class InterRegionInputOutput:
+class DoublyConstrained(SpatialInteractionBaseClass):
 
-    """Manage Inter Region input output model runs."""
+    beta: float = 0.0002
+    constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
 
-    # Add these to support multiple runs
-    # _start_run_time: Optional[datetime] = field(default_factory=datetime.now)
-    # _end_run_time: Optional[datetime] = None
+    def __repr__(self) -> str:
+        """Return base config of model."""
+        return f"Singly constrained attraction β = {self.beta}"
 
-    import_export_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
+    def __post_init__(self) -> None:
+        """Calculate core singly constrained spatial components."""
+        self.b_ij_m = self.distance_and_Q()
+        self.b_ij_m["-β c_{ij}"] = (
+            -1 * self.b_ij_m[self.distance_column_name] * self.beta
+        )
+        self.b_ij_m["exp(-β c_{ij})"] = self.b_ij_m["-β c_{ij}"].apply(lambda x: exp(x))
+
+    def doubly_constrained(self) -> DataFrame:
+        pass
+
+
+@dataclass
+class InterRegionInputOutputBaseClass:
+
+    """Bass attributes for InputOutput Model and TimeSeries."""
+
+    max_import_export_model_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
     regions: dict[str, str] = field(default_factory=lambda: deepcopy(CITY_REGIONS))
-    employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
 
     sector_aggregation: AggregatedSectorDictType = field(
         default_factory=lambda: deepcopy(SECTOR_10_CODE_DICT)
@@ -168,9 +209,6 @@ class InterRegionInputOutput:
 
     centre_for_cities_path: PathLike = CENTRE_FOR_CITIES_PATH
     centre_for_cities_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
-    io_table_file_path: PathLike = IO_TABLE_2017_EXCEL_PATH
-    city_sector_employment_path: PathLike = CITY_SECTOR_EMPLOYMENT_PATH
-    national_employment_path: PathLike = JOBS_BY_SECTOR_PATH
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
         default_factory=lambda: IO_TABLE_FINAL_DEMAND_COLUMN_NAMES
@@ -183,9 +221,29 @@ class InterRegionInputOutput:
     national_employment_scale: float = JOBS_BY_SECTOR_SCALING
     io_table_scale: float = IO_TABLE_SCALING
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
-    _import_export_convergence: Callable[
-        ..., DataFrame
-    ] = import_export_force_convergence
+    _exogenous_i_m_func: Callable[..., Series] = andrews_suggestion
+    _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
+
+    @property
+    def region_names(self) -> list[str]:
+        """Return the region names."""
+        return list(self.regions.keys())
+
+    @property
+    def sectors(self) -> list[str]:
+        return [*self.sector_aggregation]
+
+
+@dataclass
+class InterRegionInputOutput(InterRegionInputOutputBaseClass):
+
+    """Manage Inter Region input output model runs."""
+
+    io_table_file_path: PathLike = IO_TABLE_2017_EXCEL_PATH
+    city_sector_employment_path: PathLike = CITY_SECTOR_EMPLOYMENT_PATH
+    national_employment_path: PathLike = JOBS_BY_SECTOR_PATH
+    employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
+    date: Optional[date] = None
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
@@ -202,6 +260,11 @@ class InterRegionInputOutput:
         self._employment_by_sector_and_city: DataFrame = (
             load_employment_by_city_and_sector(path=self.city_sector_employment_path)
         )
+        if not self.date:
+            self.date = self.employment_date
+            logger.warning(
+                f"Set {self} date to employment_date {self.employment_date}."
+            )
 
     def __repr__(self) -> str:
         return (
@@ -220,18 +283,15 @@ class InterRegionInputOutput:
         return generate_ij_m_index(self.regions, self.sectors)
 
     @property
-    def region_names(self) -> list[str]:
-        """Return the region names."""
-        return list(self.regions.keys())
-
-    @property
     def year(self) -> int:
-        """Return the year of the employment_date record."""
-        return self.employment_date.year
-
-    @property
-    def sectors(self) -> list[str]:
-        return [*self.sector_aggregation]
+        """Return the year of the date attribute."""
+        if self.date:
+            return self.date.year
+        else:
+            logger.warning(
+                f"Date not set, falling back to employment_date: {self.employment_date}."
+            )
+            return self.employment_date.year
 
     @cached_property
     def national_employment(self) -> DataFrame:
@@ -391,6 +451,22 @@ class InterRegionInputOutput:
             sector_names=self.sectors,
         )
 
+    @property
+    def exogenous_i_m(self) -> Series:
+        (
+            self._exogenous_i_m,
+            self._difference_i_m,
+            self._net_constraint,
+        ) = self._exogenous_i_m_func(
+            self.F_i_m,
+            self.E_i_m,
+            self.x_i_mn_summed,
+            self.X_i_m,
+            self.M_i_m,
+            self.employment_table,
+        )
+        return self._net_constraint
+
     def import_export_convergence(self) -> tuple[DataFrame, DataFrame]:
         """Return the final results of model convergence in two dataframes.
 
@@ -399,29 +475,236 @@ class InterRegionInputOutput:
             * Rename e_i_m_summed to x_i_mn_summed
             * Consider refactoring convergence as class
         """
-        (
-            self.e_m_model,
-            self.y_ij_m_model,
-            self._net_converge,
-        ) = self._import_export_convergence(
+        self.e_m_model, self.y_ij_m_model = self._import_export_convergence(
             e_m_cities=self._initial_e_m,
             y_ij_m=self._y_ij_m,
-            F_i_m=self.F_i_m,
-            E_i_m=self.E_i_m,
-            x_i_m_summed=self.x_i_mn_summed,
-            X_i_m=self.X_i_m,
-            M_i_m=self.M_i_m,
-            employment=self.employment_table,
-            iterations=self.import_export_iterations,
+            exogenous_i_m=self.exogenous_i_m,
+            iterations=self.max_import_export_model_iterations,
         )
         return self.e_m_model, self.y_ij_m_model
 
 
+class ModelsOrDatesAmbiguityError(Exception):
+
+    pass
+
+
 @dataclass
-class InterRegionInputOutputTimeSeries(InterRegionInputOutput):
+class InterRegionInputOutputTimeSeries(
+    MutableSequence, InterRegionInputOutputBaseClass
+):
 
-    """An Input-Output models over time."""
+    """Input-Output models over time."""
 
-    years: list[int] = field(default_factory=list)
+    io_models: list[InterRegionInputOutput] = field(default_factory=list)
+    _common_io_model_kwargs: dict = field(default_factory=dict)
     _input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput
-    _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
+    # _enforce_same_input_output_model: bool = True
+    # _populate_common_config_from_nth_model: Optional[int] = -1
+    # _copy_config_from_nth_io_model: int = 0
+    # _global_config_key_name: str = "__all_io_models__"
+    _io_model_config_index: Optional[int] = -1
+
+    def __post_init__(self) -> None:
+        """Apply configuration options, first default_io_model then _common_io_model_kwargs."""
+        if self._io_model_config_index != None:
+            self._apply_io_model_config()
+        self._apply_common_io_model_kwargs()
+
+    @property
+    def _default_io_model_config(self) -> Optional[InterRegionInputOutput]:
+        return (
+            self[self._io_model_config_index] if self._io_model_config_index else None
+        )
+
+    def _apply_io_model_config(self) -> None:
+        if self._default_io_model_config:
+            logger.info(
+                f"Setting attrs for {self} from {self._default_io_model_config} "
+                f"(index = {self._io_model_config_index})"
+            )
+            self._input_output_model_cls = type(self._default_io_model_config)
+            for var in get_type_hints(self.__class__):
+                # Note, get_type_hints(self) will only include local instance hints, not inherited
+                if var in get_type_hints(self._input_output_model_cls):
+                    value: Any = getattr(self._default_io_model_config, var)
+                    logger.debug(
+                        f"Setting {var} of {self} from {getattr(self, var)} to {value}"
+                    )
+                    setattr(self, var, value)
+        else:
+            logger.info(f"No self._default_io_model_config to apply.")
+
+    def _apply_common_io_model_kwargs(self):
+        """Apply all self._io_model_kwargs to self.io_models."""
+        logger.info(f"Applying ._common_io_model_kwargs to all {len(self)} io_models.")
+        for key, value in self._common_io_model_kwargs:
+            for io_model in self:
+                if hasattr(io_model, key):
+                    logger.debug(f"Setting {io_model} {key} to {value}.")
+                    setattr(io_model, key, value)
+
+    @classmethod
+    def from_dates(
+        cls,
+        # dates: Union[Iterable[date], dict[date: dict]],
+        dates: Union[Iterable[date], dict[date, dict]],
+        # common_io_model_kwargs: Optional[dict]
+        # common_config_index: Optional[int] = -1,
+        input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput,
+        **kwargs,
+    ) -> "InterRegionInputOutputTimeSeries":
+        """Generate an InterRegionInputOutputTimeSeries from a list of dates."""
+        logger.info(
+            "Generating an InputOutputTimeSeries with dates and passed general config."
+        )
+        io_models = []
+        if type(dates) is dict:
+            logger.debug(f"Iterating over {len(dates)} with dict configs")
+            # io_models: list[input_output_model_cls] = []
+            for date, config_dict in dates.items():
+                io_model = input_output_model_cls(date=date, **(config_dict | kwargs))
+                io_models.append(io_model)
+                logger.debug(f"Added {io_model} to list for generating time series.")
+            return cls(
+                io_models=io_models, _input_output_model_cls=input_output_model_cls
+            )
+            # for date, config_dict in dates.items():
+            #     io_model: input_output_model_cls = input_output_model_cls(
+            #         date=date, **config_dict | **)
+            #     io_models.append(input_output_model_cls)
+        # if common_config_index:
+        #
+        # io_models: list[input_output_model_cls]
+        # if type(dates) is dict:
+        #     for date, config_dict in dates.items():
+        #         io_model: input_output_model_cls = input_output_model_cls(
+        #             date=date, **config_dict | **)
+        #         io_models.append(input_output_model_cls)
+        # else:
+        else:
+            io_models = [input_output_model_cls(date=date, **kwargs) for date in dates]
+            return cls(
+                io_models=io_models,
+                _input_output_model_cls=input_output_model_cls,
+                **kwargs,
+            )
+
+    # def _extract_io_model_kwargs
+    #     if self._enforce_same_input_output_model and self._io_model_kwargs:
+    #         for key, value in self._io_model_kwargs:
+    #             for
+
+    # def __init__(self,
+    #              io_models: Optional[Iterable[InterRegionInputOutput]] = None,
+    #              dates: Optional[list[date]] = [
+    #                 EMPLOYMENT_QUARTER_DEC_2017.replace(year=2001),
+    #                 EMPLOYMENT_QUARTER_DEC_2017.replace(year=2011),
+    #                 EMPLOYMENT_QUARTER_DEC_2017,
+    #              ],
+    #              _input_output_model_cls = InterRegionInputOutput,
+    #              populate_from_nth: Optional[int] = -1,
+    #              **kwargs) -> None:
+    #     self._io_model_kwargs = kwargs
+    #     if io_models and not dates:
+    #         self._input_output_model_cls = type(io_models[0])
+    #         self.io_models = io_models
+    #     elif dates and not io_models:
+    #         self._input_output_model_cls = _input_output_model_cls
+    #         self.io_models = [
+    #             self._input_output_model_cls(self, employment_date=date,
+    #                                          **self._io_model_kwargs)
+    #             for date in dates]
+    #     elif (io_models and dates) or (not io_models and not dates):
+    #         raise ModelsOrDatesAmbiguityError("Only one of either io_models or dates is allowed, not both or neither.")
+    #     if populate_from_nth:
+    #         self._populate_attrs_from_nth_io_model(populate_from_nth)
+    #     super().__init__(**kwargs)
+
+    def __repr__(self) -> str:
+        prefix: str = (
+            f"Input output models from {self[0].date} to {self[-1].date}: "
+            if len(self)
+            else f"Empty Input-Output time series for "
+        )
+        return (
+            prefix
+            + f"{len(list(self.sectors))} sectors, {len(list(self.regions))} cities"
+        )
+
+    @overload
+    def __getitem__(self, i: int) -> InterRegionInputOutput:
+        ...
+
+    @overload
+    def __getitem__(self, s: slice) -> list[InterRegionInputOutput]:
+        ...
+
+    def __getitem__(
+        self, index
+    ) -> Union[InterRegionInputOutput, list[InterRegionInputOutput]]:
+        return self.io_models[index]
+
+    @overload
+    def __setitem__(self, i: int, item: InterRegionInputOutput) -> None:
+        ...
+
+    @overload
+    def __setitem__(self, s: slice, items: Iterable[InterRegionInputOutput]) -> None:
+        ...
+
+    def __setitem__(self, index, item):
+        self.io_models[index] = item
+
+    @overload
+    def __delitem__(self, i: int) -> None:
+        ...
+
+    @overload
+    def __delitem__(self, s: slice) -> None:
+        ...
+
+    def __delitem__(self, index):
+        del self.io_models[index]
+
+    def __len__(self) -> int:
+        return len(self.io_models)
+
+    def __iter__(self) -> Iterator[InterRegionInputOutput]:
+        return iter(self.io_models)
+
+    def insert(self, i: int, item: InterRegionInputOutput) -> None:
+        self.io_models.insert(i, item)
+
+    # @cached_property
+    @property
+    def years(self) -> Iterable[int]:
+        logger.warning(
+            "Potential inefficient indexing years method, consider generator"
+        )
+        # return [io_model.year for io_model in self]
+        return [date.year for date in self.dates]
+
+    # def year_query(self, year: int) -> InterRegionInputOutput:
+    #     logger.warning("Potential inefficient indexing in year_query")
+    #     for i, io_year in enumerate(self.years):
+    #         if io_year == year:
+    #             return self[i]
+
+    @property
+    def sectors(self) -> list[str]:
+        if self._io_model_config_index:
+            return self[self._io_model_config_index].sectors
+        else:
+            logger.warning(
+                f"_io_model_config_index of {self} not set, may need refactor."
+            )
+            return []
+
+    @property
+    def dates(self) -> list[date]:
+        return [model.date for model in self if model.date]
+
+    def calc_models(self) -> None:
+        for model in self:
+            model.import_export_convergence()
