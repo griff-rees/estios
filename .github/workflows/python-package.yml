@@ -28,7 +28,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install poetry pytest pre-commit
-        poetry export --dev --extras
+        poetry export --dev
         pip install -r requirements.txt
         pre-commit install
     - name: pre-commit
