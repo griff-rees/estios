@@ -5,22 +5,24 @@ from datetime import date
 from logging import getLogger
 from typing import Final
 
+import uvicorn
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 from fastapi import FastAPI
 from flask import Flask
+from geopandas import GeoDataFrame
 from jupyter_dash import JupyterDash
+from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
-import uvicorn
 
 from .input_output_models import InterRegionInputOutputTimeSeries
-from .visualisation import draw_ego_flows_network
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
     CONFIG_2017_QUARTERY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
+from .visualisation import draw_ego_flows_network
 
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
@@ -162,7 +164,7 @@ def run_server_dash(
     input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
 ) -> None:
     server = FastAPI()
-    app: Dash = get_server_dash(InterRegionInputOutputTimeSeries, **kwargs)
+    app: Dash = get_server_dash(input_output_ts, **kwargs)
     server.mount("/dash", WSGIMiddleware(app.server))
     uvicorn.run(server)
 

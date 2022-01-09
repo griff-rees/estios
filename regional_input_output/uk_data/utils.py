@@ -46,7 +46,6 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
 # UK Example Data files
 
 NATIONAL_COLUMN_NAME: Final[str] = "UK"
-EMPLOYMENT_QUARTER_DEC_2017: Final[date] = date(2017, 12, 1)
 
 CENTRE_FOR_CITIES_PATH: Final[PathLike] = Path("centre-for-cities-data-tool.csv")
 CITIES_TOWNS_SHAPE_PATH: Final[PathLike] = Path("cities_towns.geojson")
@@ -472,8 +471,8 @@ def generate_employment_quarterly_dates(
                 yield date(year, month, 1)
 
 
-CONFIG_2017_QUARTERY: Final[dict[date, dict['str', date]]] = {
-    date: {'employment_date': date} for date in
-    generate_employment_quarterly_dates([2017], reverse=False)
+CONFIG_2017_QUARTERY: Final[dict[date, dict["str", date]]] = {
+    date: {"employment_date": date}
+    for date in generate_employment_quarterly_dates([2017], reverse=False)
 }
 EMPLOYMENT_QUARTER_DEC_2017: Final[date] = tuple(CONFIG_2017_QUARTERY)[-1]

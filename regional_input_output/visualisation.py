@@ -4,7 +4,6 @@
 import os
 
 # These can be uncommented to use Mapbox's native vector format via a key in a local .env file
-from datetime import date
 from logging import getLogger
 from typing import Callable, Final, Optional, Union
 
@@ -19,7 +18,6 @@ from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
     EMPLOYMENT_QUARTER_DEC_2017,
-
 )
 from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero
 
