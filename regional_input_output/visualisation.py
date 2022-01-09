@@ -8,21 +8,18 @@ from datetime import date
 from logging import getLogger
 from typing import Callable, Final, Optional, Union
 
-from dash import Dash, dcc, html
-from dash.dependencies import Input, Output
 from dotenv import load_dotenv
 from geopandas import GeoDataFrame
-from jupyter_dash import JupyterDash
 from pandas import DataFrame, Series
 from plotly.express import bar, scatter_geo, scatter_mapbox, set_mapbox_access_token
 from plotly.graph_objects import Figure, Scattermapbox
 
 from .input_output_func import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
-from .input_output_models import InterRegionInputOutputTimeSeries
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
     EMPLOYMENT_QUARTER_DEC_2017,
+
 )
 from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero
 
@@ -38,7 +35,6 @@ except KeyError:
 MAPBOX_STYLE: Final[str] = "carto-darkmatter"
 JOBS_COLUMN: Final[str] = "Total Jobs 2017"
 ZOOM_DEFAULT: Final[float] = 4.7
-EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 MODEL_APPREVIATIONS: Final[dict[str, str]] = {
     "export": LATEX_e_i_m,
@@ -185,134 +181,3 @@ def draw_ego_flows_network(
     title: str = title_prefix + f"{selected_sector} flows from {selected_city}"
     fig.update_layout(title=title)
     return fig
-
-
-def get_dash_app(
-    input_output_ts: InterRegionInputOutputTimeSeries,
-    external_stylesheets: list[str] = EXTERNAL_STYLESHEETS,
-    default_date: date = EMPLOYMENT_QUARTER_DEC_2017,
-    default_top_sectors: int = 4,
-    default_sectors_marker_hops: int = 2,
-    default_region: str = "Manchester",
-    default_sector: str = "Production",
-    date_fmt: str = "%b %y",
-) -> Dash:
-    from IPython import get_ipython
-
-    app: Dash = (
-        JupyterDash(__name__, external_stylesheets=external_stylesheets)
-        if get_ipython()
-        else Dash(__name__, external_stylesheets=external_stylesheets)
-    )
-
-    app.layout = html.Div(
-        [
-            html.H1(
-                "City-level input-output flows",
-                style={"text-align": "center"},  # 'color':'#012e67' ,
-            ),
-            dcc.Graph(id="trade"),
-            dcc.Dropdown(
-                id="dropdown_city",
-                options=[
-                    {"label": city, "value": city}
-                    for city in input_output_ts.region_names
-                ],
-                searchable=True,
-                # placeholder="Select a city",
-                value=default_region,
-            ),
-            dcc.Dropdown(
-                id="dropdown_sector",
-                options=[
-                    {"label": sector, "value": sector}
-                    for sector in input_output_ts.sectors
-                ],  # need to replace this with an automated dictionary at some stage
-                searchable=True,
-                # placeholder="Select a sector",
-                value=default_sector,
-            ),
-            dcc.Slider(
-                id="date_index",
-                min=0,
-                max=len(input_output_ts) - 1,
-                step=None,
-                marks={
-                    i: date.strftime(date_fmt)
-                    for i, date in enumerate(input_output_ts.dates)
-                },
-                value=input_output_ts.dates.index(default_date),
-                included=False,
-            ),
-            dcc.Slider(
-                id="n_flows",
-                min=1,
-                max=len(input_output_ts.regions),
-                value=default_top_sectors,
-                step=1,
-                marks={
-                    i: f"top {i}"
-                    for i in range(
-                        0, len(input_output_ts.regions), default_sectors_marker_hops
-                    )
-                },
-                # tooltip={"placement": "bottom", "always_visible": True},
-            ),
-            dcc.Store(id="current_date_index"),
-        ]
-    )
-
-    # @app.callback(
-    #     Output('current_date_index', 'data'),
-    #     [Input('date_selected', 'value'),]
-    # )
-    # def set_date(date_selected: int) -> int:
-    #     print(date_selected)
-    #     date_obj: date = datetime.strptime(date_selected, '%Y-%m-%d').date()
-    #     return input_output_ts.dates.index(date_obj)
-
-    @app.callback(
-        Output("trade", "figure"),
-        [
-            Input("date_index", "value"),
-            Input("dropdown_city", "value"),
-            Input("dropdown_sector", "value"),
-            Input("n_flows", "value"),
-            # Input('in_vs_out_flow', 'value'),
-        ],
-    )
-    def draw_io_map(
-        date_index: int,
-        selected_city: str,
-        selected_sector: str,
-        n_flows: int,
-        # in_vs_out_flow: bool = True,
-    ) -> Figure:
-        region_data: GeoDataFrame = input_output_ts[date_index].region_data
-        fig = draw_ego_flows_network(
-            input_output_ts[date_index].region_data,
-            input_output_ts[date_index].y_ij_m_model,
-            selected_city,
-            selected_sector,
-            n_flows,
-        )
-        return fig
-
-    return app
-
-
-def get_jupyter_app(
-    input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
-) -> None:
-    app: JupyterDash = get_dash_app(input_output_ts)
-    # app.run_server(mode='jupyterlab', port = 8090, dev_tools_ui=True, #debug=True,
-    #                dev_tools_hot_reload =True, threaded=True)
-    app.run_server(mode="inline", dev_tools_hot_reload=True, **kwargs)
-    return app
-
-
-# $ jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
-
-
-# app.run_server(mode='jupyterlab', port = 8090, dev_tools_ui=True, #debug=True,
-#               dev_tools_hot_reload =True, threaded=True)

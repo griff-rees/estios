@@ -470,3 +470,10 @@ def generate_employment_quarterly_dates(
         else:
             for month in range(3, 13, 3):
                 yield date(year, month, 1)
+
+
+CONFIG_2017_QUARTERY: Final[dict[date, dict['str', date]]] = {
+    date: {'employment_date': date} for date in
+    generate_employment_quarterly_dates([2017], reverse=False)
+}
+EMPLOYMENT_QUARTER_DEC_2017: Final[date] = tuple(CONFIG_2017_QUARTERY)[-1]
