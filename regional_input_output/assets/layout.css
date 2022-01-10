@@ -10,28 +10,28 @@
 
 #dropdown_city {
   position: absolute;
-  top: 100px;
+  top: 200px;
   right: 50px;
-  width: 200px;
+  width: 400px;
 }
 
 #dropdown_sector {
   position: absolute;
-  top: 160px;
+  top: 260px;
   right: 50px;
-  width: 200px;
+  width: 400px;
 }
 
 #date_index {
   position: absolute;
-  top: 220px;
+  top: 320px;
   right: 50px;
-  width: 150px;
+  width: 350px;
 }
 
 #n_flows {
   position: absolute;
-  top: 280px;
+  top: 380px;
   right: 50px;
-  width: 150px;
+  width: 350px;
 }
