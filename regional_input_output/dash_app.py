@@ -3,7 +3,7 @@
 
 from datetime import date
 from logging import getLogger
-from typing import Final
+from typing import Final, Optional
 
 import uvicorn
 from dash import Dash, dcc, html
@@ -38,6 +38,7 @@ def get_dash_app(
     default_region: str = "Manchester",
     default_sector: str = "Production",
     date_fmt: str = "%b %y",
+    fullscreen: bool = True,
     **kwargs,
 ) -> Dash:
     from IPython import get_ipython
@@ -52,7 +53,7 @@ def get_dash_app(
         [
             html.H1(
                 "City-level input-output flows",
-                style={"text-align": "center"},  # 'color':'#012e67' ,
+                id="map-title",
             ),
             dcc.Graph(id="trade"),
             dcc.Dropdown(
@@ -61,7 +62,7 @@ def get_dash_app(
                     {"label": city, "value": city}
                     for city in input_output_ts.region_names
                 ],
-                searchable=True,
+                # searchable=True,
                 # placeholder="Select a city",
                 value=default_region,
             ),
@@ -71,7 +72,7 @@ def get_dash_app(
                     {"label": sector, "value": sector}
                     for sector in input_output_ts.sectors
                 ],  # need to replace this with an automated dictionary at some stage
-                searchable=True,
+                # searchable=True,
                 # placeholder="Select a sector",
                 value=default_sector,
             ),
@@ -138,7 +139,10 @@ def get_dash_app(
             selected_city,
             selected_sector,
             n_flows,
+            zoom=6,
         )
+        if fullscreen:
+            fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
     return app
@@ -161,9 +165,13 @@ def get_server_dash(
 
 
 def run_server_dash(
-    input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
+    input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None, **kwargs
 ) -> None:
     server = FastAPI()
+    if not input_output_ts:
+        logger.info("Using the default from_dates configuration")
+        input_output_ts = InterRegionInputOutputTimeSeries.from_dates()
+        input_output_ts.calc_models()
     app: Dash = get_server_dash(input_output_ts, **kwargs)
     server.mount("/dash", WSGIMiddleware(app.server))
     uvicorn.run(server)

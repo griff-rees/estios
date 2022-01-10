@@ -547,7 +547,7 @@ class InterRegionInputOutputTimeSeries(
     @classmethod
     def from_dates(
         cls,
-        dates: Union[Iterable[date], dict[date, dict]],
+        dates: Union[Iterable[date], dict[date, dict]] = DEFAULT_TIME_SERIES_CONFIG,
         input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput,
         **kwargs,
     ) -> "InterRegionInputOutputTimeSeries":

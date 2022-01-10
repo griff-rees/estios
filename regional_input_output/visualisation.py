@@ -140,14 +140,25 @@ def add_mapbox_edges(
         args=(fig,),
         axis=1,
     )
+    fig.update_layout(
+        legend=dict(
+            title=f"Flows from {mapbox_origin.index[0]} (and Regions)",
+            x=0,
+            y=1,
+            # traceorder="reversed",
+            # title_font_family="Times New Roman",
+            font=dict(family="Courier", size=12, color="white"),
+            bgcolor="rgba(0,0,0,0)",
+            bordercolor="rgba(0,0,0,0)",
+            # "white",
+            borderwidth=10,
+        )
+    )
     if render_below:
         fig.data = (
             fig.data[-len(mapbox_destinations.index) :]
             + fig.data[: -len(mapbox_destinations.index)]
         )
-    fig.update_layout(
-        legend=dict(title=f"Flows from {mapbox_origin.index[0]} (and Regions)")
-    )
     return fig
 
 
@@ -160,11 +171,12 @@ def draw_ego_flows_network(
     fig: Optional[Figure] = None,
     # in_vs_out_flow: bool = True,
     other_city_column_name: str = OTHER_CITY_COLUMN,
+    zoom: float = ZOOM_DEFAULT,
     **kwargs,
 ) -> Figure:
     # region_data: GeoDataFrame = input_output_ts[current_year_index].region_data
     if fig is None:
-        fig = mapbox_cities_fig(region_data)
+        fig = mapbox_cities_fig(region_data, zoom=zoom)
     selected_city_data: Series = region_data.loc[selected_city]
     flows: Series = filter_y_ij_m_by_city_sector(
         y_ij_m_results, selected_city, selected_sector
