@@ -15,11 +15,13 @@ from jupyter_dash import JupyterDash
 from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
 
+from regional_input_output.uk_data.utils import generate_employment_quarterly_dates
+
 from .input_output_models import InterRegionInputOutputTimeSeries
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
-    CONFIG_2017_QUARTERY,
+    CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
 from .visualisation import draw_ego_flows_network
@@ -165,13 +167,17 @@ def get_server_dash(
 
 
 def run_server_dash(
-    input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None, **kwargs
+    input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
+    config_data: Optional[dict] = CONFIG_2017_QUARTERLY,
+    **kwargs,
 ) -> None:
     server = FastAPI()
-    if not input_output_ts:
-        logger.info("Using the default from_dates configuration")
-        input_output_ts = InterRegionInputOutputTimeSeries.from_dates()
-        input_output_ts.calc_models()
+    if not input_output_ts and config_data:
+        logger.info("Using default config_data configuration")
+        input_output_ts = InterRegionInputOutputTimeSeries.from_dates(config_data)
+    assert input_output_ts, "No InputOuput TimeSeries to visualise"
+    logger.warning("Currently runs all InputOutput models again")
+    input_output_ts.calc_models()
     app: Dash = get_server_dash(input_output_ts, **kwargs)
     server.mount("/dash", WSGIMiddleware(app.server))
     uvicorn.run(server)
