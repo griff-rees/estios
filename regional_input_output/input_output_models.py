@@ -547,10 +547,7 @@ class InterRegionInputOutputTimeSeries(
     @classmethod
     def from_dates(
         cls,
-        # dates: Union[Iterable[date], dict[date: dict]],
         dates: Union[Iterable[date], dict[date, dict]],
-        # common_io_model_kwargs: Optional[dict]
-        # common_config_index: Optional[int] = -1,
         input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput,
         **kwargs,
     ) -> "InterRegionInputOutputTimeSeries":
@@ -561,7 +558,6 @@ class InterRegionInputOutputTimeSeries(
         io_models = []
         if type(dates) is dict:
             logger.debug(f"Iterating over {len(dates)} with dict configs")
-            # io_models: list[input_output_model_cls] = []
             for date, config_dict in dates.items():
                 io_model = input_output_model_cls(date=date, **(config_dict | kwargs))
                 io_models.append(io_model)
@@ -569,19 +565,6 @@ class InterRegionInputOutputTimeSeries(
             return cls(
                 io_models=io_models, _input_output_model_cls=input_output_model_cls
             )
-            # for date, config_dict in dates.items():
-            #     io_model: input_output_model_cls = input_output_model_cls(
-            #         date=date, **config_dict | **)
-            #     io_models.append(input_output_model_cls)
-        # if common_config_index:
-        #
-        # io_models: list[input_output_model_cls]
-        # if type(dates) is dict:
-        #     for date, config_dict in dates.items():
-        #         io_model: input_output_model_cls = input_output_model_cls(
-        #             date=date, **config_dict | **)
-        #         io_models.append(input_output_model_cls)
-        # else:
         else:
             io_models = [input_output_model_cls(date=date, **kwargs) for date in dates]
             return cls(
@@ -589,37 +572,6 @@ class InterRegionInputOutputTimeSeries(
                 _input_output_model_cls=input_output_model_cls,
                 **kwargs,
             )
-
-    # def _extract_io_model_kwargs
-    #     if self._enforce_same_input_output_model and self._io_model_kwargs:
-    #         for key, value in self._io_model_kwargs:
-    #             for
-
-    # def __init__(self,
-    #              io_models: Optional[Iterable[InterRegionInputOutput]] = None,
-    #              dates: Optional[list[date]] = [
-    #                 EMPLOYMENT_QUARTER_DEC_2017.replace(year=2001),
-    #                 EMPLOYMENT_QUARTER_DEC_2017.replace(year=2011),
-    #                 EMPLOYMENT_QUARTER_DEC_2017,
-    #              ],
-    #              _input_output_model_cls = InterRegionInputOutput,
-    #              populate_from_nth: Optional[int] = -1,
-    #              **kwargs) -> None:
-    #     self._io_model_kwargs = kwargs
-    #     if io_models and not dates:
-    #         self._input_output_model_cls = type(io_models[0])
-    #         self.io_models = io_models
-    #     elif dates and not io_models:
-    #         self._input_output_model_cls = _input_output_model_cls
-    #         self.io_models = [
-    #             self._input_output_model_cls(self, employment_date=date,
-    #                                          **self._io_model_kwargs)
-    #             for date in dates]
-    #     elif (io_models and dates) or (not io_models and not dates):
-    #         raise ModelsOrDatesAmbiguityError("Only one of either io_models or dates is allowed, not both or neither.")
-    #     if populate_from_nth:
-    #         self._populate_attrs_from_nth_io_model(populate_from_nth)
-    #     super().__init__(**kwargs)
 
     def __repr__(self) -> str:
         prefix: str = (
@@ -676,7 +628,6 @@ class InterRegionInputOutputTimeSeries(
     def insert(self, i: int, item: InterRegionInputOutput) -> None:
         self.io_models.insert(i, item)
 
-    # @cached_property
     @property
     def years(self) -> Iterable[int]:
         logger.warning(
@@ -684,12 +635,6 @@ class InterRegionInputOutputTimeSeries(
         )
         # return [io_model.year for io_model in self]
         return [date.year for date in self.dates]
-
-    # def year_query(self, year: int) -> InterRegionInputOutput:
-    #     logger.warning("Potential inefficient indexing in year_query")
-    #     for i, io_year in enumerate(self.years):
-    #         if io_year == year:
-    #             return self[i]
 
     @property
     def sectors(self) -> list[str]:

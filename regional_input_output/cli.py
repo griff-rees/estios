@@ -4,28 +4,31 @@
 from typer import Typer, echo
 
 from .dash_app import run_server_dash
+from .input_output_models import (
+    InterRegionInputOutput,
+    InterRegionInputOutputTimeSeries,
+)
 
-app: Typer = Typer()
-
-
-@app.callback
-def callback() -> None:
-    """A package for running inter-region Input-Output models."""
-
-
-# @app.command
-# def server() -> None:
-#     """Run the dash server for visualisation of a UK time series."""
-#     run_server_dash()
+app = Typer()
 
 
-@app.command
-def print_example() -> None:
-    """Run the toxen example."""
-    echo("exam;le")
+@app.callback()
+def callback():
+    """Regional Input-Output economic model."""
 
 
-@app.command
-def print_example2() -> None:
-    """Run the token example."""
-    echo("exam;le 2")
+@app.command()
+def server():
+    """Run default dash input-output time series."""
+    echo("Starting dash server")
+    io_models = InterRegionInputOutputTimeSeries()
+    run_server_dash(io_models)
+
+
+@app.command()
+def year(year_int: int = 2017):
+    """Run default dash input-output time series."""
+    echo("Running IO model for year 2017")
+    io_model = InterRegionInputOutput()
+    io_model.import_export_convergence()
+    echo(io_model.y_ij_m_model)
