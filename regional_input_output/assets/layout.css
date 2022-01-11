@@ -1,11 +1,19 @@
-.map-title {
-  text-align: center;
-  color: #01ffff;
+body {
+  margin: 0;
 }
 
 .dash-graph {
   width: 100vw;
   height: 100vh;
+}
+
+#map-title {
+  background: transparent;
+  position: absolute;
+  top: 20px;
+  left: 400px;
+  color: white;
+  z-index: 500;
 }
 
 #dropdown_city {
