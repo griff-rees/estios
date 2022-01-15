@@ -10,16 +10,23 @@ python = "~3.9"
 geopandas = "^0.10.2"
 
 [tool.poetry.group.visual.dependencies]
-python-dotenv = {extras = ["cli"], version = "^0.19.2"}
 plotly = "^5.3.1"
 jupyterlab = "^3.2.2"
 jupyter-dash = "^0.4.0"
+
+[tool.poetry.group.visual.dependencies.python-dotenv]
+extras = ["cli"]
+version = "^0.19.2"
 
 [tool.poetry.group.server.dependencies]
 gunicorn = "^20.1.0"
 fastapi = "^0.70.1"
 uvicorn = "^0.16.0"
-typer = {extras = ["all"], version = "^0.4.0"}
+dash-auth = "^1.4.1"
+
+[tool.poetry.group.server.dependencies.typer]
+extras = ["all"]
+version = "^0.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.1"

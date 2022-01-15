@@ -8,6 +8,8 @@ from typing import Final, Optional
 import uvicorn
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
+from dash_auth import BasicAuth
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from flask import Flask
 from geopandas import GeoDataFrame
@@ -17,6 +19,7 @@ from starlette.middleware.wsgi import WSGIMiddleware
 
 from regional_input_output.uk_data.utils import generate_employment_quarterly_dates
 
+from .auth import AuthDB  # , set_auth_middleware
 from .input_output_models import InterRegionInputOutputTimeSeries
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
@@ -26,9 +29,16 @@ from .uk_data.utils import (
 )
 from .visualisation import draw_ego_flows_network
 
-EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-
 logger = getLogger(__name__)
+load_dotenv()
+
+auth_db = AuthDB()
+
+VALID_USERNAME_PASSWORD_PAIRS: Final[dict[str, str]] = {
+    attr["name"]: attr["password"] for user, attr in auth_db.users.items()
+}
+
+EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 
 def get_dash_app(
@@ -161,26 +171,45 @@ def get_jupyter_app(
 
 
 def get_server_dash(
-    input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
-) -> Dash:
-    return get_dash_app(input_output_ts, requests_pathname_prefix="/dash/", **kwargs)
-
-
-def run_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
     config_data: Optional[dict] = CONFIG_2017_QUARTERLY,
+    auth: bool = True,
     **kwargs,
-) -> None:
-    server = FastAPI()
+) -> Dash:
     if not input_output_ts and config_data:
         logger.info("Using default config_data configuration")
         input_output_ts = InterRegionInputOutputTimeSeries.from_dates(config_data)
     assert input_output_ts, "No InputOuput TimeSeries to visualise"
-    logger.warning("Currently runs all InputOutput models again")
+    logger.warning(
+        "Currently runs all InputOutput models irrespective of cached results"
+    )
     input_output_ts.calc_models()
-    app: Dash = get_server_dash(input_output_ts, **kwargs)
-    server.mount("/dash", WSGIMiddleware(app.server))
-    uvicorn.run(server)
+    # server = FastAPI()
+    # flask_dash_app: Flask = Flask(__name__)
+    flask_dash_app: Dash = get_dash_app(
+        input_output_ts,  # server=flask_dash_app,
+        requests_pathname_prefix="/dash/",
+        **kwargs,
+    )
+    flask_dash_auth = BasicAuth(flask_dash_app, VALID_USERNAME_PASSWORD_PAIRS)
+    fastapi_server_app = FastAPI()
+    fastapi_server_app.mount("/dash", WSGIMiddleware(flask_dash_app.server))
+    # fastapi_server_app.mount("/dash", WSGIMiddleware(flask_dash_app.server))
+    # if auth:
+    #     auth_db = AuthDB()
+    #     set_auth_middleware(fastapi_server_app, auth_db)
+    return fastapi_server_app
+
+
+def run_server_dash(
+    **kwargs,
+) -> None:
+    # dash_app: Dash = get_server_dash(input_output_ts,**kwargs)
+    app: FastAPI = get_server_dash(**kwargs)
+    # server.mount("/dash", WSGIMiddleware(dash_app.server))
+
+    # [print(route) for route in app.routes]
+    uvicorn.run(app, port=8090)
 
 
 # $ jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
