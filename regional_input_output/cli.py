@@ -8,6 +8,7 @@ from .input_output_models import (
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )
+from .uk_data.utils import EMPLOYMENT_QUARTER_DEC_2017
 
 app = Typer()
 
@@ -32,10 +33,10 @@ def server(
 
 
 @app.command()
-def year(year_int: int = 2017) -> None:
-    """Run IO model for decmber 2017."""
+def year(year_int: int = EMPLOYMENT_QUARTER_DEC_2017.year) -> None:
+    """Run IO model for December 2017."""
     echo(f"Running IO model for year {year_int}")
-    echo(f"Warning: currently this assumes 2017.")
+    echo(f"Warning: {EMPLOYMENT_QUARTER_DEC_2017.year} currently forced.")
     io_model = InterRegionInputOutput()
     io_model.import_export_convergence()
     echo(io_model.y_ij_m_model)
