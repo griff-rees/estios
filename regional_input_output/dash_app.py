@@ -39,6 +39,8 @@ VALID_USERNAME_PASSWORD_PAIRS: Final[dict[str, str]] = {
 }
 
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+DEFAULT_SERVER_PORT: Final[int] = 8090
+DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
 
 
 def get_dash_app(
@@ -202,6 +204,8 @@ def get_server_dash(
 
 
 def run_server_dash(
+    port: int = DEFAULT_SERVER_PORT,
+    host: str = DEFAULT_SERVER_HOST_IP,
     **kwargs,
 ) -> None:
     # dash_app: Dash = get_server_dash(input_output_ts,**kwargs)
@@ -209,7 +213,7 @@ def run_server_dash(
     # server.mount("/dash", WSGIMiddleware(dash_app.server))
 
     # [print(route) for route in app.routes]
-    uvicorn.run(app, port=8090)
+    uvicorn.run(app, port=port, host=host)
 
 
 # $ jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
