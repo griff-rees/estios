@@ -5,6 +5,7 @@ import json
 import os
 from dataclasses import dataclass
 from logging import getLogger
+from pathlib import Path
 from typing import Final, Union
 
 # from dotenv import load_dotenv
@@ -18,10 +19,10 @@ logger = getLogger(__name__)
 # load_dotenv()
 
 # SERVER_SECRET_NAME: Final[str] = "SERVER-KEY"
-DBPathType = Union[str, bytes, os.PathLike]
+DBPathType = Union[str, os.PathLike]
 
-DBUserType = dict[str, dict[str, str]]
-DBDictType = dict[str, DBUserType]
+DBUserDictType = dict[str, dict[str, str]]
+DBDictType = dict[str, DBUserDictType]
 
 DB_PATH: Final[DBPathType] = "users_db.json"
 
@@ -41,8 +42,16 @@ class AuthDB:
     # manager = LoginManager(SECRET, '/login')
 
     def __post_init__(self):
-        with open(self.json_db_path) as db:
-            self.db = json.load(db)
+        if not isinstance(self.json_db_path, Path):
+            self.json_db_path = Path(self.json_db_path)
+        # self.json_db_path.resolve()
+        # self.json_db_path.mkdir(parents=True, exist_ok=True)
+        # if self.json_db_path.is_file() and self.json_db_path.stat().st_size:
+        if self.json_db_path.is_file():
+            with self.json_db_path.open("r") as db:
+                self.db = json.load(db)
+        else:
+            self.db = {}
 
         # @self.manager.user_loader()
         # def query_user(self, user_id: str) -> str:
@@ -54,14 +63,22 @@ class AuthDB:
         #     return self.users.get(user_id)
 
     @property
-    def users(self) -> DBUserType:
+    def users(self) -> DBUserDictType:
+        if not self.users_key in self.db:
+            logger.info(f"Adding {self.users_key} to {self.json_db_path}")
+            self.db[self.users_key] = {}
         return self.db[self.users_key]
 
     def add_user(self, user_id: str, name: str, password: str) -> None:
         self.users[user_id] = {"name": name, "password": password}
 
     def write(self) -> None:
-        with open(self.json_db_path, "w") as db_file:
+        if not isinstance(self.json_db_path, Path):
+            self.json_db_path = Path(self.json_db_path)
+        if not self.json_db_path.exists():
+            self.json_db_path.parent.mkdir(parents=True, exist_ok=True)
+            # self.json_db_path.touch()
+        with self.json_db_path.open("w+") as db_file:
             json.dump(self.db, db_file)
 
 
