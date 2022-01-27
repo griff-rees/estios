@@ -23,13 +23,16 @@ def server(
     public: bool = False,
     host: str = DEFAULT_SERVER_HOST_IP,
     port: int = DEFAULT_SERVER_PORT,
+    auth: bool = True,
 ) -> None:
     """Run default dash input-output time series."""
     if public:
         host = "0.0.0.0"
         port = 443
     echo(f"Starting dash server with port {port} and ip {host}")
-    run_server_dash(host=host, port=port)
+    if not auth:
+        echo(f"Warning: publicly viewable without authentication.")
+    run_server_dash(host=host, port=port, auth=auth)
 
 
 @app.command()
