@@ -17,7 +17,10 @@ from jupyter_dash import JupyterDash
 from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
 
-from regional_input_output.uk_data.utils import generate_employment_quarterly_dates
+from regional_input_output.uk_data.utils import (
+    generate_employment_quarterly_dates,
+    get_all_centre_for_cities_dict,
+)
 
 from .auth import AuthDB  # , set_auth_middleware
 from .input_output_models import InterRegionInputOutputTimeSeries
@@ -41,6 +44,7 @@ VALID_USERNAME_PASSWORD_PAIRS: Final[dict[str, str]] = {
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 DEFAULT_SERVER_PORT: Final[int] = 8090
 DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
+DEFAULT_SERVER_PATH: Final[str] = "/dash"
 
 
 def get_dash_app(
@@ -176,11 +180,20 @@ def get_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
     config_data: Optional[dict] = CONFIG_2017_QUARTERLY,
     auth: bool = True,
+    all_cities: bool = False,
+    path_prefix: str = DEFAULT_SERVER_PATH,
     **kwargs,
 ) -> Dash:
     if not input_output_ts and config_data:
         logger.info("Using default config_data configuration")
-        input_output_ts = InterRegionInputOutputTimeSeries.from_dates(config_data)
+        if all_cities:
+            logger.info("Using almost all UK cities (currently only England).")
+            almost_all_cities: dict[str, str] = get_all_centre_for_cities_dict()
+            input_output_ts = InterRegionInputOutputTimeSeries.from_dates(
+                config_data, regions=almost_all_cities
+            )
+        else:
+            input_output_ts = InterRegionInputOutputTimeSeries.from_dates(config_data)
     assert input_output_ts, "No InputOuput TimeSeries to visualise"
     logger.warning(
         "Currently runs all InputOutput models irrespective of cached results"
@@ -190,16 +203,18 @@ def get_server_dash(
     # flask_dash_app: Flask = Flask(__name__)
     flask_dash_app: Dash = get_dash_app(
         input_output_ts,  # server=flask_dash_app,
-        requests_pathname_prefix="/dash/",
+        requests_pathname_prefix=path_prefix,
         **kwargs,
     )
-    flask_dash_auth = BasicAuth(flask_dash_app, VALID_USERNAME_PASSWORD_PAIRS)
+    if auth:
+        logger.info("Adding basic authentication.")
+        BasicAuth(flask_dash_app, VALID_USERNAME_PASSWORD_PAIRS)
+        #     auth_db = AuthDB()
+        #     set_auth_middleware(fastapi_server_app, auth_db)
+    else:
+        logger.warning("No authentication required.")
     fastapi_server_app = FastAPI()
-    fastapi_server_app.mount("/dash", WSGIMiddleware(flask_dash_app.server))
-    # fastapi_server_app.mount("/dash", WSGIMiddleware(flask_dash_app.server))
-    # if auth:
-    #     auth_db = AuthDB()
-    #     set_auth_middleware(fastapi_server_app, auth_db)
+    fastapi_server_app.mount(path_prefix, WSGIMiddleware(flask_dash_app.server))
     return fastapi_server_app
 
 

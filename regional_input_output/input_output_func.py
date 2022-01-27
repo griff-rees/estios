@@ -412,7 +412,7 @@ def import_export_convergence(
             * model_e_m[f"{m_i_m_symbol} {i}"][row.name[1]][row.name[2]],
             axis=1,
         )
-        logger.info("Iteration", i)
+        logger.info(f"Iteration {i}")
         logger.debug(model_y_ij_m[f"{y_ij_m_symbol} {i}"].head())
         logger.debug(model_y_ij_m[f"{y_ij_m_symbol} {i}"].tail())
 

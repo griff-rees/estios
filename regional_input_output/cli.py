@@ -21,9 +21,10 @@ def callback() -> None:
 @app.command()
 def server(
     public: bool = False,
+    all_cities: bool = False,
+    auth: bool = True,
     host: str = DEFAULT_SERVER_HOST_IP,
     port: int = DEFAULT_SERVER_PORT,
-    auth: bool = True,
 ) -> None:
     """Run default dash input-output time series."""
     if public:
@@ -32,7 +33,7 @@ def server(
     echo(f"Starting dash server with port {port} and ip {host}")
     if not auth:
         echo(f"Warning: publicly viewable without authentication.")
-    run_server_dash(host=host, port=port, auth=auth)
+    run_server_dash(host=host, port=port, all_cities=all_cities, auth=auth)
 
 
 @app.command()
