@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from logging import INFO, WARNING
 from pathlib import Path
 from shutil import rmtree
 from typing import Generator
 
 import pytest
+from dash import Dash
 
 from regional_input_output.auth import AuthDB
-from regional_input_output.dash_app import get_server_dash
+from regional_input_output.dash_app import DEFAULT_SERVER_PATH, get_server_dash
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
 
@@ -20,7 +22,7 @@ def tmp_json_auth_file(
     """Create a temp auth json file and remove after test.
 
     Note:
-     * Worth replacing with pytest fixture:
+     * Worth replacing with a pytest fixture factory
        https://docs.pytest.org/en/latest/how-to/tmp_path.html
     """
     test_path.unlink(missing_ok=True)
@@ -30,9 +32,39 @@ def tmp_json_auth_file(
     rmtree(test_path.parent)
 
 
-def test_server() -> None:
-    server = get_server_dash()
-    "/dash" in [route.path for route in server.routes]
+def server_paths(server) -> Generator[str, None, None]:
+    """Return if path is in server.routes"""
+    for route in server.routes:
+        yield route.path
+
+
+def test_server_no_auth(caplog) -> None:
+    no_auth_log: tuple[str, int, str] = (
+        "regional_input_output.dash_app",
+        WARNING,
+        "No authentication required.",
+    )
+    with caplog.at_level(INFO):
+        server: Dash = get_server_dash(auth=False)
+    assert no_auth_log in caplog.record_tuples
+    assert DEFAULT_SERVER_PATH in list(server_paths(server))
+
+
+def test_server_auth(caplog) -> None:
+    auth_log: tuple[str, int, str] = (
+        "regional_input_output.dash_app",
+        INFO,
+        "Adding basic authentication.",
+    )
+    with caplog.at_level(INFO):
+        server: Dash = get_server_dash()
+    assert auth_log in caplog.record_tuples
+
+
+def test_path_prefix() -> None:
+    test_path: str = "/a/path/test"
+    server: Dash = get_server_dash(path_prefix=test_path)
+    assert test_path in list(server_paths(server))
 
 
 def test_AuthDB(tmp_json_auth_file) -> None:

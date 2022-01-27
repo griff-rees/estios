@@ -44,7 +44,11 @@ build-backend = "poetry.core.masonry.api"
 profile = "black"
 
 [tool.pytest.ini_options]
-addopts = "--cov=regional_input_output --cov-report=term:skip-covered"
+addopts = """
+--cov=regional_input_output
+--cov-report=term:skip-covered
+--pdbcls=IPython.terminal.debugger:TerminalPdb
+"""
 
 [tool.poetry.scripts]
 region-io = "regional_input_output.cli:app"
