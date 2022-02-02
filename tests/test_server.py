@@ -9,7 +9,7 @@ from typing import Generator
 import pytest
 from dash import Dash
 
-from regional_input_output.auth import AuthDB
+from regional_input_output.auth import DB_PATH, AuthDB
 from regional_input_output.dash_app import DEFAULT_SERVER_PATH, get_server_dash
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
@@ -50,14 +50,15 @@ def test_server_no_auth(caplog) -> None:
     assert DEFAULT_SERVER_PATH in list(server_paths(server))
 
 
-def test_server_auth(caplog) -> None:
+def test_server_auth(caplog, tmp_path) -> None:
+    tmp_file = tmp_path / "test.db"
     auth_log: tuple[str, int, str] = (
         "regional_input_output.dash_app",
         INFO,
-        "Adding basic authentication.",
+        f"Adding basic authentication from {tmp_file}.",
     )
     with caplog.at_level(INFO):
-        server: Dash = get_server_dash()
+        server: Dash = get_server_dash(auth_db_path=tmp_file)
     assert auth_log in caplog.record_tuples
 
 

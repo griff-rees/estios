@@ -3,7 +3,12 @@
 
 from typer import Typer, echo
 
-from .dash_app import DEFAULT_SERVER_HOST_IP, DEFAULT_SERVER_PORT, run_server_dash
+from .dash_app import (
+    DEFAULT_SERVER_HOST_IP,
+    DEFAULT_SERVER_PATH,
+    DEFAULT_SERVER_PORT,
+    run_server_dash,
+)
 from .input_output_models import (
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
@@ -25,13 +30,16 @@ def server(
     auth: bool = True,
     host: str = DEFAULT_SERVER_HOST_IP,
     port: int = DEFAULT_SERVER_PORT,
+    path: str = DEFAULT_SERVER_PATH,
 ) -> None:
     """Run default dash input-output time series."""
     if public:
         host = "0.0.0.0"
         port = 443
-    echo(f"Starting dash server with port {port} and ip {host}")
-    run_server_dash(host=host, port=port, all_cities=all_cities, auth=auth)
+    echo(f"Starting dash server with port {port} and ip {host} at {path}")
+    run_server_dash(
+        host=host, port=port, all_cities=all_cities, auth=auth, path_prefix=path
+    )
 
 
 @app.command()

@@ -81,6 +81,9 @@ class AuthDB:
         with self.json_db_path.open("w+") as db_file:
             json.dump(self.db, db_file)
 
+    def get_users_dict(self) -> dict[str, str]:
+        return {user["name"]: user["password"] for user in self.users.values()}
+
 
 # def set_auth_middleware(app: FastAPI, auth_db: AuthDB) -> FastAPI:
 #     return auth_db.manager.useRequest(app)

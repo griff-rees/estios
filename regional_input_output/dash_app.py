@@ -22,7 +22,7 @@ from regional_input_output.uk_data.utils import (
     get_all_centre_for_cities_dict,
 )
 
-from .auth import AuthDB  # , set_auth_middleware
+from .auth import DB_PATH, AuthDB, DBPathType  # , set_auth_middleware
 from .input_output_models import InterRegionInputOutputTimeSeries
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
@@ -35,16 +35,15 @@ from .visualisation import draw_ego_flows_network
 logger = getLogger(__name__)
 load_dotenv()
 
-auth_db = AuthDB()
-
-VALID_USERNAME_PASSWORD_PAIRS: Final[dict[str, str]] = {
-    attr["name"]: attr["password"] for user, attr in auth_db.users.items()
-}
 
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 DEFAULT_SERVER_PORT: Final[int] = 8090
 DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
 DEFAULT_SERVER_PATH: Final[str] = "/dash"
+
+DEFAULT_REGION: Final[str] = "Manchester"
+DEFAULT_SECTOR: Final[str] = "Production"
+DEFUALT_DATE_FORMAT: Final[str] = "%b %y"
 
 
 def get_dash_app(
@@ -53,9 +52,9 @@ def get_dash_app(
     default_date: date = EMPLOYMENT_QUARTER_DEC_2017,
     default_top_sectors: int = 4,
     default_sectors_marker_hops: int = 2,
-    default_region: str = "Manchester",
-    default_sector: str = "Production",
-    date_fmt: str = "%b %y",
+    default_region: str = DEFAULT_REGION,
+    default_sector: str = DEFAULT_SECTOR,
+    date_fmt: str = DEFUALT_DATE_FORMAT,
     fullscreen: bool = True,
     **kwargs,
 ) -> Dash:
@@ -180,6 +179,7 @@ def get_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
     config_data: Optional[dict] = CONFIG_2017_QUARTERLY,
     auth: bool = True,
+    auth_db_path: DBPathType = DB_PATH,
     all_cities: bool = False,
     path_prefix: str = DEFAULT_SERVER_PATH,
     **kwargs,
@@ -207,8 +207,9 @@ def get_server_dash(
         **kwargs,
     )
     if auth:
-        logger.info("Adding basic authentication.")
-        BasicAuth(flask_dash_app, VALID_USERNAME_PASSWORD_PAIRS)
+        logger.info(f"Adding basic authentication from {auth_db_path}.")
+        auth_pairs: dict[str, str] = AuthDB(auth_db_path).get_users_dict()
+        BasicAuth(flask_dash_app, auth_pairs)
         #     auth_db = AuthDB()
         #     set_auth_middleware(fastapi_server_app, auth_db)
     else:
