@@ -37,6 +37,8 @@ def server(
         host = "0.0.0.0"
         port = 443
     echo(f"Starting dash server with port {port} and ip {host} at {path}")
+    if not auth:
+        echo(f"Warning: publicly viewable without authentication.")
     run_server_dash(
         host=host, port=port, all_cities=all_cities, auth=auth, path_prefix=path
     )
