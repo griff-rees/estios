@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typer import Typer, echo
+from typer import Typer, echo, secho
+from typer.colors import GREEN, RED
 
 from .dash_app import (
     DEFAULT_SERVER_HOST_IP,
@@ -39,9 +40,9 @@ def server(
         port = 443
     path = enforce_start_str(path, "/", True)
     path = enforce_end_str(path, "/", False)
-    echo(f"Starting dash server with port {port} and ip {host} at {path}")
+    secho(f"Starting dash server with port {port} and ip {host} at {path}", fg=GREEN)
     if not auth:
-        echo(f"Warning: publicly viewable without authentication.")
+        secho(f"Warning: publicly viewable without authentication.", fg=RED)
     run_server_dash(
         host=host, port=port, all_cities=all_cities, auth=auth, path_prefix=path
     )
