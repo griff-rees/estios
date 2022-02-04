@@ -86,6 +86,26 @@ def log_x_or_return_zero(x: float) -> Optional[float]:
     return log(x) if x > 0 else 0.0
 
 
+def enforce_start_str(string: str, prefix: str, on: bool) -> str:
+    """Ensure a string's prefix characters of a string are there or removed."""
+    if on:
+        logger.debug(f"Ensuring {string} starts with {prefix}")
+        return string if string.startswith(prefix) else prefix + string
+    else:
+        logger.debug(f"Ensuring {string} doesn't start with {prefix}")
+        return string.removeprefix(prefix)
+
+
+def enforce_end_str(string: str, suffix: str, on: bool) -> str:
+    """Ensure a string's suffix characters are there or removed."""
+    if on:
+        logger.debug(f"Ensuring {string} ends with {suffix}")
+        return string if string.endswith(suffix) else string + suffix
+    else:
+        logger.debug(f"Ensuring {string} doesn't end with {suffix}")
+        return string.removesuffix(suffix)
+
+
 # def y_ij_m_to_networkx(y_ij_m_results: Series,
 #                        city_column: str = CITY_COLUMN) -> DiGraph:
 #     flows: DiGraph()

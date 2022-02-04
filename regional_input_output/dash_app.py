@@ -30,6 +30,7 @@ from .uk_data.utils import (
     CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
+from .utils import enforce_end_str, enforce_start_str
 from .visualisation import draw_ego_flows_network
 
 logger = getLogger(__name__)
@@ -40,6 +41,7 @@ EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwg
 DEFAULT_SERVER_PORT: Final[int] = 8090
 DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
 DEFAULT_SERVER_PATH: Final[str] = "/dash"
+PATH_SPLIT_CHAR: Final[str] = "/"
 
 DEFAULT_REGION: Final[str] = "Manchester"
 DEFAULT_SECTOR: Final[str] = "Production"
@@ -184,6 +186,7 @@ def get_server_dash(
     path_prefix: str = DEFAULT_SERVER_PATH,
     **kwargs,
 ) -> Dash:
+    path_prefix = enforce_start_str(path_prefix, PATH_SPLIT_CHAR, True)
     if not input_output_ts and config_data:
         logger.info("Using default config_data configuration")
         if all_cities:
@@ -203,7 +206,7 @@ def get_server_dash(
     # flask_dash_app: Flask = Flask(__name__)
     flask_dash_app: Dash = get_dash_app(
         input_output_ts,  # server=flask_dash_app,
-        requests_pathname_prefix=path_prefix,
+        requests_pathname_prefix=enforce_end_str(path_prefix, PATH_SPLIT_CHAR, True),
         **kwargs,
     )
     if auth:
@@ -215,7 +218,10 @@ def get_server_dash(
     else:
         logger.warning("No authentication required.")
     fastapi_server_app = FastAPI()
-    fastapi_server_app.mount(path_prefix, WSGIMiddleware(flask_dash_app.server))
+    fastapi_server_app.mount(
+        enforce_end_str(path_prefix, PATH_SPLIT_CHAR, False),
+        WSGIMiddleware(flask_dash_app.server),
+    )
     return fastapi_server_app
 
 

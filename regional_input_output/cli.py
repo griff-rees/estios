@@ -14,6 +14,7 @@ from .input_output_models import (
     InterRegionInputOutputTimeSeries,
 )
 from .uk_data.utils import EMPLOYMENT_QUARTER_DEC_2017
+from .utils import enforce_end_str, enforce_start_str
 
 app = Typer()
 
@@ -36,6 +37,8 @@ def server(
     if public:
         host = "0.0.0.0"
         port = 443
+    path = enforce_start_str(path, "/", True)
+    path = enforce_end_str(path, "/", False)
     echo(f"Starting dash server with port {port} and ip {host} at {path}")
     if not auth:
         echo(f"Warning: publicly viewable without authentication.")
