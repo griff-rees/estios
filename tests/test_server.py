@@ -9,8 +9,8 @@ from typing import Final, Generator
 import pytest
 from dash import Dash
 
-from regional_input_output.auth import DB_PATH, AuthDB
-from regional_input_output.dash_app import (
+from regional_input_output.server.auth import DB_PATH, AuthDB
+from regional_input_output.server.dash_app import (
     DEFAULT_SERVER_PATH,
     generate_markers,
     get_server_dash,
@@ -44,7 +44,7 @@ def server_paths(server) -> Generator[str, None, None]:
 
 def test_server_no_auth(caplog) -> None:
     no_auth_log: tuple[str, int, str] = (
-        "regional_input_output.dash_app",
+        "regional_input_output.server.dash_app",
         WARNING,
         "No authentication required.",
     )
@@ -57,7 +57,7 @@ def test_server_no_auth(caplog) -> None:
 def test_server_auth(caplog, tmp_path) -> None:
     tmp_file = tmp_path / "test.db"
     auth_log: tuple[str, int, str] = (
-        "regional_input_output.dash_app",
+        "regional_input_output.server.dash_app",
         INFO,
         f"Adding basic authentication from {tmp_file}.",
     )

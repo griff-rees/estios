@@ -4,15 +4,15 @@
 from typer import Typer, echo, secho
 from typer.colors import GREEN, RED
 
-from .dash_app import (
+from .input_output_models import (
+    InterRegionInputOutput,
+    InterRegionInputOutputTimeSeries,
+)
+from .server.dash_app import (
     DEFAULT_SERVER_HOST_IP,
     DEFAULT_SERVER_PATH,
     DEFAULT_SERVER_PORT,
     run_server_dash,
-)
-from .input_output_models import (
-    InterRegionInputOutput,
-    InterRegionInputOutputTimeSeries,
 )
 from .uk_data.utils import EMPLOYMENT_QUARTER_DEC_2017
 from .utils import enforce_end_str, enforce_start_str
@@ -41,6 +41,7 @@ def server(
     path = enforce_start_str(path, "/", True)
     path = enforce_end_str(path, "/", False)
     secho(f"Starting dash server with port {port} and ip {host} at {path}", fg=GREEN)
+    secho(f"Server running on: http://{host}:{port}{path}", fg=GREEN)
     if not auth:
         secho(f"Warning: publicly viewable without authentication.", fg=RED)
     run_server_dash(

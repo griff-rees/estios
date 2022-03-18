@@ -18,23 +18,20 @@ from jupyter_dash import JupyterDash
 from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
 
-from regional_input_output.uk_data.utils import (
-    generate_employment_quarterly_dates,
-    get_all_centre_for_cities_dict,
-)
-
-from .auth import DB_PATH, AuthDB, DBPathType  # , set_auth_middleware
-from .input_output_models import InterRegionInputOutputTimeSeries
-from .uk_data.utils import (
+from ..input_output_models import InterRegionInputOutputTimeSeries
+from ..uk_data.utils import (
     CENTRE_FOR_CITIES_REGION_COLUMN,
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
     CITY_SECTOR_POPULATION_COLUMN,
     CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
+    generate_employment_quarterly_dates,
+    get_all_centre_for_cities_dict,
 )
-from .utils import enforce_end_str, enforce_start_str
-from .visualisation import draw_ego_flows_network
+from ..utils import enforce_end_str, enforce_start_str
+from ..visualisation import draw_ego_flows_network
+from .auth import DB_PATH, AuthDB, DBPathType  # , set_auth_middleware
 
 logger = getLogger(__name__)
 load_dotenv()

@@ -3,7 +3,7 @@
 
 from pandas import MultiIndex
 
-from regional_input_output.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
+from regional_input_output.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
 from regional_input_output.utils import (
     CITY_REGIONS,
     SECTOR_10_CODE_DICT,
