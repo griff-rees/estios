@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from dataclasses import dataclass
 from datetime import date
 from logging import getLogger
-from typing import Final, Optional
+from typing import Final, Generator, Optional
 
 import uvicorn
 from dash import Dash, dcc, html
@@ -25,8 +26,10 @@ from regional_input_output.uk_data.utils import (
 from .auth import DB_PATH, AuthDB, DBPathType  # , set_auth_middleware
 from .input_output_models import InterRegionInputOutputTimeSeries
 from .uk_data.utils import (
-    CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
+    CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
+    CITY_SECTOR_EDUCATION_COLUMN,
+    CITY_SECTOR_POPULATION_COLUMN,
     CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
@@ -36,28 +39,74 @@ from .visualisation import draw_ego_flows_network
 logger = getLogger(__name__)
 load_dotenv()
 
-
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 DEFAULT_SERVER_PORT: Final[int] = 8090
 DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
 DEFAULT_SERVER_PATH: Final[str] = "/dash"
 PATH_SPLIT_CHAR: Final[str] = "/"
 
+DEFAULT_MAP_TITLE: Final[str] = "City Input-Output Flows 2017"
 DEFAULT_REGION: Final[str] = "Manchester"
 DEFAULT_SECTOR: Final[str] = "Production"
 DEFUALT_DATE_FORMAT: Final[str] = "%b %y"
+
+DEFAULT_TOP_SECTORS: Final[int] = 4
+DEFAULT_SECTORS_MARKER_HOPS: Final[int] = 4
+DEFAULT_HEATMAP_COLOUR_SCALE: Final[str] = "portland"
+DEFAULT_COLOUR_CONFIG: Final[str] = "Education"
+
+
+@dataclass
+class ColourConfig:
+    column_name: str
+    is_continuous: bool
+    legend_label: str
+
+
+ColourOptionsType = dict[str, ColourConfig]
+
+DEFAULT_COLOUR_OPTIONS: Final[ColourOptionsType] = {
+    "Education": ColourConfig(
+        column_name=CITY_SECTOR_EDUCATION_COLUMN,
+        is_continuous=True,
+        legend_label="% 9-4 GCSEs",
+    ),
+    "Earnings": ColourConfig(
+        column_name=CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
+        is_continuous=True,
+        legend_label="Avg. Earnings",
+    ),
+    "Region": ColourConfig(
+        column_name=CENTRE_FOR_CITIES_REGION_COLUMN,
+        is_continuous=False,
+        legend_label="Region",
+    ),
+}
+
+
+def generate_markers(
+    total: int, minimum: int = 1, marker_hops: int = DEFAULT_SECTORS_MARKER_HOPS
+) -> Generator[int, None, None]:
+    for i in range(minimum, total, int(total / marker_hops)):
+        yield i
 
 
 def get_dash_app(
     input_output_ts: InterRegionInputOutputTimeSeries,
     external_stylesheets: list[str] = EXTERNAL_STYLESHEETS,
+    colour_options: ColourOptionsType = DEFAULT_COLOUR_OPTIONS,
+    sector_markers: Optional[list[int]] = None,
     default_date: date = EMPLOYMENT_QUARTER_DEC_2017,
-    default_top_sectors: int = 4,
-    default_sectors_marker_hops: int = 2,
+    default_top_sectors: int = DEFAULT_TOP_SECTORS,
+    default_sectors_marker_hops: int = DEFAULT_SECTORS_MARKER_HOPS,
     default_region: str = DEFAULT_REGION,
     default_sector: str = DEFAULT_SECTOR,
+    default_colour: str = DEFAULT_COLOUR_CONFIG,
     date_fmt: str = DEFUALT_DATE_FORMAT,
     fullscreen: bool = True,
+    colour_scale: str = DEFAULT_HEATMAP_COLOUR_SCALE,
+    map_title: str = DEFAULT_MAP_TITLE,
+    minimum_sector_markers: int = 1,
     **kwargs,
 ) -> Dash:
     from IPython import get_ipython
@@ -67,11 +116,18 @@ def get_dash_app(
         if get_ipython()
         else Dash(__name__, external_stylesheets=external_stylesheets, **kwargs)
     )
-
+    if not sector_markers:
+        sector_markers = list(
+            generate_markers(
+                len(input_output_ts.regions),
+                minimum_sector_markers,
+                default_sectors_marker_hops,
+            )
+        )
     app.layout = html.Div(
         [
             html.H1(
-                "City-level input-output flows",
+                map_title,
                 id="map-title",
             ),
             dcc.Graph(id="trade"),
@@ -95,6 +151,14 @@ def get_dash_app(
                 # placeholder="Select a sector",
                 value=default_sector,
             ),
+            dcc.Dropdown(
+                id="city_colour",
+                options=[
+                    {"label": data_type, "value": data_type}
+                    for data_type in colour_options
+                ],
+                value=default_colour,
+            ),
             dcc.Slider(
                 id="date_index",
                 min=0,
@@ -115,9 +179,10 @@ def get_dash_app(
                 step=1,
                 marks={
                     i: f"top {i}"
-                    for i in range(
-                        0, len(input_output_ts.regions), default_sectors_marker_hops
-                    )
+                    for i in sector_markers
+                    # range(
+                    #     0, len(input_output_ts.regions), int(default_sectors_marker_hops
+                    # )
                 },
                 # tooltip={"placement": "bottom", "always_visible": True},
             ),
@@ -141,6 +206,7 @@ def get_dash_app(
             Input("dropdown_city", "value"),
             Input("dropdown_sector", "value"),
             Input("n_flows", "value"),
+            Input("city_colour", "value")
             # Input('in_vs_out_flow', 'value'),
         ],
     )
@@ -149,9 +215,15 @@ def get_dash_app(
         selected_city: str,
         selected_sector: str,
         n_flows: int,
+        city_colour: str,
         # in_vs_out_flow: bool = True,
     ) -> Figure:
         region_data: GeoDataFrame = input_output_ts[date_index].region_data
+        colour_config: ColourConfig = colour_options[city_colour]
+        logger.debug(f"Current colour_config column: {colour_config.column_name}")
+        # city_colour_column: str = colour_config.column_name
+        # if colour_config.is_continuous:
+        #     city_colour_column = city_colour_column.replace('YEAR', '2017')
         fig = draw_ego_flows_network(
             input_output_ts[date_index].region_data,
             input_output_ts[date_index].y_ij_m_model,
@@ -159,9 +231,29 @@ def get_dash_app(
             selected_sector,
             n_flows,
             zoom=6,
+            colour_column=colour_config.column_name,
         )
         if fullscreen:
             fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        if colour_config.is_continuous:
+            fig.update_layout(
+                coloraxis=dict(
+                    colorscale=colour_scale,
+                    colorbar=dict(
+                        bgcolor="rgba(0,0,0,0)",
+                        bordercolor="rgba(0,0,0,0)",
+                        tickfont=dict(family="Courier", size=12, color="white"),
+                        x=0,
+                        y=0.5,
+                        ypad=200,
+                        title=dict(
+                            font=dict(color="white"),
+                            side="bottom",
+                            text=colour_config.legend_label,
+                        ),
+                    ),
+                )
+            )
         return fig
 
     return app

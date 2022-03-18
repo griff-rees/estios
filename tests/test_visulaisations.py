@@ -23,9 +23,7 @@ def test_add_mapbox_edges(three_cities_results: InterRegionInputOutput) -> None:
         three_cities_results.region_data.index != "Manchester"
     ]
     fig = add_mapbox_edges(manchester, other_cities)
-    assert (
-        fig.layout["legend"]["title"]["text"] == "Flows from Manchester (and Regions)"
-    )
+    assert fig.layout["legend"]["title"]["text"] == "Flows from Manchester"
 
 
 def test_draw_ego_flows_network(three_cities_results: InterRegionInputOutput) -> None:
@@ -35,6 +33,4 @@ def test_draw_ego_flows_network(three_cities_results: InterRegionInputOutput) ->
         "Manchester",
         "Agriculture",
     )
-    assert (
-        fig.layout["legend"]["title"]["text"] == "Flows from Manchester (and Regions)"
-    )
+    assert fig.layout["legend"]["title"]["text"] == "Flows from Manchester"

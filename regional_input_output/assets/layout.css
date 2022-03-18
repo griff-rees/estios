@@ -31,16 +31,23 @@ body {
   width: 400px;
 }
 
-#date_index {
+#city_colour {
   position: absolute;
   top: 320px;
+  right: 50px;
+  width: 400px;
+}
+
+#date_index {
+  position: absolute;
+  top: 380px;
   right: 50px;
   width: 350px;
 }
 
 #n_flows {
   position: absolute;
-  top: 380px;
+  top: 420px;
   right: 50px;
   width: 350px;
 }

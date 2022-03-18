@@ -4,13 +4,17 @@
 from logging import INFO, WARNING
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator
+from typing import Final, Generator
 
 import pytest
 from dash import Dash
 
 from regional_input_output.auth import DB_PATH, AuthDB
-from regional_input_output.dash_app import DEFAULT_SERVER_PATH, get_server_dash
+from regional_input_output.dash_app import (
+    DEFAULT_SERVER_PATH,
+    generate_markers,
+    get_server_dash,
+)
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
 
@@ -70,7 +74,7 @@ def test_path_prefix() -> None:
 
 def test_AuthDB(tmp_json_auth_file) -> None:
     """Test using an AuthDB with empty or arbitrary json paths."""
-    correct_auth_dict = {"test_id": {"name": "test", "password": "password"}}
+    correct_auth_dict: Final = {"test_id": {"name": "test", "password": "password"}}
     auth_db = AuthDB(json_db_path=tmp_json_auth_file)  # Path as Path object
     assert auth_db.users == {}
     auth_db.add_user("test_id", "test", "password")
@@ -78,3 +82,9 @@ def test_AuthDB(tmp_json_auth_file) -> None:
     auth_db.write()
     auth_db2 = AuthDB(json_db_path=str(tmp_json_auth_file))  # Path as str
     assert auth_db2.users == correct_auth_dict
+
+
+def test_generate_markers() -> None:
+    correct_markers: Final = [2, 7, 12, 17]
+    markers: list[int] = list(generate_markers(20, 2, 4))
+    assert markers == correct_markers
