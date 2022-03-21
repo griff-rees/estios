@@ -9,6 +9,7 @@ readme = "README.md"
 python = "~3.9"
 geopandas = "^0.10.2"
 
+[tool.poetry.group]
 [tool.poetry.group.visual.dependencies]
 plotly = "^5.3.1"
 jupyterlab = "^3.2.2"
@@ -19,7 +20,6 @@ extras = ["cli"]
 version = "^0.19.2"
 
 [tool.poetry.group.server.dependencies]
-gunicorn = "^20.1.0"
 fastapi = "^0.70.1"
 uvicorn = "^0.16.0"
 dash-auth = "^1.4.1"
