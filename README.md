@@ -4,7 +4,7 @@ This package combines classic work on Input-Output economics[^leontif] with a fl
 
 To begin we infer UK city Input-Output tables from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
 
-This is a proof of concept and much more work is needed to reach the level of detail we would like. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/ukboards/issues/new)) are welcome.
+This is a proof of concept and much more work is needed to reach the level of detail we would like. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/regional-input-output/issues/new)) are welcome.
 
 ## Basic installation
 
