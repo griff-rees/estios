@@ -39,7 +39,7 @@ load_dotenv()
 EXTERNAL_STYLESHEETS: Final[list[str]] = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 DEFAULT_SERVER_PORT: Final[int] = 8090
 DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
-DEFAULT_SERVER_PATH: Final[str] = "/dash"
+DEFAULT_SERVER_PATH: Final[str] = "/uk-cities"
 PATH_SPLIT_CHAR: Final[str] = "/"
 
 DEFAULT_MAP_TITLE: Final[str] = "City Input-Output Flows 2017"
