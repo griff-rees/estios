@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-
-# These can be uncommented to use Mapbox's native vector format via a key in a local .env file
 from logging import getLogger
 from typing import Callable, Final, Optional, Union
 
@@ -13,7 +11,7 @@ from pandas import DataFrame, Series
 from plotly.express import bar, scatter_geo, scatter_mapbox, set_mapbox_access_token
 from plotly.graph_objects import Figure, Scattermapbox
 
-from .input_output_func import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
+from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
 from .uk_data.utils import (
     CENTRE_FOR_CITIES_EPSG,
     CENTRE_FOR_CITIES_REGION_COLUMN,
@@ -29,6 +27,7 @@ try:
 except KeyError:
     logger.warning("MAPBOX access token not found in local .env file.")
 
+# These can be uncommented to use Mapbox's native vector format via a key in a local .env file
 # MAPBOX_STYLE: Final[str] = "dark"
 MAPBOX_STYLE: Final[str] = "carto-darkmatter"
 JOBS_COLUMN: Final[str] = "Total Jobs 2017"

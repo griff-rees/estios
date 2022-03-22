@@ -6,7 +6,7 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.testing import assert_series_equal
 
 from regional_input_output import __version__
-from regional_input_output.input_output_models import (
+from regional_input_output.models import (
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )

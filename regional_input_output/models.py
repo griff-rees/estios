@@ -24,7 +24,7 @@ from geopandas import GeoDataFrame
 from numpy import exp
 from pandas import DataFrame, MultiIndex, Series
 
-from .input_output_func import (
+from .calc import (
     CITY_POPULATION_COLUMN_NAME,
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
     DISTANCE_COLUMN,

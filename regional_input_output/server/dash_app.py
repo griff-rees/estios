@@ -18,7 +18,7 @@ from jupyter_dash import JupyterDash
 from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
 
-from ..input_output_models import InterRegionInputOutputTimeSeries
+from ..models import InterRegionInputOutputTimeSeries
 from ..uk_data.utils import (
     CENTRE_FOR_CITIES_REGION_COLUMN,
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,

@@ -4,7 +4,7 @@
 
 import pytest
 
-from regional_input_output.input_output_models import InterRegionInputOutput
+from regional_input_output.models import InterRegionInputOutput
 from regional_input_output.uk_data.utils import (
     CITY_REGIONS,
     generate_employment_quarterly_dates,

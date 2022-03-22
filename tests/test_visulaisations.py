@@ -3,7 +3,7 @@
 
 from geopandas import GeoDataFrame
 
-from regional_input_output.input_output_models import InterRegionInputOutput
+from regional_input_output.models import InterRegionInputOutput
 from regional_input_output.visualisation import (
     add_mapbox_edges,
     convert_geom_for_mapbox,
