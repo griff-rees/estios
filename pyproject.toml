@@ -30,7 +30,7 @@ version = "^0.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^6.1"
-pre-commit = "^2.15.0"
+pre-commit = "^2.18.1"
 pytest-cov = "^3.0.0"
 openpyxl = "^3.0.9"
 xlrd = "^2.0.1"
