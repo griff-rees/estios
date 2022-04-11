@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import pytest
 from geopandas import GeoDataFrame
 
 from regional_input_output.models import InterRegionInputOutput
@@ -8,6 +9,7 @@ from regional_input_output.visualisation import (
     add_mapbox_edges,
     convert_geom_for_mapbox,
     draw_ego_flows_network,
+    plot_iterations,
 )
 
 
@@ -33,4 +35,22 @@ def test_draw_ego_flows_network(three_cities_results: InterRegionInputOutput) ->
         "Manchester",
         "Agriculture",
     )
-    assert fig.layout["legend"]["title"]["text"] == "Flows from Manchester"
+    assert fig.layout["legend"]["title"]["text"] == "Agriculture flows from Manchester"
+
+
+class TestPlotIterations:
+
+    """Test plotting model iterations."""
+
+    def test_exports_plot(self, three_cities_io) -> None:
+        """Test plotting exports iterations and title."""
+        pass
+
+    def test_imports_plot(self, three_cities_io) -> None:
+        """Test plotting imports iterations and title."""
+        pass
+
+    def test_flows_plot(self, three_cities_results) -> None:
+        """Test plotting flows iterations and title."""
+        with pytest.raises(ImportError):
+            plot = plot_iterations(three_cities_results.y_ij_m_model, "flows")

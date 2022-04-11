@@ -9,15 +9,19 @@ from numpy import log
 from pandas import DataFrame, MultiIndex, Series
 from plotly.graph_objects import Figure
 
-from .uk_data.utils import (
+from .input_output_tables import (
+    SECTOR_10_CODE_DICT,
+    TOTAL_OUTPUT_COLUMN_NAME,
+    AggregatedSectorDictType,
+)
+from .uk_data.employment import UK_JOBS_BY_SECTOR_PATH, UK_NATIONAL_EMPLOYMENT_SHEET
+from .uk_data.ons_IO_2017 import CITY_SECTOR_EMPLOYMENT_PATH
+from .uk_data.regions import (
     CENTRE_FOR_CITIES_PATH,
     CITIES_TOWNS_SHAPE_PATH,
-    CITY_REGIONS,
-    CITY_SECTOR_EMPLOYMENT_PATH,
-    JOBS_BY_SECTOR_PATH,
-    NATIONAL_COLUMN_NAME,
-    SECTOR_10_CODE_DICT,
-    TOTAL_OUTPUT_COLUMN,
+    UK_CITY_REGIONS,
+    UK_EPSG_GEO_CODE,
+    UK_NATIONAL_COLUMN_NAME,
 )
 from .utils import (
     CITY_COLUMN,
@@ -29,7 +33,6 @@ from .utils import (
 
 logger = getLogger(__name__)
 
-UK_CRS: Final[str] = "EPSG:27700"
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
 
 CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
@@ -50,7 +53,7 @@ DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 def technical_coefficients(
     io_table: DataFrame,
     sectors: Iterable[str] = SECTOR_10_CODE_DICT.keys(),
-    final_output_column: str = TOTAL_OUTPUT_COLUMN,
+    final_output_column: str = TOTAL_OUTPUT_COLUMN_NAME,
 ) -> DataFrame:
     """Calculate technical coefficients from IO matrix and a final output column."""
     io_matrix: DataFrame = io_table.loc[sectors, sectors]
@@ -121,7 +124,7 @@ def generate_e_m_dataframe(
     E_i_m: DataFrame,
     initial_p: float = INITIAL_P,
     national_E: Optional[Series] = None,
-    city_names: Iterable[str] = CITY_REGIONS,
+    city_names: Iterable[str] = UK_CITY_REGIONS,
     sector_names: Iterable[str] = SECTOR_10_CODE_DICT,
     e_i_m_column_name: str = LATEX_e_i_m,
     initial_e_column_prefix: str = INITIAL_E_COLUMN_PREFIX,
@@ -139,11 +142,11 @@ def generate_e_m_dataframe(
     return e_m_iter_df
 
 
-def calc_city_distance(
+def calc_city_distances(
     cities_df: GeoDataFrame,
-    regions: Iterable[str] = CITY_REGIONS,
-    other_regions: Iterable[str] = CITY_REGIONS,
-    distance_CRS: str = UK_CRS,
+    regions: Iterable[str] = UK_CITY_REGIONS,
+    other_regions: Optional[Iterable[str]] = None,
+    distance_CRS: str = UK_EPSG_GEO_CODE,
     origin_city_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
     destination_city_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
     final_distance_column: str = DISTANCE_COLUMN,
@@ -155,6 +158,8 @@ def calc_city_distance(
     Note: This assumes the cities_df index has origin city as row.name[0],
     and destination city as row.name[].
     """
+    if not other_regions:
+        other_regions = regions
     projected_cities_df = cities_df.to_crs(distance_CRS)
     city_distances: GeoDataFrame = GeoDataFrame(
         index=generate_ij_index(regions, other_regions), columns=[final_distance_column]

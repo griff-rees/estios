@@ -35,45 +35,52 @@ from .calc import (
     M_i_m,
     X_i_m,
     andrews_suggestion,
-    calc_city_distance,
+    calc_city_distances,
     generate_e_m_dataframe,
     import_export_convergence,
     technical_coefficients,
     x_i_mn_summed,
 )
-from .uk_data.utils import (
+from .input_output_tables import (
+    FINAL_DEMAND_COLUMN_NAMES,
+    IMPORTS_COLUMN_NAME,
+    IO_TABLE_NAME,
+    IO_TABLE_SCALING,
+    TOTAL_PRODUCTION_COLUMN_NAME,
+    UK_EXPORT_COLUMN_NAMES,
+    AggregatedSectorDictType,
+    InputOutputExcelTable,
+    InputOutputTable,
+    load_employment_by_city_and_sector_csv,
+    load_region_employment_excel,
+)
+from .uk_data import ons_IO_2017
+from .uk_data.employment import (
+    EMPLOYMENT_QUARTER_DEC_2017,
+    UK_CITY_SECTOR_YEARS,
+    UK_JOBS_BY_SECTOR_PATH,
+    UK_JOBS_BY_SECTOR_SCALING,
+)
+from .uk_data.regions import (
     CENTRE_FOR_CITIES_PATH,
     CITIES_TOWNS_SHAPE_PATH,
-    CITY_REGIONS,
-    CITY_SECTOR_EMPLOYMENT_PATH,
-    CITY_SECTOR_YEARS,
-    EMPLOYMENT_QUARTER_DEC_2017,
-    IO_TABLE_2017_EXCEL_PATH,
-    IO_TABLE_EXPORT_COLUMN_NAMES,
-    IO_TABLE_FINAL_DEMAND_COLUMN_NAMES,
-    IO_TABLE_IMPORTS_COLUMN_NAME,
-    IO_TABLE_SCALING,
-    IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME,
-    JOBS_BY_SECTOR_PATH,
-    JOBS_BY_SECTOR_SCALING,
-    NATIONAL_COLUMN_NAME,
+    UK_CITY_REGIONS,
+    UK_NATIONAL_COLUMN_NAME,
+    load_and_join_centre_for_cities_data,
+)
+from .utils import (
     SECTOR_10_CODE_DICT,
-    TOTAL_OUTPUT_COLUMN,
-    AggregatedSectorDictType,
-    ONSInputOutputTable,
     aggregate_rows,
     filter_by_region_name_and_type,
-    load_and_join_centre_for_cities_data,
-    load_employment_by_city_and_sector,
-    load_region_employment,
+    generate_ij_index,
+    generate_ij_m_index,
 )
-from .utils import generate_ij_index, generate_ij_m_index
 
 logger = getLogger(__name__)
 
 DEFAULT_TIME_SERIES_CONFIG = {
     EMPLOYMENT_QUARTER_DEC_2017: {
-        "io_table_file_path": IO_TABLE_2017_EXCEL_PATH,
+        "io_table_file_path": ons_IO_2017.EXCEL_PATH,
     }
 }
 
@@ -87,7 +94,7 @@ class SpatialInteractionBaseClass:
     employment_column_name: str = CITY_POPULATION_COLUMN_NAME
     distance_column_name: str = DISTANCE_COLUMN
     national_term: bool = True
-    national_column_name: str = NATIONAL_COLUMN_NAME
+    national_column_name: str = UK_NATIONAL_COLUMN_NAME
 
     _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
 
@@ -200,7 +207,7 @@ class InterRegionInputOutputBaseClass:
     """Bass attributes for InputOutput Model and TimeSeries."""
 
     max_import_export_model_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
-    regions: dict[str, str] = field(default_factory=lambda: deepcopy(CITY_REGIONS))
+    regions: dict[str, str] = field(default_factory=lambda: deepcopy(UK_CITY_REGIONS))
 
     sector_aggregation: AggregatedSectorDictType = field(
         default_factory=lambda: deepcopy(SECTOR_10_CODE_DICT)
@@ -211,14 +218,14 @@ class InterRegionInputOutputBaseClass:
     centre_for_cities_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
-        default_factory=lambda: IO_TABLE_FINAL_DEMAND_COLUMN_NAMES
+        default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
     )
     export_column_names: list[str] = field(
-        default_factory=lambda: IO_TABLE_EXPORT_COLUMN_NAMES
+        default_factory=lambda: UK_EXPORT_COLUMN_NAMES
     )
-    imports_column_name: str = IO_TABLE_IMPORTS_COLUMN_NAME
-    total_production_column_name: str = IO_TABLE_TOTAL_PRODUCTION_COLUMN_NAME
-    national_employment_scale: float = JOBS_BY_SECTOR_SCALING
+    imports_column_name: str = IMPORTS_COLUMN_NAME
+    total_production_column_name: str = TOTAL_PRODUCTION_COLUMN_NAME
+    national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
     io_table_scale: float = IO_TABLE_SCALING
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _exogenous_i_m_func: Callable[..., Series] = andrews_suggestion
@@ -239,11 +246,13 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     """Manage Inter Region input output model runs."""
 
-    io_table_file_path: PathLike = IO_TABLE_2017_EXCEL_PATH
-    city_sector_employment_path: PathLike = CITY_SECTOR_EMPLOYMENT_PATH
-    national_employment_path: PathLike = JOBS_BY_SECTOR_PATH
+    io_table_file_path: PathLike = ons_IO_2017.EXCEL_PATH
+    city_sector_employment_path: PathLike = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
+    national_employment_path: PathLike = UK_JOBS_BY_SECTOR_PATH
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
     date: Optional[date] = None
+    io_table_kwargs: dict[str, Any] = field(default_factory=dict)
+    _io_table_cls: Type[InputOutputTable] = InputOutputExcelTable
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
@@ -251,14 +260,16 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             city_path=self.centre_for_cities_path,
             spatial_path=self.centre_for_cities_spatial_path,
         )
-        self._raw_io_table: ONSInputOutputTable = ONSInputOutputTable(
-            path=self.io_table_file_path
+        self._raw_io_table: InputOutputTable = self._io_table_cls(
+            path=self.io_table_file_path, **self.io_table_kwargs
         )
-        self._national_employment: DataFrame = load_region_employment(
+        self._national_employment: DataFrame = load_region_employment_excel(
             path=self.national_employment_path
         )
         self._employment_by_sector_and_city: DataFrame = (
-            load_employment_by_city_and_sector(path=self.city_sector_employment_path)
+            load_employment_by_city_and_sector_csv(
+                path=self.city_sector_employment_path
+            )
         )
         if not self.date:
             self.date = self.employment_date
@@ -312,7 +323,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def region_data(self) -> GeoDataFrame:
-        return self._raw_region_data.loc[self.regions]
+        return self._raw_region_data.loc[self.region_names]
 
     @cached_property
     def io_table(self) -> DataFrame:
@@ -322,12 +333,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             * Check ways of skipping aggregation
         """
         if self.sector_aggregation:
-            return (
-                self._raw_io_table.get_aggregated_io_table(
-                    sector_aggregation_dict=self.sector_aggregation
-                )
-                * self.io_table_scale
-            )
+            return self._raw_io_table.get_aggregated_io_table() * self.io_table_scale
         else:
             raise NotImplementedError(
                 "Currently io_table requires an aggregation dictionary."
@@ -408,7 +414,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     @cached_property
     def distances(self) -> GeoDataFrame:
         """Return a GeoDataFrame of all distances between cities."""
-        return calc_city_distance(
+        return calc_city_distances(
             self.region_data,
             self.regions,
             self.regions,
@@ -427,7 +433,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         .. math::
             X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{a_i^{mn}X_i^n}
 
-        Note: the \\s is to avoid a docstring warning, and should have a single \
+        Note: the \\s is to avoid a docstring warning and imply LaTeX.
         """
         return x_i_mn_summed(
             X_i_m=self.X_i_m, technical_coefficients=self.technical_coefficients
@@ -482,11 +488,6 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             iterations=self.max_import_export_model_iterations,
         )
         return self.e_m_model, self.y_ij_m_model
-
-
-class ModelsOrDatesAmbiguityError(Exception):
-
-    pass
 
 
 @dataclass

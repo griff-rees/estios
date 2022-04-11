@@ -2,57 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from geopandas import GeoDataFrame
 from pandas import DataFrame
 
-from regional_input_output.uk_data.utils import (
+from regional_input_output.input_output_tables import (
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
-    ONSInputOutputTable,
-    aggregate_rows,
-    filter_by_region_name_and_type,
-    get_all_centre_for_cities_dict,
-    load_and_join_centre_for_cities_data,
-    load_centre_for_cities_csv,
-    load_centre_for_cities_gis,
-    load_employment_by_city_and_sector,
-    load_region_employment,
-    load_uk_io_table,
+    InputOutputExcelTable,
+    load_employment_by_city_and_sector_csv,
+    load_io_table_excel,
+    load_region_employment_excel,
 )
-
-
-class TestLoadingCentreForCitiesData:
-
-    SECTION_OF_COLUMNS: tuple[str, ...] = (
-        "Commuting by Bicycle 2001  (%)",
-        "Commuting by Bicycle 2011  (%)",
-        "Commuting by Bus, Train or Metro 2001  (%)",
-        "Commuting by Bus, Train or Metro 2011  (%)",
-        "Commuting by Other Methods 2001  (%)",
-        "Commuting by Other Methods 2011  (%)",
-    )
-
-    def test_load_centre_for_cities_csv(self) -> None:
-        """Test loading default Centre for Cities csv from the local package."""
-        centre_for_cities: DataFrame = load_centre_for_cities_csv()
-        for section in self.SECTION_OF_COLUMNS:
-            assert section in centre_for_cities.columns
-
-    def test_load_centre_for_cities_geojson(self) -> None:
-        """Test loading Centre for Cities GeoJSON as a GeoDataFrame."""
-        cities_geo: GeoDataFrame = load_centre_for_cities_gis()
-        assert "Leeds" in cities_geo["NAME1"].values
-
-    def test_load_and_join(self) -> None:
-        cities_geo: GeoDataFrame = load_and_join_centre_for_cities_data()
-        assert "Leeds" in cities_geo.index
-        for section in self.SECTION_OF_COLUMNS:
-            assert section in cities_geo.columns
+from regional_input_output.utils import aggregate_rows, filter_by_region_name_and_type
 
 
 @pytest.fixture
-def test_ons_io_table() -> ONSInputOutputTable:
-    return ONSInputOutputTable()
+def test_ons_io_table() -> InputOutputExcelTable:
+    return InputOutputExcelTable()
 
 
 FINANCIAL_AGG: str = "Financial and insurance"
@@ -62,7 +27,7 @@ REAL_EST_AGG: str = "Real estate"
 class TestLoadingONSIOTableData:
     def test_load_ons_io_table(self) -> None:
         """Test loading a UK 2017 economic input-outpute table."""
-        io_2017: DataFrame = load_uk_io_table()
+        io_2017: DataFrame = load_io_table_excel()
         assert "Taxes less subsidies on production" in io_2017.index
 
     def test_ons_io_table_export(self, test_ons_io_table) -> None:
@@ -88,19 +53,24 @@ class TestLoadingONSIOTableData:
         aggregated_io_table: DataFrame = test_ons_io_table.get_aggregated_io_table()
         assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
+    @pytest.mark.xfail(reason="requires an external data file")
+    def test_ons_io_2015(self) -> None:
+        """Test loading 2015 IO table data."""
+        io_2015: DataFrame = load_io_table_excel("data/2015detailedioatsbb18(1).xls")
+
 
 @pytest.fixture
 def national_jobs() -> DataFrame:
-    return load_region_employment("15. United Kingdom")
+    return load_region_employment_excel("15. United Kingdom")
 
 
 @pytest.fixture
 def aggregated_city_sector() -> DataFrame:
-    city_sector: DataFrame = load_employment_by_city_and_sector()
+    city_sector: DataFrame = load_employment_by_city_and_sector_csv()
     return aggregate_rows(city_sector, True)
 
 
-CITY_REGIONS: dict[str, str] = {
+THREE_CITY_REGIONS: dict[str, str] = {
     "Leeds": "Yorkshire and the Humber",
     "Liverpool": "North West",
     "Manchester": "North West",
@@ -131,21 +101,7 @@ class TestLoadingEmploymentData:
     def test_filtering_for_specific_regions(self, aggregated_city_sector) -> None:
         """Test filtering for specific regions."""
         filtered_aggregate_city: DataFrame = filter_by_region_name_and_type(
-            aggregated_city_sector, CITY_REGIONS.keys()
+            aggregated_city_sector, THREE_CITY_REGIONS.keys()
         )
-        for city in CITY_REGIONS:
+        for city in THREE_CITY_REGIONS:
             assert city in filtered_aggregate_city.index
-
-
-def test_get_all_cities() -> None:
-    """Test generating city: region dictionary from Centre for Cities.
-
-    Note:
-        * Currently this filters Blackburn, Newcastle and all cities from
-        Scotland and Wales,
-        * Total English cities 50
-    """
-    test_dict: dict[str, str] = get_all_centre_for_cities_dict()
-    assert len(test_dict) == 48
-    for city, region in CITY_REGIONS.items():
-        assert test_dict[city] == region

@@ -1,5 +1,10 @@
 body {
   margin: 0;
+  color: white;
+}
+
+.dash-dropdown {
+  color: black;
 }
 
 .dash-graph {
@@ -17,19 +22,21 @@ body {
   z-index: 500;
 }
 
-#dropdown_city {
+#city-div {
   position: absolute;
-  top: 200px;
-  right: 50px;
-  width: 400px;
+  top: 20%;
+  right: 5%;
+  width: 300px;
 }
 
-#dropdown_sector {
-  position: absolute;
-  top: 260px;
-  right: 50px;
-  width: 400px;
-}
+
+/*
+#dropdown_city {
+   position: absolute;
+   top: 200px;
+   right: 50px;
+   width: 400px;
+ }
 
 #city_colour {
   position: absolute;
@@ -37,17 +44,35 @@ body {
   right: 50px;
   width: 400px;
 }
-
-#date_index {
+*/
+#sector-div {
   position: absolute;
-  top: 380px;
-  right: 50px;
-  width: 350px;
+  bottom: 20%;
+  right: 5%;
+  width: 300px
 }
 
+/*
+#dropdown_sector {
+   position: absolute;
+   top: 15%;
+   left: 10px;
+   width: 200px;
+ }
+
+*/
+#date-div {
+  position: absolute;
+  bottom: 3%;
+  width: 80%;
+  transform: translate(10%);
+}
+
+/*
 #n_flows {
   position: absolute;
-  top: 420px;
-  right: 50px;
-  width: 350px;
+  bottom: 15%;
+  left: 10px;
+  width: 200px;
 }
+*/

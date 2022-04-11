@@ -12,11 +12,8 @@ from plotly.express import bar, scatter_geo, scatter_mapbox, set_mapbox_access_t
 from plotly.graph_objects import Figure, Scattermapbox
 
 from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
-from .uk_data.utils import (
-    CENTRE_FOR_CITIES_EPSG,
-    CENTRE_FOR_CITIES_REGION_COLUMN,
-    EMPLOYMENT_QUARTER_DEC_2017,
-)
+from .uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
+from .uk_data.regions import CENTRE_FOR_CITIES_EPSG, CENTRE_FOR_CITIES_REGION_COLUMN
 from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero
 
 logger = getLogger(__name__)
@@ -109,6 +106,7 @@ def add_mapbox_edges(
     flow_type: str = "->",
     plot_line_scaling_func: Callable[[float], Optional[float]] = log_x_or_return_zero,
     render_below: bool = True,
+    selected_sector: str = None,
     # round_flows: int = 2,
     **kwargs,
 ) -> Figure:
@@ -139,9 +137,13 @@ def add_mapbox_edges(
         args=(fig,),
         axis=1,
     )
+    logger.warning(f"Updating plot of {selected_sector} flows from {origin_city.name}")
     fig.update_layout(
         legend=dict(
-            title=f"Flows from {mapbox_origin.index[0]}",
+            title=(
+                f"{selected_sector + ' f' if selected_sector else 'F'}"
+                f"lows from {mapbox_origin.index[0]}"
+            ),
             x=0,
             y=1,
             # traceorder="reversed",
@@ -175,6 +177,7 @@ def draw_ego_flows_network(
     **kwargs,
 ) -> Figure:
     # region_data: GeoDataFrame = input_output_ts[current_year_index].region_data
+    logger.warning(f"Testing flows of {selected_sector} for {selected_city}")
     if fig is None:
         fig = mapbox_cities_fig(region_data, zoom=zoom, colour_column=colour_column)
     selected_city_data: Series = region_data.loc[selected_city]
@@ -186,7 +189,14 @@ def draw_ego_flows_network(
     flows_city_data: GeoDataFrame = region_data.loc[
         flows.index.get_level_values(other_city_column_name)
     ]
-    fig = add_mapbox_edges(selected_city_data, flows_city_data, fig, flows, **kwargs)
+    fig = add_mapbox_edges(
+        selected_city_data,
+        flows_city_data,
+        fig,
+        flows,
+        selected_sector=selected_sector,
+        **kwargs,
+    )
     title_prefix: str = f"Top {n_flows} " if n_flows else "No "
     title: str = title_prefix + f"{selected_sector} flows from {selected_city}"
     fig.update_layout(title=title)

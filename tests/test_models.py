@@ -6,16 +6,13 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.testing import assert_series_equal
 
 from regional_input_output import __version__
+from regional_input_output.input_output_tables import SECTOR_10_CODE_DICT
 from regional_input_output.models import (
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )
-from regional_input_output.uk_data.utils import (
-    CITY_REGIONS,
-    EMPLOYMENT_QUARTER_DEC_2017,
-    SECTOR_10_CODE_DICT,
-    get_all_centre_for_cities_dict,
-)
+from regional_input_output.uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
+from regional_input_output.uk_data.regions import get_all_centre_for_cities_dict
 
 
 @pytest.fixture

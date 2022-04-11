@@ -19,14 +19,16 @@ from plotly.graph_objects import Figure
 from starlette.middleware.wsgi import WSGIMiddleware
 
 from ..models import InterRegionInputOutputTimeSeries
-from ..uk_data.utils import (
-    CENTRE_FOR_CITIES_REGION_COLUMN,
+from ..uk_data.employment import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
     CITY_SECTOR_POPULATION_COLUMN,
+    CONFIG_2015_TO_2017_QUARTERLY,
     CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
-    generate_employment_quarterly_dates,
+)
+from ..uk_data.regions import (
+    CENTRE_FOR_CITIES_REGION_COLUMN,
     get_all_centre_for_cities_dict,
 )
 from ..utils import enforce_end_str, enforce_start_str
@@ -42,10 +44,10 @@ DEFAULT_SERVER_HOST_IP: Final[str] = "127.0.0.1"
 DEFAULT_SERVER_PATH: Final[str] = "/uk-cities"
 PATH_SPLIT_CHAR: Final[str] = "/"
 
-DEFAULT_MAP_TITLE: Final[str] = "City Input-Output Flows 2017"
+DEFAULT_MAP_TITLE: Final[str] = "UK City Input-Output Flows"
 DEFAULT_REGION: Final[str] = "Manchester"
 DEFAULT_SECTOR: Final[str] = "Production"
-DEFUALT_DATE_FORMAT: Final[str] = "%b %y"
+DEFAULT_DATE_FORMAT: Final[str] = "%b %y"
 
 DEFAULT_TOP_SECTORS: Final[int] = 4
 DEFAULT_SECTORS_MARKER_HOPS: Final[int] = 4
@@ -99,7 +101,7 @@ def get_dash_app(
     default_region: str = DEFAULT_REGION,
     default_sector: str = DEFAULT_SECTOR,
     default_colour: str = DEFAULT_COLOUR_CONFIG,
-    date_fmt: str = DEFUALT_DATE_FORMAT,
+    date_fmt: str = DEFAULT_DATE_FORMAT,
     fullscreen: bool = True,
     colour_scale: str = DEFAULT_HEATMAP_COLOUR_SCALE,
     map_title: str = DEFAULT_MAP_TITLE,
@@ -128,60 +130,74 @@ def get_dash_app(
                 id="map-title",
             ),
             dcc.Graph(id="trade"),
-            dcc.Dropdown(
-                id="dropdown_city",
-                options=[
-                    {"label": city, "value": city}
-                    for city in input_output_ts.region_names
+            html.Div(
+                id="city-div",
+                children=[
+                    html.H2("City"),
+                    dcc.Dropdown(
+                        id="dropdown_city",
+                        options=[
+                            {"label": city, "value": city}
+                            for city in input_output_ts.region_names
+                        ],
+                        # searchable=True,
+                        # placeholder="Select a city",
+                        value=default_region,
+                    ),
+                    html.H2("City Colour"),
+                    dcc.Dropdown(
+                        id="city_colour",
+                        options=[
+                            {"label": data_type, "value": data_type}
+                            for data_type in colour_options
+                        ],
+                        value=default_colour,
+                    ),
                 ],
-                # searchable=True,
-                # placeholder="Select a city",
-                value=default_region,
             ),
-            dcc.Dropdown(
-                id="dropdown_sector",
-                options=[
-                    {"label": sector, "value": sector}
-                    for sector in input_output_ts.sectors
-                ],  # need to replace this with an automated dictionary at some stage
-                # searchable=True,
-                # placeholder="Select a sector",
-                value=default_sector,
-            ),
-            dcc.Dropdown(
-                id="city_colour",
-                options=[
-                    {"label": data_type, "value": data_type}
-                    for data_type in colour_options
+            html.Div(
+                id="sector-div",
+                children=[
+                    html.H2("Sector"),
+                    dcc.Dropdown(
+                        id="dropdown_sector",
+                        options=[
+                            {"label": sector, "value": sector}
+                            for sector in input_output_ts.sectors
+                        ],  # need to replace this with an automated dictionary at some stage
+                        # searchable=True,
+                        # placeholder="Select a sector",
+                        value=default_sector,
+                    ),
+                    html.H2("Top Sector Flows"),
+                    dcc.Slider(
+                        id="n_flows",
+                        min=1,
+                        max=len(input_output_ts.regions),
+                        value=default_top_sectors,
+                        step=1,
+                        marks={i: f"top {i}" for i in sector_markers},
+                        # tooltip={"placement": "bottom", "always_visible": True},
+                    ),
                 ],
-                value=default_colour,
             ),
-            dcc.Slider(
-                id="date_index",
-                min=0,
-                max=len(input_output_ts) - 1,
-                step=None,
-                marks={
-                    i: date.strftime(date_fmt)
-                    for i, date in enumerate(input_output_ts.dates)
-                },
-                value=input_output_ts.dates.index(default_date),
-                included=False,
-            ),
-            dcc.Slider(
-                id="n_flows",
-                min=1,
-                max=len(input_output_ts.regions),
-                value=default_top_sectors,
-                step=1,
-                marks={
-                    i: f"top {i}"
-                    for i in sector_markers
-                    # range(
-                    #     0, len(input_output_ts.regions), int(default_sectors_marker_hops
-                    # )
-                },
-                # tooltip={"placement": "bottom", "always_visible": True},
+            html.Div(
+                id="date-div",
+                children=[
+                    html.H2("Date"),
+                    dcc.Slider(
+                        id="date_index",
+                        min=0,
+                        max=len(input_output_ts) - 1,
+                        step=None,
+                        marks={
+                            i: date.strftime(date_fmt)
+                            for i, date in enumerate(input_output_ts.dates)
+                        },
+                        value=input_output_ts.dates.index(default_date),
+                        included=False,
+                    ),
+                ],
             ),
             # dcc.Store(id="current_date_index"),
         ]
@@ -240,12 +256,15 @@ def get_dash_app(
                         bgcolor="rgba(0,0,0,0)",
                         bordercolor="rgba(0,0,0,0)",
                         tickfont=dict(family="Courier", size=12, color="white"),
+                        # orientation="h",
                         x=0,
                         y=0.5,
-                        ypad=200,
+                        ypad=300,
                         title=dict(
                             font=dict(color="white"),
-                            side="bottom",
+                            # side="bottom",
+                            # side="right",
+                            side="top",
                             text=colour_config.legend_label,
                         ),
                     ),
@@ -268,7 +287,7 @@ def get_jupyter_app(
 
 def get_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
-    config_data: Optional[dict] = CONFIG_2017_QUARTERLY,
+    config_data: Optional[dict] = CONFIG_2015_TO_2017_QUARTERLY,
     auth: bool = True,
     auth_db_path: DBPathType = DB_PATH,
     all_cities: bool = False,
