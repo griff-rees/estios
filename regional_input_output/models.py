@@ -35,7 +35,7 @@ from .calc import (
     M_i_m,
     X_i_m,
     andrews_suggestion,
-    calc_city_distances,
+    calc_region_distances,
     generate_e_m_dataframe,
     import_export_convergence,
     technical_coefficients,
@@ -51,7 +51,7 @@ from .input_output_tables import (
     AggregatedSectorDictType,
     InputOutputExcelTable,
     InputOutputTable,
-    load_employment_by_city_and_sector_csv,
+    load_employment_by_region_and_sector_csv,
     load_region_employment_excel,
 )
 from .uk_data import ons_IO_2017
@@ -105,20 +105,20 @@ class SpatialInteractionBaseClass:
 
     @property
     def ij_m_index(self) -> MultiIndex:
-        """Return city x other city x sector MultiIndex."""
+        """Return region x other region x sector MultiIndex."""
         return self._gen_ij_m_func(self.employment.index, self.employment.columns)
 
     def _func_by_index(self, func):
         return [
-            func(city, other_city, sector)
-            for city, other_city, sector in self.ij_m_index
+            func(region, other_region, sector)
+            for region, other_region, sector in self.ij_m_index
         ]
 
-    def _Q_i_m_func(self, city, other_city, sector) -> float:
-        return self.employment.loc[city][sector]
+    def _Q_i_m_func(self, region, other_region, sector) -> float:
+        return self.employment.loc[region][sector]
 
-    def _distance_func(self, city, other_city, sector) -> float:
-        return self.distances[self.distance_column_name][city][other_city]
+    def _distance_func(self, region, other_region, sector) -> float:
+        return self.distances[self.distance_column_name][region][other_region]
 
     @property
     def Q_i_m_list(self) -> list[float]:
@@ -214,8 +214,8 @@ class InterRegionInputOutputBaseClass:
     )
     P_initial_export_proportion: float = INITIAL_P
 
-    centre_for_cities_path: PathLike = CENTRE_FOR_CITIES_PATH
-    centre_for_cities_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
+    region_attributes_path: PathLike = CENTRE_FOR_CITIES_PATH
+    region_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
         default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
@@ -230,6 +230,9 @@ class InterRegionInputOutputBaseClass:
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _exogenous_i_m_func: Callable[..., Series] = andrews_suggestion
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
+    _region_load_func: Callable[
+        ..., GeoDataFrame
+    ] = load_and_join_centre_for_cities_data
 
     @property
     def region_names(self) -> list[str]:
@@ -247,7 +250,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     """Manage Inter Region input output model runs."""
 
     io_table_file_path: PathLike = ons_IO_2017.EXCEL_PATH
-    city_sector_employment_path: PathLike = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
+    region_sector_employment_path: PathLike = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
     national_employment_path: PathLike = UK_JOBS_BY_SECTOR_PATH
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
     date: Optional[date] = None
@@ -256,9 +259,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
-        self._raw_region_data: GeoDataFrame = load_and_join_centre_for_cities_data(
-            city_path=self.centre_for_cities_path,
-            spatial_path=self.centre_for_cities_spatial_path,
+        self._raw_region_data: GeoDataFrame = self._region_load_func(
+            region_path=self.region_attributes_path,
+            spatial_path=self.region_spatial_path,
         )
         self._raw_io_table: InputOutputTable = self._io_table_cls(
             path=self.io_table_file_path, **self.io_table_kwargs
@@ -266,9 +269,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         self._national_employment: DataFrame = load_region_employment_excel(
             path=self.national_employment_path
         )
-        self._employment_by_sector_and_city: DataFrame = (
-            load_employment_by_city_and_sector_csv(
-                path=self.city_sector_employment_path
+        self._employment_by_sector_and_region: DataFrame = (
+            load_employment_by_region_and_sector_csv(
+                path=self.region_sector_employment_path
             )
         )
         if not self.date:
@@ -285,12 +288,12 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @property
     def _ij_index(self) -> MultiIndex:
-        """Return self.city x self.city MultiIndex."""
+        """Return self.region x self.region MultiIndex."""
         return generate_ij_index(self.regions, self.regions)
 
     @property
     def _ij_m_index(self) -> MultiIndex:
-        """Return self.city x self.city MultiIndex."""
+        """Return self.region x self.region MultiIndex."""
         return generate_ij_m_index(self.regions, self.sectors)
 
     @property
@@ -348,20 +351,20 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def employment_table(self) -> DataFrame:
         """Return employment table, aggregated if self.sector_aggregation set."""
         if self.sector_aggregation:
-            self._employment_by_sector_and_city_aggregated = aggregate_rows(
-                self._employment_by_sector_and_city, True
+            self._employment_by_sector_and_region_aggregated = aggregate_rows(
+                self._employment_by_sector_and_region, True
             )
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_city_aggregated, self.region_names
+                self._employment_by_sector_and_region_aggregated, self.region_names
             )
         else:
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_city, self.region_names
+                self._employment_by_sector_and_region, self.region_names
             )
 
     @cached_property
     def X_i_m(self) -> DataFrame:
-        """Return the total production of sector 𝑚 in city 𝑖and cache results.
+        """Return the total production of sector 𝑚 in region 𝑖and cache results.
 
         X_i^m = X_*^m * Q_i^m/Q_*^m
         """
@@ -373,7 +376,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def M_i_m(self) -> DataFrame:
-        """Return the imports of sector 𝑚 in city 𝑖and cache results.
+        """Return the imports of sector 𝑚 in region 𝑖and cache results.
 
         M_i^m = M_*^m * Q_i^m/Q_*^m
         """
@@ -385,7 +388,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def F_i_m(self) -> DataFrame:
-        """Return the final demand of sector 𝑚 in city 𝑖and cache results.
+        """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
         F_i^m = F_*^m * Q_i^m/Q_*^m
         """
@@ -399,7 +402,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def E_i_m(self) -> DataFrame:
-        """Return the exports of sector 𝑚 in city 𝑖and cache results.
+        """Return the exports of sector 𝑚 in region 𝑖and cache results.
 
         E_i^m = E_*^m * Q_i^m/Q_*^m
         """
@@ -414,7 +417,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     @cached_property
     def distances(self) -> GeoDataFrame:
         """Return a GeoDataFrame of all distances between cities."""
-        return calc_city_distances(
+        return calc_region_distances(
             self.region_data,
             self.regions,
             self.regions,
@@ -423,7 +426,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def x_i_mn_summed(self) -> DataFrame:
-        """Return sum of all total demands for good 𝑚 in city 𝑖.
+        """Return sum of all total demands for good 𝑚 in region 𝑖.
 
         Equation 1:
         x_i^{mn} = a_i^{mn}X_i^n
@@ -453,7 +456,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         return generate_e_m_dataframe(
             E_i_m=self.E_i_m,
             initial_p=self.P_initial_export_proportion,
-            city_names=self.region_names,
+            region_names=self.region_names,
             sector_names=self.sectors,
         )
 

@@ -89,13 +89,13 @@ def load_centre_for_cities_gis(
 
 
 def load_and_join_centre_for_cities_data(
-    city_path: PathLike = CENTRE_FOR_CITIES_PATH,
+    region_path: PathLike = CENTRE_FOR_CITIES_PATH,
     spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH,
     region_column: str = CENTRE_FOR_CITIES_REGION_COLUMN,
     **kwargs,
 ) -> GeoDataFrame:
     """Import and join Centre for Cities data (demographics and coordinates)."""
-    cities: DataFrame = load_centre_for_cities_csv(city_path, **kwargs)
+    cities: DataFrame = load_centre_for_cities_csv(region_path, **kwargs)
     cities_spatial: GeoDataFrame = load_centre_for_cities_gis(spatial_path, **kwargs)
     return GeoDataFrame(
         cities.join(

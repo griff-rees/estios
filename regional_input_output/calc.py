@@ -64,7 +64,7 @@ def technical_coefficients(
 def X_i_m(
     total_sales: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the total production of sector 𝑚 in city 𝑖and cache results.
+    """Return the total production of sector 𝑚 in region 𝑖and cache results.
 
     X_i^m = X_*^m * Q_i^m/Q_*^m
     """
@@ -74,7 +74,7 @@ def X_i_m(
 def M_i_m(
     imports: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the imports of sector 𝑚 in city 𝑖and cache results.
+    """Return the imports of sector 𝑚 in region 𝑖and cache results.
 
     M_i^m = M_*^m * Q_i^m/Q_*^m
     """
@@ -84,7 +84,7 @@ def M_i_m(
 def F_i_m(
     final_demand: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the final demand of sector 𝑚 in city 𝑖and cache results.
+    """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
     F_i^m = F_*^m * Q_i^m/Q_*^m
     """
@@ -94,7 +94,7 @@ def F_i_m(
 def E_i_m(
     exports: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the final demand of sector 𝑚 in city 𝑖and cache results.
+    """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
     E_i^m = E_*^m * Q_i^m/Q_*^m
     """
@@ -102,7 +102,7 @@ def E_i_m(
 
 
 def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
-    """Return sum of all total demands for good 𝑚 in city 𝑖.
+    """Return sum of all total demands for good 𝑚 in region 𝑖.
 
     Equation 1:
     x_i^{mn} = a_i^{mn}X_i^n
@@ -124,7 +124,7 @@ def generate_e_m_dataframe(
     E_i_m: DataFrame,
     initial_p: float = INITIAL_P,
     national_E: Optional[Series] = None,
-    city_names: Iterable[str] = UK_CITY_REGIONS,
+    region_names: Iterable[str] = UK_CITY_REGIONS,
     sector_names: Iterable[str] = SECTOR_10_CODE_DICT,
     e_i_m_column_name: str = LATEX_e_i_m,
     initial_e_column_prefix: str = INITIAL_E_COLUMN_PREFIX,
@@ -133,52 +133,52 @@ def generate_e_m_dataframe(
     index: MultiIndex
     if national_E:
         E_i_m = E_i_m.append(national_E)
-        index = generate_i_m_index(city_names, sector_names, include_national=True)
+        index = generate_i_m_index(region_names, sector_names, include_national=True)
     else:
-        index = generate_i_m_index(city_names, sector_names)
+        index = generate_i_m_index(region_names, sector_names)
     initial_e_column_name: str = initial_e_column_prefix + e_i_m_column_name
     e_m_iter_df = DataFrame(index=index, columns=[initial_e_column_name])
     e_m_iter_df[initial_e_column_name] = initial_p * E_i_m.stack().astype("float64")
     return e_m_iter_df
 
 
-def calc_city_distances(
+def calc_region_distances(
     cities_df: GeoDataFrame,
     regions: Iterable[str] = UK_CITY_REGIONS,
     other_regions: Optional[Iterable[str]] = None,
     distance_CRS: str = UK_EPSG_GEO_CODE,
-    origin_city_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
-    destination_city_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
+    origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
+    destination_region_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
     final_distance_column: str = DISTANCE_COLUMN,
     unit_divide_conversion: float = DISTANCE_UNIT_DIVIDE,
 ) -> GeoDataFrame:
     """Calculate a GeoDataFrame with a Distance column between cities in metres.
 
     The ``rest_uk`` boolean adds a generic term for the rest of
-    Note: This assumes the cities_df index has origin city as row.name[0],
-    and destination city as row.name[].
+    Note: This assumes the cities_df index has origin region as row.name[0],
+    and destination region as row.name[].
     """
     if not other_regions:
         other_regions = regions
     projected_cities_df = cities_df.to_crs(distance_CRS)
-    city_distances: GeoDataFrame = GeoDataFrame(
+    region_distances: GeoDataFrame = GeoDataFrame(
         index=generate_ij_index(regions, other_regions), columns=[final_distance_column]
     )
-    city_distances[origin_city_column] = city_distances.apply(
+    region_distances[origin_region_column] = region_distances.apply(
         lambda row: projected_cities_df["geometry"][row.name[0]], axis=1
     )
-    city_distances[destination_city_column] = city_distances.apply(
+    region_distances[destination_region_column] = region_distances.apply(
         lambda row: projected_cities_df["geometry"][row.name[1]], axis=1
     )
-    city_distances[final_distance_column] = city_distances.apply(
-        lambda row: row[origin_city_column].distance(row[destination_city_column])
+    region_distances[final_distance_column] = region_distances.apply(
+        lambda row: row[origin_region_column].distance(row[destination_region_column])
         / unit_divide_conversion,
         axis=1,
     )
-    city_distances = city_distances.drop(
-        city_distances[city_distances[final_distance_column] == 0].index
+    region_distances = region_distances.drop(
+        region_distances[region_distances[final_distance_column] == 0].index
     )
-    return city_distances
+    return region_distances
 
 
 # def doubly_constrained(regions_df: GeoDataFrame) -> GeoDataFrame:
@@ -359,10 +359,10 @@ def andrews_suggestion(
     # (Rearranged equation 2)
     # m_i^m = e_i^m + F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
     # exogenous_i_m_constant = F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
-    # convergence_by_city = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
+    # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
     # Convergence element
     # c_1 = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
-    # convergence_by_city = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
+    # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
     # Possibility I've messed up needing to sum the other employment (ie i != j)
     convergence_by_sector: Series = exogenous_i_m_constant.groupby("Sector").apply(
         lambda sector: employment[sector.name]
@@ -372,17 +372,17 @@ def andrews_suggestion(
     )
 
     # Need to replace Area with City in future
-    convergence_by_city: Series = convergence_by_sector.reorder_levels(
+    convergence_by_region: Series = convergence_by_sector.reorder_levels(
         ["Area", "Sector"]
     )
-    convergence_by_city = convergence_by_city.reindex(exogenous_i_m_constant.index)
+    convergence_by_region = convergence_by_region.reindex(exogenous_i_m_constant.index)
 
     # from pdb import set_trace; set_trace()
 
-    net_constraint: Series = exogenous_i_m_constant - convergence_by_city
+    net_constraint: Series = exogenous_i_m_constant - convergence_by_region
     # This accounts for economic activity outside the 3 cities included in the model enforcing convergence
-    # net_constraint: Series = exogenous_i_m_constant - convergence_by_city
-    return exogenous_i_m_constant, convergence_by_city, net_constraint
+    # net_constraint: Series = exogenous_i_m_constant - convergence_by_region
+    return exogenous_i_m_constant, convergence_by_region, net_constraint
 
 
 def import_export_convergence(
@@ -406,7 +406,7 @@ def import_export_convergence(
 
         # Equation 14 with exogenous_i_m_constant
         # Possibility I've messed up needing to sum the other employment (ie i != j)
-        # m_i^m = e_i^m + exogenous_i_m_constant - convergence_by_city
+        # m_i^m = e_i^m + exogenous_i_m_constant - convergence_by_region
         model_e_m[f"{m_i_m_symbol} {i}"] = model_e_m[e_column] + exogenous_i_m
 
         # Equation 15

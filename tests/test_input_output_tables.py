@@ -8,7 +8,7 @@ from regional_input_output.input_output_tables import (
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
     InputOutputExcelTable,
-    load_employment_by_city_and_sector_csv,
+    load_employment_by_region_and_sector_csv,
     load_io_table_excel,
     load_region_employment_excel,
 )
@@ -66,7 +66,7 @@ def national_jobs() -> DataFrame:
 
 @pytest.fixture
 def aggregated_city_sector() -> DataFrame:
-    city_sector: DataFrame = load_employment_by_city_and_sector_csv()
+    city_sector: DataFrame = load_employment_by_region_and_sector_csv()
     return aggregate_rows(city_sector, True)
 
 

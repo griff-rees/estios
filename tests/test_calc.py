@@ -5,7 +5,7 @@ import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from regional_input_output.calc import calc_city_distances
+from regional_input_output.calc import calc_region_distances
 
 
 def test_3_city_distances(three_cities_io) -> None:
@@ -22,7 +22,7 @@ def test_3_city_distances(three_cities_io) -> None:
         index=three_cities_io.distances.index,
         name="Distance",
     )
-    distances: DataFrame = calc_city_distances(
+    distances: DataFrame = calc_region_distances(
         three_cities_io.region_data, three_cities_io.region_names
     )
     assert_series_equal(distances["Distance"], CORRECT_DISTANCES)

@@ -248,7 +248,7 @@ def load_io_table_excel(
     return io_table
 
 
-def load_employment_by_city_and_sector_csv(
+def load_employment_by_region_and_sector_csv(
     path: FilePathType = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH,
     skiprows: int = ons_IO_2017.CITY_SECTOR_SKIPROWS,
     skipfooter: int = ons_IO_2017.CITY_SECTOR_SKIPFOOTER,
@@ -257,7 +257,7 @@ def load_employment_by_city_and_sector_csv(
     index_col: int = ons_IO_2017.CITY_SECTOR_INDEX_COLUMN,
     **kwargs,
 ) -> DataFrame:
-    """Import city level sector employment data as a DataFrame."""
+    """Import region level sector employment data as a DataFrame."""
     if path is ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH and isinstance(path, Path):
         path = open_binary(uk_data, path)
     return read_csv(
