@@ -50,7 +50,7 @@ DEFAULT_SECTOR: Final[str] = "Production"
 DEFAULT_DATE_FORMAT: Final[str] = "%b %y"
 
 DEFAULT_TOP_SECTORS: Final[int] = 4
-DEFAULT_SECTORS_MARKER_HOPS: Final[int] = 4
+DEFAULT_SECTORS_MARKER_HOPS: Final[int] = 3
 DEFAULT_HEATMAP_COLOUR_SCALE: Final[str] = "portland"
 DEFAULT_COLOUR_CONFIG: Final[str] = "Education"
 
@@ -84,7 +84,7 @@ DEFAULT_COLOUR_OPTIONS: Final[ColourOptionsType] = {
 
 
 def generate_markers(
-    total: int, minimum: int = 1, marker_hops: int = DEFAULT_SECTORS_MARKER_HOPS
+    total: int, minimum: int = 0, marker_hops: int = DEFAULT_SECTORS_MARKER_HOPS
 ) -> Generator[int, None, None]:
     for i in range(minimum, total, int(total / marker_hops)):
         yield i
@@ -169,14 +169,18 @@ def get_dash_app(
                         # placeholder="Select a sector",
                         value=default_sector,
                     ),
-                    html.H2("Top Sector Flows"),
-                    dcc.Slider(
+                    html.H2("Filter Sector Flows"),
+                    dcc.RangeSlider(
                         id="n_flows",
-                        min=1,
+                        min=0,
                         max=len(input_output_ts.regions),
-                        value=default_top_sectors,
-                        step=1,
-                        marks={i: f"top {i}" for i in sector_markers},
+                        # value=default_top_sectors,
+                        value=(
+                            len(input_output_ts.regions) - default_top_sectors,
+                            len(input_output_ts.regions),
+                        ),
+                        step=1,  # Needed because continuous if not speficied
+                        # marks={i: f"{i}" for i in sector_markers},
                         # tooltip={"placement": "bottom", "always_visible": True},
                     ),
                 ],

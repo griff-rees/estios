@@ -108,10 +108,13 @@ def add_mapbox_edges(
     render_below: bool = True,
     selected_sector: str = None,
     # round_flows: int = 2,
+    # reverse_render_order: bool = True,
     **kwargs,
 ) -> Figure:
     if fig is None:
         fig = Figure()
+    # if reverse_render_order:
+    #     cities = cities.iloc[::-1]
     mapbox_origin: GeoDataFrame = convert_geom_for_mapbox(origin_city)
     mapbox_destinations: GeoDataFrame = convert_geom_for_mapbox(cities)
     logger.warning("Check add_mapbox_edges weight indexing by values")
@@ -123,7 +126,7 @@ def add_mapbox_edges(
             Scattermapbox(
                 lon=[mapbox_origin.iloc[0]["lon"], dest_city_row["lon"]],
                 lat=[mapbox_origin.iloc[0]["lat"], dest_city_row["lat"]],
-                mode="lines",
+                mode="lines+text",
                 line={"width": plot_line_scaling_func(dest_city_row["weight"])},
                 # name=f"{mapbox_origin.iloc[0].index} {flow_type} {dest_city_row.index}"
                 # name=f"{dest_city_row.name} {flow_type} £{dest_city_row['weight']:,.2f}",
@@ -168,7 +171,7 @@ def draw_ego_flows_network(
     y_ij_m_results: DataFrame,
     selected_city: str,
     selected_sector: str,
-    n_flows: Optional[int] = 0,
+    n_flows: Optional[Union[int, tuple[int, int]]] = 0,
     fig: Optional[Figure] = None,
     # in_vs_out_flow: bool = True,
     other_city_column_name: str = OTHER_CITY_COLUMN,
@@ -177,7 +180,7 @@ def draw_ego_flows_network(
     **kwargs,
 ) -> Figure:
     # region_data: GeoDataFrame = input_output_ts[current_year_index].region_data
-    logger.warning(f"Testing flows of {selected_sector} for {selected_city}")
+    logger.info(f"{n_flows} flows of {selected_sector} for {selected_city}")
     if fig is None:
         fig = mapbox_cities_fig(region_data, zoom=zoom, colour_column=colour_column)
     selected_city_data: Series = region_data.loc[selected_city]
@@ -185,7 +188,11 @@ def draw_ego_flows_network(
         y_ij_m_results, selected_city, selected_sector
     )
     if n_flows:
-        flows = flows.sort_values()[-n_flows:]
+        if isinstance(n_flows, int):
+            # This will probably be deprecated
+            flows = flows.sort_values()[-n_flows:]
+        else:
+            flows = flows.sort_values()[n_flows[0] : n_flows[1]]
     flows_city_data: GeoDataFrame = region_data.loc[
         flows.index.get_level_values(other_city_column_name)
     ]
