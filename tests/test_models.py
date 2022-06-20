@@ -7,7 +7,7 @@ from pandas.testing import assert_series_equal
 
 from regional_input_output import __version__
 from regional_input_output.input_output_tables import SECTOR_10_CODE_DICT
-from regional_input_output.models import (
+from regional_input_output.models import (  # NullRawRegionError,; RawRegionTypeError,
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )
@@ -200,6 +200,18 @@ class TestInputOutputModel:
             three_cities_results._y_ij_m[B_j_m_im_column],
         )
 
+    # def test_null_raw_io(self, three_cities_results) -> None:
+    #     """Test raising null error for raw InputOutput attribute."""
+    #     three_cities_results._raw_region_data = None
+    #     with pytest.raises(NullRawRegionError):
+    #         test_region_data: DataFrame = three_cities_results.region_data
+
+    def test_not_implemented_raw_io(self) -> None:
+        """Test raising null error for raw InputOutput attribute."""
+        test_io = InterRegionInputOutput(_raw_region_data=["a", "list"])
+        with pytest.raises(NotImplementedError):
+            test_region_data: DataFrame = test_io.region_data
+
 
 class TestInputOutputModelAllCities:
 
@@ -311,6 +323,23 @@ class TestInputOutputTimeSeries:
         assert len(time_series) == 4
         assert str(time_series) == (
             "Input output models from 2017-03-01 to 2017-12-01: 10 sectors, 3 cities"
+        )
+        time_series.calc_models()
+        for model in time_series:
+            assert hasattr(model, "y_ij_m_model")
+
+    def test_2020_to_2043(self, three_cities, caplog) -> None:
+        """Test generating a longer time series with three cities."""
+        dates = [date(year, 1, 1) for year in range(2018, 2043)]
+        time_series = InterRegionInputOutputTimeSeries.from_dates(
+            dates=dates, regions=three_cities
+        )
+        assert time_series[0].date == dates[0]  # date(2018, 1, 1)
+        assert time_series[-1].date == date(2042, 1, 1)
+        assert time_series.dates.index(time_series[0].date) == 0
+        assert len(time_series) == 25
+        assert str(time_series) == (
+            "Input output models from 2018-01-01 to 2042-01-01: 10 sectors, 3 cities"
         )
         time_series.calc_models()
         for model in time_series:

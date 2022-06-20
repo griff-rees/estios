@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from logging import getLogger
-from typing import Final, Iterable, Optional
+from typing import Final, Iterable, Optional, Union
 
 from geopandas import GeoDataFrame
 from numpy import log
@@ -428,3 +428,11 @@ def import_export_convergence(
             model_y_ij_m[f"{y_ij_m_symbol} {i}"].groupby(["City", "Sector"]).sum()
         )
     return model_e_m, model_y_ij_m
+
+
+def scale_by_population(
+    national_var: Union[float, Series],
+    national_sector_var: Union[float, Series],
+    region_var: Union[float, Series],
+) -> Union[float, Series]:
+    return national_sector_var * region_var / national_var

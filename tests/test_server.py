@@ -88,3 +88,14 @@ def test_generate_markers() -> None:
     correct_markers: Final = [2, 7, 12, 17]
     markers: list[int] = list(generate_markers(20, 2, 4))
     assert markers == correct_markers
+
+
+def test_io_table(caplog) -> None:
+    io_table_log: tuple[str, int, str] = (
+        "regional_input_output.server.dash_app",
+        INFO,
+        "Appending 'table-div' to layout.",
+    )
+    with caplog.at_level(INFO):
+        server: Dash = get_server_dash(auth=False, io_table=True)
+    assert io_table_log in caplog.record_tuples

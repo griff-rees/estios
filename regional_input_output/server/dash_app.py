@@ -7,7 +7,7 @@ from logging import getLogger
 from typing import Final, Generator, Optional
 
 import uvicorn
-from dash import Dash, dcc, html
+from dash import Dash, dash_table, dcc, html
 from dash.dependencies import Input, Output
 from dash_auth import BasicAuth
 from dotenv import load_dotenv
@@ -106,6 +106,7 @@ def get_dash_app(
     colour_scale: str = DEFAULT_HEATMAP_COLOUR_SCALE,
     map_title: str = DEFAULT_MAP_TITLE,
     minimum_sector_markers: int = 1,
+    io_table: bool = True,
     **kwargs,
 ) -> Dash:
     from IPython import get_ipython
@@ -192,7 +193,8 @@ def get_dash_app(
                     dcc.Slider(
                         id="date_index",
                         min=0,
-                        max=len(input_output_ts) - 1,
+                        max=len(input_output_ts)
+                        - 1,  # avoid excess index outside time points
                         step=None,
                         marks={
                             i: date.strftime(date_fmt)
@@ -206,6 +208,26 @@ def get_dash_app(
             # dcc.Store(id="current_date_index"),
         ]
     )
+    if io_table:
+        logger.info("Appending 'table-div' to layout.")
+        app.layout.children.append(
+            html.Div(
+                id="table-div",
+                children=[
+                    dash_table.DataTable(
+                        (input_output_ts[0].io_table).to_dict("records"),
+                        [
+                            {"name": i, "id": i}
+                            for i in input_output_ts[0].io_table.columns
+                        ],
+                        id="io-table",
+                        style_cell={
+                            "backgroundColor": "transparent",
+                        },
+                    ),
+                ],
+            )
+        )
 
     # @app.callback(
     #     Output('current_date_index', 'data'),

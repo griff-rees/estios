@@ -76,3 +76,17 @@ body {
   width: 200px;
 }
 */
+
+#table-div {
+  position: absolute;
+  left: 10%;
+  top: 15%;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
+    background-color: transparent;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+    background-color: rgb(0 0 0 / 0%);
+}

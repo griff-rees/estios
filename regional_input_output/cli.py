@@ -30,6 +30,7 @@ def server(
     host: str = DEFAULT_SERVER_HOST_IP,
     port: int = DEFAULT_SERVER_PORT,
     path: str = DEFAULT_SERVER_PATH,
+    io_table: bool = False,
 ) -> None:
     """Run default dash input-output time series."""
     if public:
@@ -39,10 +40,19 @@ def server(
     path = enforce_end_str(path, "/", False)
     secho(f"Starting dash server with port {port} and ip {host} at {path}", fg=GREEN)
     secho(f"Server running on: http://{host}:{port}{path}", fg=GREEN)
+    if io_table:
+        secho(f"Including interactive io_table.", fg=RED)
+    else:
+        secho(f"Not including interactive io_table.", fg=GREEN)
     if not auth:
         secho(f"Warning: publicly viewable without authentication.", fg=RED)
     run_server_dash(
-        host=host, port=port, all_cities=all_cities, auth=auth, path_prefix=path
+        host=host,
+        port=port,
+        all_cities=all_cities,
+        auth=auth,
+        path_prefix=path,
+        io_table=io_table,
     )
 
 

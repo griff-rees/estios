@@ -19,10 +19,12 @@ from typing import (
     get_type_hints,
     overload,
 )
+from warnings import filterwarnings
 
 from geopandas import GeoDataFrame
 from numpy import exp
 from pandas import DataFrame, MultiIndex, Series
+from shapely.errors import ShapelyDeprecationWarning
 
 from .calc import (
     CITY_POPULATION_COLUMN_NAME,
@@ -77,6 +79,8 @@ from .utils import (
 )
 
 logger = getLogger(__name__)
+
+filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 DEFAULT_TIME_SERIES_CONFIG = {
     EMPLOYMENT_QUARTER_DEC_2017: {
@@ -201,6 +205,14 @@ class DoublyConstrained(SpatialInteractionBaseClass):
         pass
 
 
+# def NullRawRegionError(BaseException):
+#     pass
+
+
+# def RawRegionTypeError(NotImplementedError):
+#     pass
+
+
 @dataclass
 class InterRegionInputOutputBaseClass:
 
@@ -247,33 +259,48 @@ class InterRegionInputOutputBaseClass:
 @dataclass
 class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
-    """Manage Inter Region input output model runs."""
+    """Manage Inter Region input output model runs.
+
+    Todo:
+        * Abstract path for employment data to ease setting directly.
+    """
 
     io_table_file_path: PathLike = ons_IO_2017.EXCEL_PATH
-    region_sector_employment_path: PathLike = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
-    national_employment_path: PathLike = UK_JOBS_BY_SECTOR_PATH
+    region_sector_employment_path: Optional[
+        PathLike
+    ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
+    national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_PATH
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
     date: Optional[date] = None
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     _io_table_cls: Type[InputOutputTable] = InputOutputExcelTable
+    _national_employment: Optional[DataFrame] = None
+    _employment_by_sector_and_region: Optional[DataFrame] = None
+    _raw_region_data: Optional[DataFrame] = None
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run."""
-        self._raw_region_data: GeoDataFrame = self._region_load_func(
-            region_path=self.region_attributes_path,
-            spatial_path=self.region_spatial_path,
-        )
         self._raw_io_table: InputOutputTable = self._io_table_cls(
             path=self.io_table_file_path, **self.io_table_kwargs
         )
-        self._national_employment: DataFrame = load_region_employment_excel(
-            path=self.national_employment_path
-        )
-        self._employment_by_sector_and_region: DataFrame = (
-            load_employment_by_region_and_sector_csv(
-                path=self.region_sector_employment_path
+        if not self._raw_region_data and self.region_attributes_path:
+            self._raw_region_data: GeoDataFrame = self._region_load_func(
+                region_path=self.region_attributes_path,
+                spatial_path=self.region_spatial_path,
             )
-        )
+        if not self._national_employment and self.national_employment_path:
+            self._national_employment: DataFrame = load_region_employment_excel(
+                path=self.national_employment_path
+            )
+        if (
+            not self._employment_by_sector_and_region
+            and self.region_sector_employment_path
+        ):
+            self._employment_by_sector_and_region: DataFrame = (
+                load_employment_by_region_and_sector_csv(
+                    path=self.region_sector_employment_path
+                )
+            )
         if not self.date:
             self.date = self.employment_date
             logger.warning(
@@ -285,6 +312,28 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             f"Input output model of {self.year}: "
             f"{len(self.sectors)} sectors, {len(self.regions)} cities"
         )
+
+    @cached_property
+    def region_data(self) -> GeoDataFrame:
+        """Return an indexable collection of attribute data for each region.
+
+        Todo:
+            * Consider refactor and/or custom exceptions.
+        """
+        if self._raw_region_data is not None and isinstance(
+            self._raw_region_data, DataFrame
+        ):
+            return self._raw_region_data.loc[self.region_names]
+        elif not self._raw_region_data:
+            # raise NullRawRegionError("'_raw_region_data' attribute required for 'region_data' property")
+            raise TypeError(
+                "'_raw_region_data' attribute cannot be null for 'region_data' property"
+            )
+        else:
+            # raise RawRegionTypeError(f"Raw region type {type(self._raw_region_data)} not implemented, use a GeoDataFrame.")
+            raise NotImplementedError(
+                f"Raw region type {type(self._raw_region_data)} not implemented, use a GeoDataFrame."
+            )
 
     @property
     def _ij_index(self) -> MultiIndex:
@@ -318,15 +367,13 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                 self._aggregated_national_employment.loc[str(self.employment_date)]
                 * self.national_employment_scale
             )
-        else:
+        elif self._national_employment is None:
+            raise TypeError("'_national_employment' attribute cannot be None.")
+        elif isinstance(self._national_employment, DataFrame):
             return (
                 self._national_employment.loc[str(self.employment_date)]
                 * self.national_employment_scale
             )
-
-    @cached_property
-    def region_data(self) -> GeoDataFrame:
-        return self._raw_region_data.loc[self.region_names]
 
     @cached_property
     def io_table(self) -> DataFrame:
