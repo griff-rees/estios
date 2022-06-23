@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
+
 import pytest
 from pandas import DataFrame
 
-from regional_input_output.input_output_tables import (
+from regional_input_output.input_output_tables import (  # InputOutputExcelTable,
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
-    InputOutputExcelTable,
+    InputOutputCPATable,
     load_employment_by_region_and_sector_csv,
+    load_io_table_csv,
     load_io_table_excel,
     load_region_employment_excel,
 )
+from regional_input_output.uk_data import io_table_1841
 from regional_input_output.utils import aggregate_rows, filter_by_region_name_and_type
 
 
 @pytest.fixture
-def test_ons_io_table() -> InputOutputExcelTable:
-    return InputOutputExcelTable()
+def test_ons_io_table() -> InputOutputCPATable:
+    return InputOutputCPATable()
 
 
 FINANCIAL_AGG: str = "Financial and insurance"
@@ -43,7 +47,7 @@ class TestLoadingONSIOTableData:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
         sectors_aggregated: AggregatedSectorDictType = (
-            test_ons_io_table._aggregated_sectors_dict()
+            test_ons_io_table._aggregated_sectors_dict
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
@@ -57,6 +61,46 @@ class TestLoadingONSIOTableData:
     def test_ons_io_2015(self) -> None:
         """Test loading 2015 IO table data."""
         io_2015: DataFrame = load_io_table_excel("data/2015detailedioatsbb18(1).xls")
+
+
+class TestLoadingCSVIOTable:
+    def test_load_cvs_io_table(self) -> None:
+        """Test loading a csv UK 1849 economic input-outpute table
+
+        Table from An input-output table for 1841 by
+        SARA HORRELL, JANE HUMPHRIES, MARTIN WEALE
+        in The Economic History Review, August 1994 see:
+        https://doi.org/10.1111/j.1468-0289.1994.tb01390.x
+        """
+        io_2017: DataFrame = load_io_table_csv(
+            Path("regional_input_output/uk_data/") / io_table_1841.CSV_PATH
+        )
+        assert "Value added" in io_2017.index
+        assert "Total" in io_2017.index
+        assert "Total" in io_2017.columns
+
+    # def test_cvs_io_table_export(self, test_ons_io_table) -> None:
+    #     """Test loading and managing an csv Input Output excel file."""
+    #     assert test_ons_io_table.sectors.tail().index[0] == "CPA_R93"
+    #     assert len(test_ons_io_table.sectors) == 105
+    #     assert (
+    #         test_ons_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+    #         == 1.512743278316663e-06
+    #     )
+
+    # def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
+    #     """Test creating a dictionay to aggregate sectors."""
+    #     TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
+    #     sectors_aggregated: AggregatedSectorDictType = (
+    #         test_ons_io_table._aggregated_sectors_dict()
+    #     )
+    #     assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
+
+    # def test_ons_cvs_table_aggregation(self, test_ons_io_table) -> None:
+    #     """Test loading and manaing an csv Input Output excel file."""
+    #     FIN_REAL_IO: float = 29562.858422906436
+    #     aggregated_io_table: DataFrame = test_ons_io_table.get_aggregated_io_table()
+    #     assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
 
 @pytest.fixture

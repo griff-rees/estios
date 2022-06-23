@@ -46,12 +46,11 @@ from .calc import (
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
     IMPORTS_COLUMN_NAME,
-    IO_TABLE_NAME,
     IO_TABLE_SCALING,
     TOTAL_PRODUCTION_COLUMN_NAME,
     UK_EXPORT_COLUMN_NAMES,
     AggregatedSectorDictType,
-    InputOutputExcelTable,
+    InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
     load_region_employment_excel,
@@ -59,7 +58,6 @@ from .input_output_tables import (
 from .uk_data import ons_IO_2017
 from .uk_data.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,
-    UK_CITY_SECTOR_YEARS,
     UK_JOBS_BY_SECTOR_PATH,
     UK_JOBS_BY_SECTOR_SCALING,
 )
@@ -273,7 +271,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
     date: Optional[date] = None
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
-    _io_table_cls: Type[InputOutputTable] = InputOutputExcelTable
+    _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     _national_employment: Optional[DataFrame] = None
     _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
@@ -384,10 +382,15 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         """
         if self.sector_aggregation:
             return self._raw_io_table.get_aggregated_io_table() * self.io_table_scale
+        elif isinstance(self._raw_io_table, InputOutputCPATable):
+            return self._raw_io_table.code_io_table * self.io_table_scale
+        elif self._raw_io_table.base_io_table is not None:
+            return self._raw_io_table.base_io_table * self.io_table_scale
         else:
-            raise NotImplementedError(
-                "Currently io_table requires an aggregation dictionary."
-            )
+            raise ValueError("No valid io table set for {self}")
+            # raise NotImplementedError(
+            #     "Currently io_table requires an aggregation dictionary."
+            # )
 
     @cached_property
     def technical_coefficients(self) -> DataFrame:
