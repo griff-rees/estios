@@ -52,3 +52,7 @@ addopts = """
 
 [tool.poetry.scripts]
 region-io = "regional_input_output.cli:app"
+
+# Pre-commit hooks related config.
+[tool.pycln]
+all = true
