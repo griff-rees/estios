@@ -1,17 +1,5 @@
-# Welcome to MkDocs
+# regional-input-output
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+A python package for input-output modelling at a regional level.
 
-## Commands
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+Please review the [project license](license.md) prior to use.

@@ -1,1 +1,19 @@
-site_name: My Docs
+site_name: regional-input-output
+
+nav:
+    - Home: index.md
+    - 'Information': 
+        - 'About': about.md
+        - 'Data': data.md
+        - 'Specification': spec.md
+        - 'License': license.md
+    - Installation: install.md
+    - Issues: https://github.com/griff-rees/regional-input-output/issues
+    
+repo_url: https://github.com/griff-rees/regional-input-output/
+
+plugins:
+    - search:
+        min_search_length: 3
+        lang: en
+    
