@@ -7,7 +7,7 @@ from typing import Final, Iterable
 
 # ONS jobs data
 
-UK_JOBS_BY_SECTOR_PATH: Final[Path] = Path("jobs05sep2021.xls")
+UK_JOBS_BY_SECTOR_XLS_FILE_NAME: Final[Path] = Path("jobs05sep2021.xls")
 DATE_COLUMN_NAME: Final[str] = "SIC 2007 section"
 UK_NATIONAL_EMPLOYMENT_SHEET: Final[str] = "15. United Kingdom"
 UK_JOBS_BY_SECTOR_SCALING: Final[float] = 1000

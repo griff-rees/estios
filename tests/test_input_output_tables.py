@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from pathlib import Path
 
 import pytest
 from pandas import DataFrame
@@ -15,7 +14,6 @@ from regional_input_output.input_output_tables import (  # InputOutputExcelTable
     load_io_table_excel,
     load_region_employment_excel,
 )
-from regional_input_output.uk_data import io_table_1841
 from regional_input_output.utils import aggregate_rows, filter_by_region_name_and_type
 
 
@@ -72,9 +70,7 @@ class TestLoadingCSVIOTable:
         in The Economic History Review, August 1994 see:
         https://doi.org/10.1111/j.1468-0289.1994.tb01390.x
         """
-        io_2017: DataFrame = load_io_table_csv(
-            Path("regional_input_output/uk_data/") / io_table_1841.CSV_PATH
-        )
+        io_2017: DataFrame = load_io_table_csv()
         assert "Value added" in io_2017.index
         assert "Total" in io_2017.index
         assert "Total" in io_2017.columns

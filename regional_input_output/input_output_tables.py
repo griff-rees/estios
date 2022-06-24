@@ -10,11 +10,11 @@ from typing import Any, Callable, Final, Iterable, Optional, Union
 
 from pandas import DataFrame, Index, Series, read_csv, read_excel
 
-from . import uk_data
+from .uk_data import data as uk_data_path
 from .uk_data import io_table_1841, ons_IO_2017
 from .uk_data.employment import (
     DATE_COLUMN_NAME,
-    UK_JOBS_BY_SECTOR_PATH,
+    UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
     UK_NATIONAL_EMPLOYMENT_SHEET,
 )
 from .utils import (
@@ -97,14 +97,14 @@ def io_table_to_codes(
 
 def load_region_employment_excel(
     sheet: str = UK_NATIONAL_EMPLOYMENT_SHEET,
-    path: FilePathType = UK_JOBS_BY_SECTOR_PATH,
+    path: FilePathType = UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
     date_column_name: str = DATE_COLUMN_NAME,
     covid_flags_column: str = COVID_FLAGS_COLUMN,
     **kwargs,
 ) -> DataFrame:
     """Load regional employment data from https://www.nomisweb.co.uk/ excel exports."""
-    if path is UK_JOBS_BY_SECTOR_PATH and isinstance(path, Path):
-        path = open_binary(uk_data, path)
+    if path is UK_JOBS_BY_SECTOR_XLS_FILE_NAME and isinstance(path, Path):
+        path = open_binary(uk_data_path, path)
     region: DataFrame = read_excel(
         path,
         sheet_name=sheet,
@@ -146,7 +146,7 @@ def arrange_cpa_io_table(
 
 
 def load_io_table_csv(
-    path: FilePathType = io_table_1841.CSV_PATH,
+    path: FilePathType = io_table_1841.CSV_FILE_NAME,
     # usecols: Optional[str] = io_table_1841.USECOLS,
     skiprows: Optional[
         list[int]
@@ -165,8 +165,8 @@ def load_io_table_csv(
         * Raise warning if the file has the wrong extension.
         * Fix packaging of csv file
     """
-    # if path is io_table_1841.CSV_PATH and isinstance(path, Path):
-    #     path = open_binary(uk_data, path/'data')
+    if path is io_table_1841.CSV_FILE_NAME and isinstance(path, Path):
+        path = open_binary(uk_data_path, path)
     io_table: DataFrame = read_csv(
         path,
         # usecols=usecols,
@@ -187,7 +187,7 @@ def load_io_table_csv(
 
 
 def load_io_table_excel(
-    path: FilePathType = ons_IO_2017.EXCEL_PATH,
+    path: FilePathType = ons_IO_2017.EXCEL_FILE_NAME,
     sheet_name: str = IO_TABLE_NAME,
     usecols: Optional[str] = ons_IO_2017.USECOLS,
     skiprows: Optional[list[int]] = ons_IO_2017.SKIPROWS,  # Default skips Rows 3 and 4
@@ -201,8 +201,10 @@ def load_io_table_excel(
     **kwargs,
 ) -> DataFrame:
     """Import a Input-Ouput Table as a DataFrame from an ONS xlsx file."""
-    if path is ons_IO_2017.EXCEL_PATH and isinstance(path, Path):
-        path = open_binary(uk_data, path)
+    # if path is ons_IO_2017.EXCEL_PATH and isinstance(path, Path):
+    #    path = open_binary(uk_data, path)
+    if path is ons_IO_2017.EXCEL_FILE_NAME and isinstance(path, Path):
+        path = open_binary(uk_data_path, path)
     io_table: DataFrame = read_excel(
         path,
         sheet_name=sheet_name,
@@ -225,7 +227,7 @@ def load_io_table_excel(
 
 
 def load_employment_by_region_and_sector_csv(
-    path: FilePathType = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH,
+    path: FilePathType = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
     skiprows: int = ons_IO_2017.CITY_SECTOR_SKIPROWS,
     skipfooter: int = ons_IO_2017.CITY_SECTOR_SKIPFOOTER,
     engine: str = CITY_SECTOR_ENGINE,
@@ -234,8 +236,10 @@ def load_employment_by_region_and_sector_csv(
     **kwargs,
 ) -> DataFrame:
     """Import region level sector employment data as a DataFrame."""
-    if path is ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH and isinstance(path, Path):
-        path = open_binary(uk_data, path)
+    if path is ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME and isinstance(
+        path, Path
+    ):
+        path = open_binary(uk_data_path, path)
     return read_csv(
         path,
         skiprows=skiprows,
@@ -466,7 +470,7 @@ class InputOutputCPATable(InputOutputTable):
        https://ec.europa.eu/eurostat/documents/1965803/1978839/NACEREV.2INTRODUCTORYGUIDELINESEN.pdf/f48c8a50-feb1-4227-8fe0-935b58a0a332
     """
 
-    path: FilePathType = ons_IO_2017.EXCEL_PATH
+    path: FilePathType = ons_IO_2017.EXCEL_FILE_NAME
     cpa_column_name: str = CPA_COLUMN_NAME
     sector_prefix_str: str = CPA_COLUMN_NAME
     sector_aggregation_dict: Optional[AggregatedSectorDictType] = field(

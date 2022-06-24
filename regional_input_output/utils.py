@@ -10,17 +10,8 @@ from typing import IO, Final, Iterable, Optional, Union
 from numpy import log
 from pandas import DataFrame, MultiIndex, Series
 
-from .uk_data.employment import (
-    CITY_SECTOR_REGION_PREFIX,
-    UK_JOBS_BY_SECTOR_PATH,
-    UK_NATIONAL_EMPLOYMENT_SHEET,
-)
-from .uk_data.regions import (
-    CENTRE_FOR_CITIES_PATH,
-    CITIES_TOWNS_SHAPE_PATH,
-    UK_CITY_REGIONS,
-    UK_NATIONAL_COLUMN_NAME,
-)
+from .uk_data.employment import CITY_SECTOR_REGION_PREFIX
+from .uk_data.regions import UK_CITY_REGIONS, UK_NATIONAL_COLUMN_NAME
 
 logger = getLogger(__name__)
 
