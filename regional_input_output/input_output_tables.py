@@ -73,6 +73,7 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
 
 IO_TABLE_SCALING: Final[float] = 100000.0
 CITY_SECTOR_ENGINE: Final[str] = "python"
+DOI_URL_PREFIX: Final[str] = "https://doi.org/"
 
 
 def crop_io_table_to_sectors(
@@ -114,6 +115,7 @@ def load_region_employment_excel(
         dtype={date_column_name: str},
         **kwargs,
     )
+    logger.warning("Applying NOMIS fixes loading sheet {sheet} from {path}")
     region[covid_flags_column] = region[date_column_name].apply(
         lambda cell: cell.strip().endswith(")")
     )
@@ -147,8 +149,9 @@ def arrange_cpa_io_table(
 
 def load_io_table_csv(
     path: FilePathType = io_table_1841.CSV_FILE_NAME,
+    usecols: Optional[Union[str, list[str]]] = io_table_1841.COLUMNS,
     skiprows: Optional[list[int]] = io_table_1841.SKIPROWS,
-    index_col: Optional[int] = io_table_1841.INDEX_COL,
+    index_col: Optional[Union[int, str]] = io_table_1841.INDEX_COL,
     cpa_column_name: Optional[str] = None,
     sector_desc_column_name: str = SECTOR_DESC_COLUMN_NAME,
     imports_column_name: str = IMPORTS_COLUMN_NAME,
@@ -166,7 +169,7 @@ def load_io_table_csv(
         path = open_binary(uk_data_path, path)
     io_table: DataFrame = read_csv(
         path,
-        # usecols=usecols,
+        usecols=usecols,
         skiprows=skiprows,
         index_col=index_col,
         **kwargs,
@@ -280,18 +283,38 @@ def aggregate_io_table(
 
 
 @dataclass
+class InputOutputMetaData:
+
+    """Manage info on source material."""
+
+    name: str
+    year: int
+    region: str
+    authors: Optional[Union[str, list[str], dict[str, str]]] = None
+    url: Optional[str] = None
+    doi: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.url and self.doi:
+            self.url = DOI_URL_PREFIX + self.doi
+
+
+@dataclass
 class InputOutputTable:
 
     """Manage processing and aggregating Input Output Tables."""
 
-    path: Optional[FilePathType] = None
+    path: Optional[FilePathType] = io_table_1841.CSV_FILE_NAME
     full_io_table: Optional[DataFrame] = None
     base_io_table: Optional[DataFrame] = None
     io_scaling_factor: float = IO_TABLE_SCALING
-    sector_names: Optional[Series] = None
+    sector_names: Optional[Series] = field(
+        default_factory=lambda: io_table_1841.HISTORIC_UK_SECTORS
+    )
     sector_aggregation_dict: Optional[AggregatedSectorDictType] = None
     sector_prefix_str: str = ""
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
+    meta_data: Optional[InputOutputMetaData] = None
 
     dog_leg_columns: dict[str, str] = field(default_factory=dict)
     dog_leg_rows: dict[str, str] = field(default_factory=dict)
@@ -320,6 +343,14 @@ class InputOutputTable:
         if self.base_io_table is None:  # Assumes full_io_table is set
             self.base_io_table = self._process_full_io_table(
                 self.full_io_table, self.sectors, self.sector_prefix_str
+            )
+        if not self.meta_data and self.path == io_table_1841.CSV_FILE_NAME:
+            self.meta_data = InputOutputMetaData(
+                name=io_table_1841.NAME,
+                year=io_table_1841.YEAR,
+                region=io_table_1841.REGION,
+                authors=io_table_1841.AUTHORS,
+                doi=io_table_1841.DOI,
             )
 
     @property
