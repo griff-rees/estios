@@ -147,10 +147,7 @@ def arrange_cpa_io_table(
 
 def load_io_table_csv(
     path: FilePathType = io_table_1841.CSV_FILE_NAME,
-    # usecols: Optional[str] = io_table_1841.USECOLS,
-    skiprows: Optional[
-        list[int]
-    ] = io_table_1841.SKIPROWS,  # Default skips Rows 3 and 4
+    skiprows: Optional[list[int]] = io_table_1841.SKIPROWS,
     index_col: Optional[int] = io_table_1841.INDEX_COL,
     cpa_column_name: Optional[str] = None,
     sector_desc_column_name: str = SECTOR_DESC_COLUMN_NAME,
@@ -201,8 +198,6 @@ def load_io_table_excel(
     **kwargs,
 ) -> DataFrame:
     """Import a Input-Ouput Table as a DataFrame from an ONS xlsx file."""
-    # if path is ons_IO_2017.EXCEL_PATH and isinstance(path, Path):
-    #    path = open_binary(uk_data, path)
     if path is ons_IO_2017.EXCEL_FILE_NAME and isinstance(path, Path):
         path = open_binary(uk_data_path, path)
     io_table: DataFrame = read_excel(
@@ -252,17 +247,12 @@ def load_employment_by_region_and_sector_csv(
 
 
 def aggregate_io_table(
-    # self,
-    # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT,
-    agg_sector_dict: AggregatedSectorDictType,
+    agg_sector_dict: AggregatedSectorDictType,  # UK_SECTOR_10_CODE_DICT would suit
     code_io_table: DataFrame,
     dog_leg_columns: dict[str, str] = UK_DOG_LEG_CODES["columns"],
     dog_leg_rows: dict[str, str] = UK_DOG_LEG_CODES["rows"],
 ) -> DataFrame:
     """Return an aggregated Input Output table via an aggregated mapping of sectors."""
-    # agg_sector_dict: AggregatedSectorDictType = self._aggregated_sectors_dict(
-    #     sector_aggregation_dict
-    # )
     # Todo: decide whether this dict copy (shallow) is worth keeping
     aggregated_sector_io_table = DataFrame(
         columns=list(agg_sector_dict.keys()) + list(dog_leg_columns.keys()),
@@ -299,9 +289,6 @@ class InputOutputTable:
     base_io_table: Optional[DataFrame] = None
     io_scaling_factor: float = IO_TABLE_SCALING
     sector_names: Optional[Series] = None
-    # sector_aggregation_dict: Optional[AggregatedSectorDictType] = field(
-    #     default_factory=lambda: deepcopy(SECTOR_10_CODE_DICT)
-    # )
     sector_aggregation_dict: Optional[AggregatedSectorDictType] = None
     sector_prefix_str: str = ""
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -310,13 +297,6 @@ class InputOutputTable:
     dog_leg_rows: dict[str, str] = field(default_factory=dict)
     _process_full_io_table: Callable[..., DataFrame] = crop_io_table_to_sectors
     _table_load_func: Callable[..., DataFrame] = load_io_table_csv
-
-    # def __post_init__(self) -> None:
-    #     if self.full_io_table is None:
-    #         self.full_io_table: DataFrame = self._table_load_func(
-    #             self.path, **self.io_table_kwargs  # sheet_name=self.io_sheet_name,
-    #         )
-    #     super().__post_init__()
 
     class NullIOTableError(Exception):
         pass
@@ -343,7 +323,6 @@ class InputOutputTable:
             )
 
     @property
-    # def sectors(self) -> list[str]:
     def sectors(self) -> Series:
         """If sector_names is None, populate with sector_aggregation_dict keys, else error.
 
@@ -363,41 +342,9 @@ class InputOutputTable:
 
     def __post_init__(self) -> None:
         self._init_base_io_tables()
-        # self.io_table_scaled: DataFrame = self.base_io_table * self.io_scaling_factor
-
-    # @cached_property
-    # def io_table_scaled(self) -> DataFrame:
-    #     return self.base_io_table * self.io_scaling_factor
-
-    # @property
-    # def row_codes(self) -> Series:  # Default skip first row
-    #     """Return the values in the index_column (intended to return sector codes)."""
-    #     if self.full_io_table is None:
-    #         raise self.NullIOTableError()
-
-    #     return (
-    #         self.full_io_table.reset_index()
-    #         .set_index(self.cpa_column_name)
-    #         .iloc[:, 0][self._first_code_row :]
-    #     )
-
-    # def _aggregated_sectors_dict(
-    #     self,  # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT
-    # ) -> AggregatedSectorDictType:
-    #     """Call aggregate_sector_dict on the sectors property."""
-    #     try:
-    #         assert not isinstance(self.sectors, AggregatedSectorDictType)
-    #     except:
-    #         raise self.SectorsNotAggregated("{self} sectors is not an aggregation dict.")
-
-    #     return aggregate_sector_dict(
-    #         self.sectors.index, self.sectors, self.sector_prefix_str
-    #     )
 
     @property
-    def _aggregated_sectors_dict(
-        self,  # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT
-    ) -> AggregatedSectorDictType:
+    def _aggregated_sectors_dict(self) -> AggregatedSectorDictType:
         """Call aggregate_sector_dict on the sectors property."""
         if self.sector_aggregation_dict:
             return aggregate_sector_dict(
@@ -414,48 +361,6 @@ class InputOutputTable:
             self.dog_leg_columns,
             self.dog_leg_rows,
         )
-
-
-# def get_aggregated_io_table(
-#     # self,
-#     # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT,
-#     agg_sector_dict: AggregatedSectorDictType,
-#     code_io_table: DataFrame,
-#     dog_leg_columns: dict[str, str] = UK_DOG_LEG_CODES["columns"],
-#     dog_leg_rows: dict[str, str] = UK_DOG_LEG_CODES["rows"],
-# ) -> DataFrame:
-#     """Return an aggregated Input Output table via an aggregated mapping of sectors."""
-#     # agg_sector_dict: AggregatedSectorDictType = self._aggregated_sectors_dict(
-#     #     sector_aggregation_dict
-#     # )
-#     # Todo: decide whether this dict copy (shallow) is worth keeping
-#     aggregated_sector_io_table = DataFrame(
-#         columns=list(agg_sector_dict.keys()) + list(dog_leg_columns.keys()),
-#         index=list(agg_sector_dict.keys()) + list(dog_leg_rows.keys()),
-#     )
-#
-#     for sector_column in agg_sector_dict:
-#         for sector_row in agg_sector_dict:
-#             sector_column_names: list[str] = agg_sector_dict[sector_column]
-#             sector_row_names: list[str] = agg_sector_dict[sector_row]
-#             aggregated_sector_io_table.loc[
-#                 sector_column, sector_row
-#             ] = (  # Check column row order
-#                 code_io_table.loc[sector_column_names, sector_row_names]
-#                 .sum()
-#                 .sum()
-#             )
-#             for dog_leg_column, source_column_name in dog_leg_columns.items():
-#                 aggregated_sector_io_table.loc[
-#                     sector_row, dog_leg_column
-#                 ] = code_io_table.loc[
-#                     sector_row_names, source_column_name
-#                 ].sum()
-#         for dog_leg_row, source_row_name in dog_leg_rows.items():
-#             aggregated_sector_io_table.loc[
-#                 dog_leg_row, sector_column
-#             ] = code_io_table.loc[source_row_name, sector_column_names].sum()
-#     return aggregated_sector_io_table
 
 
 @dataclass
@@ -502,9 +407,6 @@ class InputOutputCPATable(InputOutputTable):
             self.full_io_table, self.cpa_column_name
         )
         self.sector_names = self._CPA_sectors_to_names
-        # self.sector_names = list(self.sectors)
-        # self.io_table_scaled: DataFrame = * self.io_scaling_factor
-        # assert False
 
     @property
     def _CPA_sectors_to_names(self) -> Series:
@@ -516,29 +418,6 @@ class InputOutputCPATable(InputOutputTable):
     @property
     def _CPA_index(self) -> Index:
         return self._CPA_sectors_to_names.index
-
-    # @cached_property
-    # def io_table_scaled(self) -> DataFrame:
-    #     """Alter scaling to use code_io_table rather than base_io_table.
-
-    #     Todo:
-    #         * Assess whether to simply use base_io_table rather than code_io_table
-    #         * base_io_table may still be a helpful intermediate, in which case
-    #           perhaps another name is worth using
-    #     """
-    #     return self.code_io_table * self.io_scaling_factor
-
-    # @property
-    # def sectors(self) -> Series:
-    #     """Return all column names preceded by the sector_prefix_str code.
-
-    #     Todo:
-    #         * Refactor to manage this and the sector_names attribute.
-    #     """
-    #     logger.warning("Refactor to make use of sector_names needed.")
-    #     return self.row_codes[
-    #         self.row_codes.index.str.startswith(self.sector_prefix_str)
-    #     ]
 
     @property
     def row_codes(self) -> Series:  # Default skip first row
@@ -553,9 +432,7 @@ class InputOutputCPATable(InputOutputTable):
         )
 
     @property
-    def _aggregated_sectors_dict(
-        self,  # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT
-    ) -> AggregatedSectorDictType:
+    def _aggregated_sectors_dict(self) -> AggregatedSectorDictType:
         """Call aggregate_sector_dict on the _CPA_index property."""
         if self.sector_aggregation_dict:
             return aggregate_sector_dict(
@@ -572,60 +449,6 @@ class InputOutputCPATable(InputOutputTable):
             self.dog_leg_columns,
             self.dog_leg_rows,
         )
-
-    # @property
-    # def sectors(self) -> Series:
-    #     """Return all column names preceded by the sector_prefix_str code."""
-    #     return self.row_codes[
-    #         self.row_codes.index.str.startswith(self.sector_prefix_str)
-    #     ]
-
-    # def _aggregated_sectors_dict(
-    #     self,  # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT
-    # ) -> AggregatedSectorDictType:
-    #     """Call aggregate_sector_dict on the sectors property."""
-    #     return aggregate_sector_dict(
-    #         self.sectors, self.sector_aggregation_dict, self.sector_prefix_str
-    #     )
-
-    # def get_aggregated_io_table(
-    #     self,
-    #     # sector_aggregation_dict: AggregatedSectorDictType = UK_SECTOR_10_CODE_DICT,
-    #     dog_leg_columns: dict[str, str] = UK_DOG_LEG_CODES["columns"],
-    #     dog_leg_rows: dict[str, str] = UK_DOG_LEG_CODES["rows"],
-    # ) -> DataFrame:
-    #     """Return an aggregated Input Output table via an aggregated mapping of sectors."""
-    #     # agg_sector_dict: AggregatedSectorDictType = self._aggregated_sectors_dict(
-    #     #     sector_aggregation_dict
-    #     # )
-    #     agg_sector_dict: AggregatedSectorDictType = self._aggregated_sectors_dict()
-    #     aggregated_sector_io_table = DataFrame(
-    #         columns=list(agg_sector_dict.keys()) + list(dog_leg_columns.keys()),
-    #         index=list(agg_sector_dict.keys()) + list(dog_leg_rows.keys()),
-    #     )
-
-    #     for sector_column in agg_sector_dict:
-    #         for sector_row in agg_sector_dict:
-    #             sector_column_names: list[str] = agg_sector_dict[sector_column]
-    #             sector_row_names: list[str] = agg_sector_dict[sector_row]
-    #             aggregated_sector_io_table.loc[
-    #                 sector_column, sector_row
-    #             ] = (  # Check column row order
-    #                 self.code_io_table.loc[sector_column_names, sector_row_names]
-    #                 .sum()
-    #                 .sum()
-    #             )
-    #             for dog_leg_column, source_column_name in dog_leg_columns.items():
-    #                 aggregated_sector_io_table.loc[
-    #                     sector_row, dog_leg_column
-    #                 ] = self.code_io_table.loc[
-    #                     sector_row_names, source_column_name
-    #                 ].sum()
-    #         for dog_leg_row, source_row_name in dog_leg_rows.items():
-    #             aggregated_sector_io_table.loc[
-    #                 dog_leg_row, sector_column
-    #             ] = self.code_io_table.loc[source_row_name, sector_column_names].sum()
-    #     return aggregated_sector_io_table
 
 
 def aggregate_sector_dict(
@@ -645,44 +468,3 @@ def aggregate_sector_dict(
             ]
         aggregated_sectors[sector] = sector_list
     return aggregated_sectors
-
-
-# @dataclass
-# class InputOutputExcelTable(InputOutputTable):
-#
-#     """Managed InputOutputTable via csv loading with parameters.
-#
-#     Todo:
-#         * Can rearrange this in the base class for ease of flexibility.
-#     """
-#
-#     io_table_kwargs: dict[str, Any] = field(
-#         default_factory=lambda: {"sheet_name": IO_TABLE_NAME}
-#     )
-#     _table_load_func: Callable[..., DataFrame] = load_io_table_excel
-#
-#     def __post_init__(self) -> None:
-#         if self.full_io_table is None:
-#             self.full_io_table: DataFrame = self._table_load_func(
-#                 self.path, **self.io_table_kwargs  # sheet_name=self.io_sheet_name,
-#             )
-#         super().__post_init__()
-
-
-# @dataclass
-# class InputOutputExcelTable(InputOutputCPATable):
-#
-#     """Managed InputOutputTable via csv loading with parameters."""
-#
-#     path: FilePathType = ons_IO_2017.EXCEL_PATH
-#     io_table_kwargs: dict[str, Any] = field(
-#         default_factory=lambda: {"sheet_name": IO_TABLE_NAME}
-#     )
-#     _table_load_func: Callable[..., DataFrame] = load_io_table_excel
-#
-#     def __post_init__(self) -> None:
-#         if self.full_io_table is None:
-#             self.full_io_table: DataFrame = self._table_load_func(
-#                 self.path, **self.io_table_kwargs  # sheet_name=self.io_sheet_name,
-#             )
-#         super().__post_init__()
