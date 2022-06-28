@@ -9,7 +9,7 @@ from typing import Final, Generator
 import pytest
 from dash import Dash
 
-from regional_input_output.server.auth import DB_PATH, AuthDB
+from regional_input_output.server.auth import AuthDB
 from regional_input_output.server.dash_app import (
     DEFAULT_SERVER_PATH,
     generate_markers,

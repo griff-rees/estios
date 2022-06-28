@@ -4,7 +4,7 @@
 from typer import Typer, echo, secho
 from typer.colors import GREEN, RED
 
-from .models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from .models import InterRegionInputOutput
 from .server.dash_app import (
     DEFAULT_SERVER_HOST_IP,
     DEFAULT_SERVER_PATH,

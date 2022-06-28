@@ -2,11 +2,10 @@ from datetime import date
 from logging import INFO
 
 import pytest
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
 from regional_input_output import __version__
-from regional_input_output.input_output_tables import SECTOR_10_CODE_DICT
 from regional_input_output.models import (  # NullRawRegionError,; RawRegionTypeError,
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,

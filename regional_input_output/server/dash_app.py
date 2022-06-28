@@ -12,7 +12,6 @@ from dash.dependencies import Input, Output
 from dash_auth import BasicAuth
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from flask import Flask
 from geopandas import GeoDataFrame
 from jupyter_dash import JupyterDash
 from plotly.graph_objects import Figure
@@ -22,9 +21,7 @@ from ..models import InterRegionInputOutputTimeSeries
 from ..uk_data.employment import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
-    CITY_SECTOR_POPULATION_COLUMN,
     CONFIG_2015_TO_2017_QUARTERLY,
-    CONFIG_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
 from ..uk_data.regions import (
