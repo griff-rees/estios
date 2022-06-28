@@ -22,7 +22,7 @@ UK_CITY_REGIONS: Final[dict[str, str]] = {
     "Derby": "East Midlands",
     "Leeds": "Yorkshire and the Humber",
     "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
-    "Manchester": "North West",  # SALFORD 'MANCHESTER & SALFORD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
     # Skip because of name inconsistency
     # 'Newcastle upon Tyne':  'North East',  # NEWCASTLE & GATESHEAD'
     "Nottingham": "East Midlands",

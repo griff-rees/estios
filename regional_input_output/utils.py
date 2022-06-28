@@ -30,7 +30,7 @@ UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
 THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
     "Leeds": "Yorkshire and the Humber",
     "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
-    "Manchester": "North West",  # SALFORD 'MANCHESTER & SALFORD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
 }
 
 # high-level SNA/ISIC aggregation A*10/11
@@ -59,11 +59,10 @@ def read_package_data(
         raise NotImplementedError(f"Currently no means of reading {file_name} types.")
     else:
         raw_data = get_data(__package__, str(Path(folder) / file_name))
-        try:
-            assert raw_data is not None
-            return BytesIO(raw_data)
-        except AssertionError:
+        if raw_data is None:
             raise NotImplementedError(f"Processing {file_name} returned None.")
+        else:
+            return BytesIO(raw_data)
 
 
 def path_or_package_data(
