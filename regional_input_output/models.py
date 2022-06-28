@@ -65,11 +65,11 @@ from .uk_data.regions import (
     CENTRE_FOR_CITIES_CSV_FILE_NAME,
     CITIES_TOWNS_GEOJSON_FILE_NAME,
     UK_CITY_REGIONS,
-    UK_NATIONAL_COLUMN_NAME,
     load_and_join_centre_for_cities_data,
 )
 from .utils import (
     SECTOR_10_CODE_DICT,
+    UK_NATIONAL_COLUMN_NAME,
     aggregate_rows,
     filter_by_region_name_and_type,
     generate_ij_index,

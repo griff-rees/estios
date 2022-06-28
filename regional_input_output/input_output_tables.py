@@ -3,14 +3,11 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from importlib.resources import open_binary
 from logging import getLogger
-from pathlib import Path
 from typing import Any, Callable, Final, Iterable, Optional, Union
 
 from pandas import DataFrame, Index, Series, read_csv, read_excel
 
-from .uk_data import data as uk_data_path
 from .uk_data import io_table_1841, ons_IO_2017
 from .uk_data.employment import (
     DATE_COLUMN_NAME,
@@ -22,6 +19,7 @@ from .utils import (
     AggregatedSectorDictType,
     FilePathType,
     enforce_date_format,
+    path_or_package_data,
 )
 
 logger = getLogger(__name__)
@@ -104,8 +102,7 @@ def load_region_employment_excel(
     **kwargs,
 ) -> DataFrame:
     """Load regional employment data from https://www.nomisweb.co.uk/ excel exports."""
-    if path is UK_JOBS_BY_SECTOR_XLS_FILE_NAME and isinstance(path, Path):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, UK_JOBS_BY_SECTOR_XLS_FILE_NAME)
     region: DataFrame = read_excel(
         path,
         sheet_name=sheet,
@@ -165,8 +162,7 @@ def load_io_table_csv(
         * Raise warning if the file has the wrong extension.
         * Fix packaging of csv file
     """
-    if path is io_table_1841.CSV_FILE_NAME and isinstance(path, Path):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, io_table_1841.CSV_FILE_NAME)
     io_table: DataFrame = read_csv(
         path,
         usecols=usecols,
@@ -201,8 +197,7 @@ def load_io_table_excel(
     **kwargs,
 ) -> DataFrame:
     """Import a Input-Ouput Table as a DataFrame from an ONS xlsx file."""
-    if path is ons_IO_2017.EXCEL_FILE_NAME and isinstance(path, Path):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, ons_IO_2017.EXCEL_FILE_NAME)
     io_table: DataFrame = read_excel(
         path,
         sheet_name=sheet_name,
@@ -234,10 +229,7 @@ def load_employment_by_region_and_sector_csv(
     **kwargs,
 ) -> DataFrame:
     """Import region level sector employment data as a DataFrame."""
-    if path is ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME and isinstance(
-        path, Path
-    ):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME)
     return read_csv(
         path,
         skiprows=skiprows,

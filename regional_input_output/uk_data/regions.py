@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from importlib.resources import open_binary
 from logging import getLogger
 from os import PathLike
 from pathlib import Path
-from typing import IO, Final, Iterable, Optional, Union
+from typing import Final, Iterable, Optional
 
 from geopandas import GeoDataFrame, read_file
 from pandas import DataFrame, read_csv
 
-from . import data as uk_data_path
+from ..utils import FilePathType, path_or_package_data
 
 logger = getLogger(__name__)
-
-UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
 
 UK_EPSG_GEO_CODE: Final[str] = "EPSG:27700"  # UK Coordinate Reference System (CRS)
 
@@ -62,7 +59,7 @@ CENTRE_FOR_CITIES_EPSG: Final[str] = "EPSG:27700"
 
 
 def load_centre_for_cities_csv(
-    path: Union[PathLike, IO] = CENTRE_FOR_CITIES_CSV_FILE_NAME,
+    path: FilePathType = CENTRE_FOR_CITIES_CSV_FILE_NAME,
     index_col: Optional[str] = CENTRE_FOR_CITIES_INDEX_COL,
     nrows: Optional[int] = CENTRE_FOR_CITIES_NROWS,
     na_values: Optional[str] = CENTRE_FOR_CITIES_NA_VALUES,
@@ -70,8 +67,7 @@ def load_centre_for_cities_csv(
     **kwargs,
 ) -> DataFrame:
     """Load a Centre for Cities data tool export csv file."""
-    if path is CENTRE_FOR_CITIES_CSV_FILE_NAME and isinstance(path, Path):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, CENTRE_FOR_CITIES_CSV_FILE_NAME)
     base_centre_for_cities_df: DataFrame = read_csv(
         path, index_col=index_col, nrows=nrows, na_values=na_values, **kwargs
     )
@@ -82,13 +78,12 @@ def load_centre_for_cities_csv(
 
 
 def load_centre_for_cities_gis(
-    path: Union[PathLike, IO] = CITIES_TOWNS_GEOJSON_FILE_NAME,
+    path: FilePathType = CITIES_TOWNS_GEOJSON_FILE_NAME,
     driver: str = "GeoJSON",
     **kwargs,
 ) -> GeoDataFrame:
     """Load a Centre for Cities Spartial file (defualt GeoJSON)."""
-    if path is CITIES_TOWNS_GEOJSON_FILE_NAME and isinstance(path, Path):
-        path = open_binary(uk_data_path, path)
+    path = path_or_package_data(path, CITIES_TOWNS_GEOJSON_FILE_NAME)
     return read_file(path, driver=driver, **kwargs)
 
 
