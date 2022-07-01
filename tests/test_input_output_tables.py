@@ -1,23 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 import pytest
 from pandas import DataFrame
 
 from regional_input_output.input_output_tables import (
     COVID_FLAGS_COLUMN,
+    DOI_URL_PREFIX,
     AggregatedSectorDictType,
-    InputOutputExcelTable,
+    InputOutputCPATable,
+    InputOutputTable,
     load_employment_by_region_and_sector_csv,
+    load_io_table_csv,
     load_io_table_excel,
     load_region_employment_excel,
 )
+from regional_input_output.uk_data import io_table_1841
 from regional_input_output.utils import aggregate_rows, filter_by_region_name_and_type
 
 
 @pytest.fixture
-def test_ons_io_table() -> InputOutputExcelTable:
-    return InputOutputExcelTable()
+def test_ons_io_table() -> InputOutputCPATable:
+    return InputOutputCPATable()
+
+
+@pytest.fixture
+def test_csv_io_table() -> InputOutputTable:
+    return InputOutputTable()
 
 
 FINANCIAL_AGG: str = "Financial and insurance"
@@ -43,7 +53,7 @@ class TestLoadingONSIOTableData:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
         sectors_aggregated: AggregatedSectorDictType = (
-            test_ons_io_table._aggregated_sectors_dict()
+            test_ons_io_table._aggregated_sectors_dict
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
@@ -57,6 +67,53 @@ class TestLoadingONSIOTableData:
     def test_ons_io_2015(self) -> None:
         """Test loading 2015 IO table data."""
         io_2015: DataFrame = load_io_table_excel("data/2015detailedioatsbb18(1).xls")
+
+
+class TestLoadingCSVIOTable:
+    def test_load_cvs_io_table(self) -> None:
+        """Test loading a csv UK 1849 economic input-outpute table"""
+        io_2014: DataFrame = load_io_table_csv()
+        assert "Value added" in io_2014.index
+        assert "Total" in io_2014.index
+        assert "Total" in io_2014.columns
+
+    def test_csv_io_table_meta_data(self, test_csv_io_table) -> None:
+        """Test loading meta data for io table source.
+
+        Table from An input-output table for 1841 by
+        SARA HORRELL, JANE HUMPHRIES, MARTIN WEALE
+        in The Economic History Review, August 1994 see:
+        https://doi.org/10.1111/j.1468-0289.1994.tb01390.x
+        """
+        assert test_csv_io_table.meta_data.name == io_table_1841.NAME
+        assert test_csv_io_table.meta_data.year == io_table_1841.YEAR
+        assert test_csv_io_table.meta_data.region == io_table_1841.REGION
+        assert test_csv_io_table.meta_data.authors == io_table_1841.AUTHORS
+        assert test_csv_io_table.meta_data.doi == io_table_1841.DOI
+        assert test_csv_io_table.meta_data.url == DOI_URL_PREFIX + io_table_1841.DOI
+
+    # def test_csv_io_table_export(self, test_csv_io_table) -> None:
+    #     """Test loading and managing a csv Input Output file."""
+    #     assert test_csv_io_table.sectors.tail().index[0] == "CPA_R93"
+    #     assert len(test_ons_io_table.sectors) == 105
+    #     assert (
+    #         test_ons_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+    #         == 1.512743278316663e-06
+    #     )
+
+    # def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
+    #     """Test creating a dictionay to aggregate sectors."""
+    #     TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
+    #     sectors_aggregated: AggregatedSectorDictType = (
+    #         test_ons_io_table._aggregated_sectors_dict()
+    #     )
+    #     assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
+
+    # def test_ons_cvs_table_aggregation(self, test_ons_io_table) -> None:
+    #     """Test loading and manaing an csv Input Output excel file."""
+    #     FIN_REAL_IO: float = 29562.858422906436
+    #     aggregated_io_table: DataFrame = test_ons_io_table.get_aggregated_io_table()
+    #     assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
 
 @pytest.fixture

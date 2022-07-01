@@ -46,12 +46,11 @@ from .calc import (
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
     IMPORTS_COLUMN_NAME,
-    IO_TABLE_NAME,
     IO_TABLE_SCALING,
     TOTAL_PRODUCTION_COLUMN_NAME,
     UK_EXPORT_COLUMN_NAMES,
     AggregatedSectorDictType,
-    InputOutputExcelTable,
+    InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
     load_region_employment_excel,
@@ -59,19 +58,18 @@ from .input_output_tables import (
 from .uk_data import ons_IO_2017
 from .uk_data.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,
-    UK_CITY_SECTOR_YEARS,
-    UK_JOBS_BY_SECTOR_PATH,
     UK_JOBS_BY_SECTOR_SCALING,
+    UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
 )
 from .uk_data.regions import (
-    CENTRE_FOR_CITIES_PATH,
-    CITIES_TOWNS_SHAPE_PATH,
+    CENTRE_FOR_CITIES_CSV_FILE_NAME,
+    CITIES_TOWNS_GEOJSON_FILE_NAME,
     UK_CITY_REGIONS,
-    UK_NATIONAL_COLUMN_NAME,
     load_and_join_centre_for_cities_data,
 )
 from .utils import (
     SECTOR_10_CODE_DICT,
+    UK_NATIONAL_COLUMN_NAME,
     aggregate_rows,
     filter_by_region_name_and_type,
     generate_ij_index,
@@ -84,7 +82,7 @@ filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 DEFAULT_TIME_SERIES_CONFIG = {
     EMPLOYMENT_QUARTER_DEC_2017: {
-        "io_table_file_path": ons_IO_2017.EXCEL_PATH,
+        "io_table_file_path": ons_IO_2017.EXCEL_FILE_NAME,
     }
 }
 
@@ -226,8 +224,8 @@ class InterRegionInputOutputBaseClass:
     )
     P_initial_export_proportion: float = INITIAL_P
 
-    region_attributes_path: PathLike = CENTRE_FOR_CITIES_PATH
-    region_spatial_path: PathLike = CITIES_TOWNS_SHAPE_PATH
+    region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
+    region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
         default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
@@ -265,15 +263,15 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         * Abstract path for employment data to ease setting directly.
     """
 
-    io_table_file_path: PathLike = ons_IO_2017.EXCEL_PATH
+    io_table_file_path: PathLike = ons_IO_2017.EXCEL_FILE_NAME
     region_sector_employment_path: Optional[
         PathLike
-    ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_PATH
-    national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_PATH
+    ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
+    national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_XLS_FILE_NAME
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
     date: Optional[date] = None
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
-    _io_table_cls: Type[InputOutputTable] = InputOutputExcelTable
+    _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     _national_employment: Optional[DataFrame] = None
     _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
@@ -384,10 +382,15 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         """
         if self.sector_aggregation:
             return self._raw_io_table.get_aggregated_io_table() * self.io_table_scale
+        elif isinstance(self._raw_io_table, InputOutputCPATable):
+            return self._raw_io_table.code_io_table * self.io_table_scale
+        elif self._raw_io_table.base_io_table is not None:
+            return self._raw_io_table.base_io_table * self.io_table_scale
         else:
-            raise NotImplementedError(
-                "Currently io_table requires an aggregation dictionary."
-            )
+            raise ValueError("No valid io table set for {self}")
+            # raise NotImplementedError(
+            #     "Currently io_table requires an aggregation dictionary."
+            # )
 
     @cached_property
     def technical_coefficients(self) -> DataFrame:

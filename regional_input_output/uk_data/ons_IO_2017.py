@@ -10,7 +10,7 @@ from typing import Callable, Final, Union
 
 # Input-Ouput Table excel data file and configuration
 
-EXCEL_PATH: Final[PathLike] = Path("nasu1719pr.xlsx")
+EXCEL_FILE_NAME: Final[PathLike] = Path("nasu1719pr.xlsx")
 FIRST_CODE_ROW: Final[int] = 1
 USECOLS: Final[str] = "A:DO"
 SKIPROWS: Final[list[int]] = [0, 1, 2, 5]  # Skips Rows 3 and 4
@@ -19,7 +19,9 @@ HEADER: Final[Union[int, list[int], None]] = None
 
 # Census export Nomis city and sector employment data
 
-CITY_SECTOR_EMPLOYMENT_PATH: Final[Path] = Path("nomis-city-employment-2017.csv")
+CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME: Final[Path] = Path(
+    "nomis-city-employment-2017.csv"
+)
 CITY_SECTOR_SKIPROWS: Final[int] = 7
 CITY_SECTOR_SKIPFOOTER: Final[int] = 8
 CITY_SECTOR_USECOLS: Final[Callable[[str], bool]] = lambda x: "Unnamed" not in x

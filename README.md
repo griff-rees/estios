@@ -8,7 +8,7 @@ This is a proof of concept and much more work is needed to reach the level of de
 
 ## Basic installation
 
-We use `pyproject.toml` with `poetry` at version [>=1.2.0b1](https://github.com/python-poetry/poetry/commit/dca6ff2699a06c0217ed6d5a278fa3146e4136ff) to manage [dependency groups](https://python-poetry.org/docs/master/managing-dependencies/#optional-groups).
+We use `pyproject.toml` with `poetry` at to manage [dependencies](https://python-poetry.org/docs/dependency-specification/).
 
 With that version of `poetry` simply downloading a `zip` of this package or a `git clone` should be enough to set up a local environment. Below is an example using `poetry`:
 

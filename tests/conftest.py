@@ -6,16 +6,12 @@ import pytest
 
 from regional_input_output.models import InterRegionInputOutput
 from regional_input_output.uk_data.employment import generate_employment_quarterly_dates
-from regional_input_output.uk_data.regions import UK_CITY_REGIONS
-
-THREE_CITIES: tuple[str, str, str] = ("Manchester", "Leeds", "Liverpool")
+from regional_input_output.utils import THREE_UK_CITY_REGIONS
 
 
 @pytest.fixture
 def three_cities() -> dict[str, str]:
-    return {
-        city: region for city, region in UK_CITY_REGIONS.items() if city in THREE_CITIES
-    }
+    return THREE_UK_CITY_REGIONS
 
 
 @pytest.fixture

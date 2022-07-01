@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pytest
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
 from regional_input_output.calc import calc_region_distances, scale_by_population
-from regional_input_output.models import InterRegionInputOutputTimeSeries
 
 
 def test_3_city_distances(three_cities_io) -> None:

@@ -5,31 +5,11 @@ from logging import getLogger
 from typing import Final, Iterable, Optional, Union
 
 from geopandas import GeoDataFrame
-from numpy import log
 from pandas import DataFrame, MultiIndex, Series
-from plotly.graph_objects import Figure
 
-from .input_output_tables import (
-    SECTOR_10_CODE_DICT,
-    TOTAL_OUTPUT_COLUMN_NAME,
-    AggregatedSectorDictType,
-)
-from .uk_data.employment import UK_JOBS_BY_SECTOR_PATH, UK_NATIONAL_EMPLOYMENT_SHEET
-from .uk_data.ons_IO_2017 import CITY_SECTOR_EMPLOYMENT_PATH
-from .uk_data.regions import (
-    CENTRE_FOR_CITIES_PATH,
-    CITIES_TOWNS_SHAPE_PATH,
-    UK_CITY_REGIONS,
-    UK_EPSG_GEO_CODE,
-    UK_NATIONAL_COLUMN_NAME,
-)
-from .utils import (
-    CITY_COLUMN,
-    OTHER_CITY_COLUMN,
-    SECTOR_COLUMN,
-    generate_i_m_index,
-    generate_ij_index,
-)
+from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
+from .uk_data.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
+from .utils import CITY_COLUMN, OTHER_CITY_COLUMN, generate_i_m_index, generate_ij_index
 
 logger = getLogger(__name__)
 

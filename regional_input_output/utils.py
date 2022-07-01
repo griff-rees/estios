@@ -2,34 +2,36 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from io import BytesIO
 from logging import getLogger
 from os import PathLike
+from pathlib import Path
+from pkgutil import get_data
 from typing import IO, Final, Iterable, Optional, Union
 
 # from networkx import DiGraph
 from numpy import log
 from pandas import DataFrame, MultiIndex, Series
 
-from .uk_data.employment import (
-    CITY_SECTOR_REGION_PREFIX,
-    UK_JOBS_BY_SECTOR_PATH,
-    UK_NATIONAL_EMPLOYMENT_SHEET,
-)
-from .uk_data.regions import (
-    CENTRE_FOR_CITIES_PATH,
-    CITIES_TOWNS_SHAPE_PATH,
-    UK_CITY_REGIONS,
-    UK_NATIONAL_COLUMN_NAME,
-)
+from .uk_data.employment import CITY_SECTOR_REGION_PREFIX
 
 logger = getLogger(__name__)
 
 FilePathType = Union[str, IO, PathLike]
+FolderPathType = Union[str, PathLike]
 AggregatedSectorDictType = dict[str, list[str]]
 
 CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
 SECTOR_COLUMN: Final[str] = "Sector"
+
+UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
+
+THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
+}
 
 # high-level SNA/ISIC aggregation A*10/11
 # See https://ec.europa.eu/eurostat/documents/1965800/1978839/NACEREV.2INTRODUCTORYGUIDELINESEN.pdf/f48c8a50-feb1-4227-8fe0-935b58a0a332
@@ -47,9 +49,35 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
     "Other services": ["R", "S", "T"],
 }
 
+UK_DATA_PATH: Final[Path] = Path("uk_data/data")
+
+
+def read_package_data(
+    file_name: FilePathType, folder: FolderPathType = UK_DATA_PATH
+) -> BytesIO:
+    if isinstance(file_name, IO):
+        raise NotImplementedError(f"Currently no means of reading {file_name} types.")
+    else:
+        raw_data = get_data(__package__, str(Path(folder) / file_name))
+        if raw_data is None:
+            raise NotImplementedError(f"Processing {file_name} returned None.")
+        else:
+            return BytesIO(raw_data)
+
+
+def path_or_package_data(
+    path: FilePathType,
+    default_file: FilePathType,
+    folder: FolderPathType = UK_DATA_PATH,
+) -> Union[FilePathType, BytesIO]:
+    if path is default_file:
+        return read_package_data(default_file, folder)
+    else:
+        return path
+
 
 def generate_i_m_index(
-    i_column: Iterable[str] = UK_CITY_REGIONS,
+    i_column: Iterable[str] = THREE_UK_CITY_REGIONS,
     m_column: Iterable[str] = SECTOR_10_CODE_DICT,
     include_national: bool = False,
     national_name: str = UK_NATIONAL_COLUMN_NAME,
@@ -64,8 +92,8 @@ def generate_i_m_index(
 
 
 def generate_ij_index(
-    regions: Iterable[str] = UK_CITY_REGIONS,
-    other_regions: Iterable[str] = UK_CITY_REGIONS,
+    regions: Iterable[str] = THREE_UK_CITY_REGIONS,
+    other_regions: Iterable[str] = THREE_UK_CITY_REGIONS,
     m_column_name: str = OTHER_CITY_COLUMN,
     **kwargs,
 ) -> MultiIndex:
@@ -76,7 +104,7 @@ def generate_ij_index(
 
 
 def generate_ij_m_index(
-    regions: Iterable[str] = UK_CITY_REGIONS,
+    regions: Iterable[str] = THREE_UK_CITY_REGIONS,
     sectors: Iterable[str] = SECTOR_10_CODE_DICT,
     include_national: bool = False,
     national_name: str = UK_NATIONAL_COLUMN_NAME,
