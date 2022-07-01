@@ -6,7 +6,7 @@ authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "~3.9"
+python = "~3.10"
 geopandas = "^0.10.2"
 plotly = "^5.3.1"
 jupyter-dash = "^0.4.0"
@@ -17,9 +17,11 @@ dash-auth = "^1.4.1"
 typer = {version = "^0.4.0", extras = ["all"]}
 openpyxl = "^3.0.9"
 xlrd = "^2.0.1"
-
-[tool.poetry.group.dev.dependencies]
 jupyterlab = "^3.2.2"
+setuptools = "^62.6.0"
+numpy = "^1.23.0"
+
+[tool.poetry.dev-dependencies]
 pytest = "^6.1"
 pre-commit = "^2.18.1"
 pytest-cov = "^3.0.0"
