@@ -22,11 +22,11 @@ setuptools = "^62.6.0"
 numpy = "^1.23.0"
 
 [tool.poetry.dev-dependencies]
-mkdocs = "^1.3.0"
 pytest = "^6.1"
 pre-commit = "^2.18.1"
 pytest-cov = "^3.0.0"
 pytest-sugar = "^0.9.4"
+mkdocs = "^1.3.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
