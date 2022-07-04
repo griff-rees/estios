@@ -1,4 +1,4 @@
-# regional-input-output
+# Regional Input-Output Economic Modelling
 
 A python package for input-output modelling at a regional level.
 
