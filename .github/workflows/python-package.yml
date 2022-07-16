@@ -5,9 +5,9 @@ name: Python package
 
 on:
   push:
-    branches: [ main, visual, auth ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, visual, auth ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -26,7 +26,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies and test environment
       run: |
-        pip install poetry
+        pip3 install poetry
+        poetry install
     - name: pre-commit
       run: |
         # stop the build if it doesn't pass pre-commit
