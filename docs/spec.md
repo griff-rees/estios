@@ -1,4 +1,3 @@
 # Specification
 
 Model specification
-
