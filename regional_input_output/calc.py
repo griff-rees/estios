@@ -416,3 +416,19 @@ def scale_by_population(
     region_var: Union[float, Series],
 ) -> Union[float, Series]:
     return national_sector_var * region_var / national_var
+
+
+# def diagonalise(series: Series) -> DataFrame:
+#     return DataFrame(diag(series),index=series.index,columns=series.index)
+
+
+def regional_io_projection(
+    technical_coefficients: DataFrame, regional_output: Series
+) -> DataFrame:
+    """Return a regional projection of from regional data.
+
+    Todo:
+        * Test an option using diagonalise
+    """
+    # return technical_coefficients * diagonalise(regional_output)
+    return technical_coefficients * regional_output

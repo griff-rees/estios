@@ -1,6 +1,17 @@
 body {
   margin: 0;
   color: white;
+  font-family: Georgia;
+}
+
+h1 {
+  font-weight: normal;
+}
+
+h2 {
+  line-height: 2rem;
+  font-size: 1.5rem;
+  font-weight: normal;
 }
 
 .dash-dropdown {
@@ -10,6 +21,10 @@ body {
 .dash-graph {
   width: 100vw;
   height: 100vh;
+}
+
+h2 {
+  font-size: 2rem;
 }
 
 #map-title {
@@ -24,9 +39,20 @@ body {
 
 #city-div {
   position: absolute;
-  top: 20%;
+  top: 10%;
   right: 5%;
+  width: 600px;
+}
+
+#city-select-div {
+  width: 280px;
+}
+
+#city-colour-div {
   width: 300px;
+  position: absolute;
+  top: 0%;
+  right: 0%;
 }
 
 
@@ -47,9 +73,9 @@ body {
 */
 #sector-div {
   position: absolute;
-  bottom: 20%;
+  top: 25%;
   right: 5%;
-  width: 300px
+  width: 600px
 }
 
 /*
@@ -68,19 +94,24 @@ body {
   transform: translate(10%);
 }
 
-/*
 #n_flows {
+  /*
   position: absolute;
   bottom: 15%;
   left: 10px;
   width: 200px;
+  padding: 0px 18% 25px !important;*/
+  position: absolute;
+  width: 24.5rem;
+  bottom: 3.15rem;
+  left: 5rem;
 }
-*/
 
 #table-div {
   position: absolute;
-  left: 10%;
-  top: 15%;
+  right: 5%;
+  top: 35%;
+  width: 625px;
 }
 
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
@@ -89,4 +120,12 @@ body {
 
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
     background-color: rgb(0 0 0 / 0%);
+}
+.dash-spreadsheet-container .dash-spreadsheet-inner table {
+    --hover: #fd0d0d;
+}
+
+#flows-bar-chart {
+  width: inherit;
+  height: 400px;
 }

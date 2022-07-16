@@ -2,13 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import os
+from dataclasses import dataclass
+from itertools import cycle
 from logging import getLogger
-from typing import Callable, Final, Optional, Union
+from typing import Callable, Final, Iterable, Optional, Union
 
 from dotenv import load_dotenv
 from geopandas import GeoDataFrame
-from pandas import DataFrame, Series
-from plotly.express import scatter_mapbox, set_mapbox_access_token
+from pandas import DataFrame, MultiIndex, Series
+from plotly.colors import qualitative
+from plotly.express import bar, scatter_mapbox, set_mapbox_access_token
 from plotly.graph_objects import Figure, Scattermapbox
 
 from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
@@ -25,7 +28,8 @@ except KeyError:
 
 # These can be uncommented to use Mapbox's native vector format via a key in a local .env file
 # MAPBOX_STYLE: Final[str] = "dark"
-MAPBOX_STYLE: Final[str] = "carto-darkmatter"
+MAPBOX_DARKMODE_MAP_CONFIG: Final[str] = "carto-darkmatter"
+MAPBOX_STYLE: Final[str] = MAPBOX_DARKMODE_MAP_CONFIG
 JOBS_COLUMN: Final[str] = "Total Jobs 2017"
 ZOOM_DEFAULT: Final[float] = 4.7
 
@@ -34,6 +38,26 @@ MODEL_APPREVIATIONS: Final[dict[str, str]] = {
     "import": LATEX_m_i_m,
     "flows": LATEX_y_ij_m,
 }
+DEFAULT_REGION_PALATE: Final[list[str]] = qualitative.Plotly
+
+DEFAULT_FONT_COLOUR: Final[str] = "white"
+DEFAULT_FONT_FACE: Final[str] = "Georgia"
+DEFAULT_FONT_SIZE: Final[int] = 12
+
+
+@dataclass
+class FontConfig:
+    font_face: str = DEFAULT_FONT_FACE
+    font_size: int = DEFAULT_FONT_SIZE
+    font_colour: str = DEFAULT_FONT_COLOUR
+
+
+def generate_colour_scheme(
+    regions: Iterable[str],
+    scheme_options: Iterable[str] = DEFAULT_REGION_PALATE,
+) -> dict[str, str]:
+    colour_cycle: cycle[str] = cycle(scheme_options)
+    return {region: next(colour_cycle) for region in regions}
 
 
 def plot_iterations(
@@ -56,7 +80,7 @@ def plot_iterations(
         regions_title_str = f'{", ".join(region_names[:-1])} and {region_names[-1]}'
     else:
         regions_title_str = f"{len(region_names)} Cities"
-    print(plot_df.columns)
+    # print(plot_df.columns)
     return plot_df.transpose().plot(
         title=f"Iterations of {model_variable}s between {regions_title_str}", **kwargs
     )
@@ -80,6 +104,7 @@ def mapbox_cities_fig(
         size=size_column,
         zoom=zoom,
         mapbox_style=mapbox_style,
+        # mapbox_center=mapbox_center,
         **kwargs,
     )
 
@@ -105,9 +130,15 @@ def add_mapbox_edges(
     flow_type: str = "->",
     plot_line_scaling_func: Callable[[float], Optional[float]] = log_x_or_return_zero,
     render_below: bool = True,
-    selected_sector: str = None,
+    selected_sector: Optional[str] = None,
+    plot_background_colour: Optional[str] = None,
     # round_flows: int = 2,
     # reverse_render_order: bool = True,
+    colour_palette: Optional[dict[str, str]] = None,
+    font_config: FontConfig = FontConfig(),
+    # font_colour: Optional[str] = None,
+    # font_face: Optional[str] = None,
+    # font_size: Optional[str] = None,
     **kwargs,
 ) -> Figure:
     if fig is None:
@@ -125,8 +156,14 @@ def add_mapbox_edges(
             Scattermapbox(
                 lon=[mapbox_origin.iloc[0]["lon"], dest_city_row["lon"]],
                 lat=[mapbox_origin.iloc[0]["lat"], dest_city_row["lat"]],
-                mode="lines+text",
-                line={"width": plot_line_scaling_func(dest_city_row["weight"])},
+                # mode="lines+text",
+                mode="lines",
+                line={
+                    "width": plot_line_scaling_func(dest_city_row["weight"]),
+                    "color": colour_palette[dest_city_row.name]
+                    if colour_palette
+                    else None,
+                },
                 # name=f"{mapbox_origin.iloc[0].index} {flow_type} {dest_city_row.index}"
                 # name=f"{dest_city_row.name} {flow_type} £{dest_city_row['weight']:,.2f}",
                 name=f"{dest_city_row.name} £{dest_city_row['weight']:,.2f}",
@@ -150,9 +187,13 @@ def add_mapbox_edges(
             y=1,
             # traceorder="reversed",
             # title_font_family="Times New Roman",
-            font=dict(family="Courier", size=12, color="white"),
-            bgcolor="rgba(0,0,0,0)",
-            bordercolor="rgba(0,0,0,0)",
+            font=dict(
+                family=font_config.font_face,
+                size=font_config.font_size,
+                color=font_config.font_colour,
+            ),
+            bgcolor=plot_background_colour,
+            bordercolor=plot_background_colour,
             # "white",
             borderwidth=10,
         )
@@ -176,8 +217,14 @@ def draw_ego_flows_network(
     other_city_column_name: str = OTHER_CITY_COLUMN,
     zoom: float = ZOOM_DEFAULT,
     colour_column: str = CENTRE_FOR_CITIES_REGION_COLUMN,
+    ui_slider_index_fix: int = 0,
     **kwargs,
 ) -> Figure:
+    """Return a Figure drawing flows from selected_city in selected_sector.
+
+    Todo:
+        * Remove and rename int n_flows filter to filter_flows tuple
+    """
     # region_data: GeoDataFrame = input_output_ts[current_year_index].region_data
     logger.info(f"{n_flows} flows of {selected_sector} for {selected_city}")
     if fig is None:
@@ -191,7 +238,7 @@ def draw_ego_flows_network(
             # This will probably be deprecated
             flows = flows.sort_values()[-n_flows:]
         else:
-            flows = flows.sort_values()[n_flows[0] : n_flows[1]]
+            flows = flows.sort_values()[n_flows[0] : n_flows[1] + ui_slider_index_fix]
     flows_city_data: GeoDataFrame = region_data.loc[
         flows.index.get_level_values(other_city_column_name)
     ]
@@ -207,3 +254,81 @@ def draw_ego_flows_network(
     title: str = title_prefix + f"{selected_sector} flows from {selected_city}"
     fig.update_layout(title=title)
     return fig
+
+
+def sector_flows_bar_chart(
+    y_ij_m_results: Series,
+    selected_city: str,
+    selected_sector: str,
+    other_city_column_name: str = OTHER_CITY_COLUMN,
+    flow_type: str = "Export",
+    dash_render: bool = False,
+    sort_regions: Optional[bool] = True,
+    y_axis_type: Optional[str] = "log",
+    text_auto: str = ".2s",
+    axis_colour: Optional[str] = "white",
+    plot_background_colour: Optional[str] = None,
+    colour_column: Optional[Union[str, Series]] = None,
+    colour_palette: Optional[dict[str, str]] = None,
+    dash_font_config: Optional[FontConfig] = FontConfig(),
+    # font_colour: Optional[str] = None,
+    # font_face: Optional[str] = None,
+    # font_size: Optional[str] = None,
+) -> Figure:
+    """Plot a bar chart of ordered sector flows from a region.
+
+    Todo:
+        * Factor out the filter call.
+        * Better solution for setting colour_column index
+    """
+    flows: Series = filter_y_ij_m_by_city_sector(
+        y_ij_m_results, selected_city, selected_sector
+    )
+    if isinstance(flows.index, MultiIndex):
+        flows.index = flows.index.get_level_values(other_city_column_name)
+    if sort_regions:
+        flows = flows.sort_values(ascending=sort_regions)
+    if colour_column == "index":
+        logger.warning("Using `index` for colour selection, will be refactored")
+        colour_column = flows.index
+    # flow_proposition: str = 'from' if flow_type == 'Export' else 'to'
+    # title: str = f"{selected_city} economic flows {flow_proposition} {selected_city}"
+    title: str = (
+        "Economic Flows "
+        + ("From " if flow_type == "Export" else "To ")
+        + selected_city
+    )
+    x_axis_label: str = (
+        "Importing Cities" if flow_type == "Export" else "Exporting Cities"
+    )
+    y_axis_label: str = f"{flow_type}s of {selected_sector} (£)"
+    chart: Figure = bar(
+        flows,
+        text_auto=text_auto,
+        color=colour_column,
+        title=title,
+        color_discrete_map=colour_palette,
+    )
+    chart.update_xaxes(title_text=x_axis_label)
+    if y_axis_type:
+        y_axis_label = f"{y_axis_type} of " + y_axis_label
+        chart.update_yaxes(title_text=y_axis_label, type=y_axis_type, color=axis_colour)
+    else:
+        chart.update_yaxes(title_text=y_axis_label)
+    if dash_render and dash_font_config:
+        chart.update_xaxes(title_text=None, color=axis_colour)
+        # chart.update_xaxes(visible=False)
+        # fig.update_yaxes(visible=False, showticklabels=False)
+        # chart.update_xaxes(visible=False, color=axis_colour)
+        chart.update_layout(
+            font_family=dash_font_config.font_face,
+            title_font_color=dash_font_config.font_colour,
+            paper_bgcolor=plot_background_colour,
+            plot_bgcolor=plot_background_colour,
+            showlegend=False,
+            margin=dict(t=60),
+        )
+        chart.update_traces(
+            textfont_color=dash_font_config.font_colour,
+        )
+    return chart

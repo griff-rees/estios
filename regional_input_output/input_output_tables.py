@@ -69,7 +69,8 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
     },
 }
 
-IO_TABLE_SCALING: Final[float] = 100000.0
+IO_TABLE_SCALING: Final[float] = 100000000.0
+logger.warning(f"Currently set default IO_TABLE_SCALING to: {IO_TABLE_SCALING}")
 CITY_SECTOR_ENGINE: Final[str] = "python"
 DOI_URL_PREFIX: Final[str] = "https://doi.org/"
 
@@ -112,7 +113,7 @@ def load_region_employment_excel(
         dtype={date_column_name: str},
         **kwargs,
     )
-    logger.warning("Applying NOMIS fixes loading sheet {sheet} from {path}")
+    logger.warning(f"Applying NOMIS fixes loading sheet {sheet} from {path}")
     region[covid_flags_column] = region[date_column_name].apply(
         lambda cell: cell.strip().endswith(")")
     )

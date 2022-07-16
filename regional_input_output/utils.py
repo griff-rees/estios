@@ -27,6 +27,8 @@ SECTOR_COLUMN: Final[str] = "Sector"
 
 UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
 
+FINAL_Y_IJ_M_COLUMN_NAME: Final[str] = "y_ij_m"
+
 THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
     "Leeds": "Yorkshire and the Humber",
     "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
@@ -128,8 +130,36 @@ def filter_y_ij_m_by_city_sector(
     sector: str,
     city_column_name: str = CITY_COLUMN,
     sector_column_name: str = SECTOR_COLUMN,
+    column_index: Union[str, int] = -1,  # Default is last column/iteration
+    final_column_name: str = FINAL_Y_IJ_M_COLUMN_NAME,
 ) -> Series:
-    return y_ij_m_results.query("City == @city & Sector == @sector").iloc[:, -1]
+    return (
+        y_ij_m_results.query("City == @city & Sector == @sector")
+        .iloc[:, column_index]
+        .rename(final_column_name)
+    )
+
+
+# def filter_by_city_sector(
+#     data: Union[DataFrame, Series],
+#     city: str,
+#     sector: str,
+#     city_column_name: str,
+#     sector_column_name: str,
+# ) -> Union[DataFrame, Series]:
+#     return y_ij_m_results.query("City == @city & Sector == @sector")
+
+
+def column_to_series(
+    df: DataFrame,
+    column: Union[str, int],
+    new_series_name: Optional[str] = None,
+) -> Series:
+    """Return column from passed df as Series with an optional specified nme."""
+    if isinstance(column, str):
+        return df[column].rename(new_series_name)
+    else:
+        return df.iloc[column].rename(new_series_name)
 
 
 def log_x_or_return_zero(x: float) -> Optional[float]:

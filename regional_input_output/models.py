@@ -40,6 +40,7 @@ from .calc import (
     calc_region_distances,
     generate_e_m_dataframe,
     import_export_convergence,
+    regional_io_projection,
     technical_coefficients,
     x_i_mn_summed,
 )
@@ -49,7 +50,6 @@ from .input_output_tables import (
     IO_TABLE_SCALING,
     TOTAL_PRODUCTION_COLUMN_NAME,
     UK_EXPORT_COLUMN_NAMES,
-    AggregatedSectorDictType,
     InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
@@ -70,7 +70,9 @@ from .uk_data.regions import (
 from .utils import (
     SECTOR_10_CODE_DICT,
     UK_NATIONAL_COLUMN_NAME,
+    AggregatedSectorDictType,
     aggregate_rows,
+    column_to_series,
     filter_by_region_name_and_type,
     generate_ij_index,
     generate_ij_m_index,
@@ -393,6 +395,10 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             # )
 
     @cached_property
+    def base_io_table(self) -> DataFrame:
+        return self.io_table[self.sectors].loc[self.sectors]
+
+    @cached_property
     def technical_coefficients(self) -> DataFrame:
         """Return the technical coefficients derived from self.io_table."""
         return technical_coefficients(self.io_table, self.sectors)
@@ -541,6 +547,33 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             iterations=self.max_import_export_model_iterations,
         )
         return self.e_m_model, self.y_ij_m_model
+
+    def _load_convergence_results(
+        self, e_m_model: DataFrame, y_ij_m_model: DataFrame
+    ) -> None:
+        """Load pre-existing model results."""
+        self.e_m_model = e_m_model
+        self.y_ij_m_model = y_ij_m_model
+        logger.warning(f"{self} loaded pre-existing e_m_model and y_ij_m_model results")
+
+    @cached_property
+    def regional_io_projections(self) -> dict[str, DataFrame]:
+        return {
+            region: regional_io_projection(
+                self.technical_coefficients, self.X_i_m.loc[region]
+            )
+            for region in self.regions
+        }
+
+    @property
+    def y_ij_m(self) -> Series:
+        try:
+            return column_to_series(self.y_ij_m_model, -1)
+        except:
+            AttributeError(
+                f"`y_ij_m_model` not set on {self}, try running ",
+                "the `.import_export_convergence` method.",
+            )
 
 
 @dataclass

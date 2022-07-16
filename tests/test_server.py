@@ -10,11 +10,7 @@ import pytest
 from dash import Dash
 
 from regional_input_output.server.auth import AuthDB
-from regional_input_output.server.dash_app import (
-    DEFAULT_SERVER_PATH,
-    generate_markers,
-    get_server_dash,
-)
+from regional_input_output.server.dash_app import DEFAULT_SERVER_PATH, get_server_dash
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
 
@@ -82,12 +78,6 @@ def test_AuthDB(tmp_json_auth_file) -> None:
     auth_db.write()
     auth_db2 = AuthDB(json_db_path=str(tmp_json_auth_file))  # Path as str
     assert auth_db2.users == correct_auth_dict
-
-
-def test_generate_markers() -> None:
-    correct_markers: Final = [2, 7, 12, 17]
-    markers: list[int] = list(generate_markers(20, 2, 4))
-    assert markers == correct_markers
 
 
 def test_io_table(caplog) -> None:

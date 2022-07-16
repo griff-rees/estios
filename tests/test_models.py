@@ -211,6 +211,45 @@ class TestInputOutputModel:
         with pytest.raises(NotImplementedError):
             test_region_data: DataFrame = test_io.region_data
 
+    def test_base_io_table(self, three_cities_io) -> None:
+        """Test simble structure of the base_io_table attribute"""
+        assert (
+            three_cities_io.base_io_table.columns.to_list() == three_cities_io.sectors
+        )
+        assert three_cities_io.base_io_table.index.to_list() == three_cities_io.sectors
+
+    def test_region_io_table(self, three_cities_io) -> None:
+        manchester_io = three_cities_io.regional_io_projections["Manchester"]
+        AGRICULTURE = Series(
+            [
+                64259157.962,
+                101794281.505,
+                5033080.35,
+                58680556.187,
+                5617135.251,
+                21967701.891,
+                2029.493,
+                26931406.063,
+                291842.082,
+                425625.329,
+            ],
+            index=three_cities_io.sectors,
+            name="Agriculture",
+            dtype=object,
+        )
+        assert_series_equal(manchester_io["Agriculture"], AGRICULTURE)
+
+    def test_load_cached_results(
+        self, three_cities_io, three_cities_results, caplog
+    ) -> None:
+        three_cities_io._load_convergence_results(
+            three_cities_results.e_m_model, three_cities_results.y_ij_m_model
+        )
+        assert (
+            f"{three_cities_io} loaded pre-existing e_m_model and y_ij_m_model results"
+            in caplog.text
+        )
+
 
 class TestInputOutputModelAllCities:
 
