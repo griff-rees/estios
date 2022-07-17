@@ -3,7 +3,7 @@
 
 import pytest
 from geopandas import GeoDataFrame
-from plotly import Figure
+from plotly.graph_objects import Figure
 
 from regional_input_output.models import InterRegionInputOutput
 from regional_input_output.visualisation import (
