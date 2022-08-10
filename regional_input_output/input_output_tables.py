@@ -18,6 +18,7 @@ from .utils import (
     SECTOR_10_CODE_DICT,
     AggregatedSectorDictType,
     FilePathType,
+    MetaData,
     enforce_date_format,
     path_or_package_data,
 )
@@ -69,10 +70,9 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
     },
 }
 
-IO_TABLE_SCALING: Final[float] = 100000000.0
+IO_TABLE_SCALING: Final[float] = 10000000.0
 logger.warning(f"Currently set default IO_TABLE_SCALING to: {IO_TABLE_SCALING}")
 CITY_SECTOR_ENGINE: Final[str] = "python"
-DOI_URL_PREFIX: Final[str] = "https://doi.org/"
 
 
 def crop_io_table_to_sectors(
@@ -276,23 +276,6 @@ def aggregate_io_table(
 
 
 @dataclass
-class InputOutputMetaData:
-
-    """Manage info on source material."""
-
-    name: str
-    year: int
-    region: str
-    authors: Optional[Union[str, list[str], dict[str, str]]] = None
-    url: Optional[str] = None
-    doi: Optional[str] = None
-
-    def __post_init__(self) -> None:
-        if not self.url and self.doi:
-            self.url = DOI_URL_PREFIX + self.doi
-
-
-@dataclass
 class InputOutputTable:
 
     """Manage processing and aggregating Input Output Tables."""
@@ -307,7 +290,7 @@ class InputOutputTable:
     sector_aggregation_dict: Optional[AggregatedSectorDictType] = None
     sector_prefix_str: str = ""
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
-    meta_data: Optional[InputOutputMetaData] = None
+    meta_data: Optional[MetaData] = None
 
     dog_leg_columns: dict[str, str] = field(default_factory=dict)
     dog_leg_rows: dict[str, str] = field(default_factory=dict)
@@ -338,7 +321,7 @@ class InputOutputTable:
                 self.full_io_table, self.sectors, self.sector_prefix_str
             )
         if not self.meta_data and self.path == io_table_1841.CSV_FILE_NAME:
-            self.meta_data = InputOutputMetaData(
+            self.meta_data = MetaData(
                 name=io_table_1841.NAME,
                 year=io_table_1841.YEAR,
                 region=io_table_1841.REGION,

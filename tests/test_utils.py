@@ -12,6 +12,8 @@ from regional_input_output.utils import (
     generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,
+    invert_dict,
+    name_converter,
 )
 
 
@@ -78,3 +80,16 @@ class TestEnforcingStrPrefixSuffix:
             enforce_end_str(DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR, False)
             == DEFAULT_SERVER_PATH
         )
+
+
+def test_name_converter() -> None:
+    FINAL_NAMES: list[str] = ["dog", "cat, the", "hare"]
+    test_conversion_dict = {"cat": "cat, the"}
+    test_names = ["dog", "cat", "hare"]
+    assert name_converter(test_names, test_conversion_dict) == FINAL_NAMES
+
+
+def test_invert_dict() -> None:
+    test_dict = {"cat": 4, "dog": 3}
+    correct_inversion = {4: "cat", 3: "dog"}
+    assert invert_dict(test_dict)

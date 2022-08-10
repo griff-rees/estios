@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date, datetime
 from io import BytesIO
 from logging import getLogger
 from os import PathLike
 from pathlib import Path
 from pkgutil import get_data
-from typing import IO, Final, Iterable, Optional, Union
+from typing import IO, Final, Generator, Iterable, Optional, Union
 
 # from networkx import DiGraph
 from numpy import log
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex, Series, read_csv
 
 from .uk_data.employment import CITY_SECTOR_REGION_PREFIX
 
@@ -20,6 +21,8 @@ logger = getLogger(__name__)
 FilePathType = Union[str, IO, PathLike]
 FolderPathType = Union[str, PathLike]
 AggregatedSectorDictType = dict[str, list[str]]
+AnnualConfigType = Union[Iterable[int], dict[int, dict]]
+DateConfigType = Union[Iterable[date], dict[date, dict]]
 
 CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
@@ -52,6 +55,48 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
 }
 
 UK_DATA_PATH: Final[Path] = Path("uk_data/data")
+DOI_URL_PREFIX: Final[str] = "https://doi.org/"
+
+
+@dataclass
+class MonthDay:
+    month: int = 1
+    day: int = 1
+
+    def from_year(self, year: int) -> date:
+        return date(year, self.month, self.day)
+
+
+DEFAULT_ANNUAL_MONTH_DAY: Final[MonthDay] = MonthDay()
+
+
+@dataclass
+class MetaData:
+
+    """Manage info on source material."""
+
+    name: str
+    year: int
+    region: str
+    authors: Optional[Union[str, list[str], dict[str, str]]] = None
+    url: Optional[str] = None
+    doi: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.url and self.doi:
+            self.url = DOI_URL_PREFIX + self.doi
+
+    def __str__(self) -> str:
+        return f"Source: {self.name} for {self.region} {self.year}"
+
+
+def name_converter(names: list, name_mapper: dict[str, str]) -> list[str]:
+    """Return region names with any conversions specified in _region_name_mapper"""
+    return [name if not name in name_mapper else name_mapper[name] for name in names]
+
+
+def invert_dict(d: dict) -> dict:
+    return {v: k for k, v in d.items()}
 
 
 def read_package_data(
@@ -73,9 +118,20 @@ def path_or_package_data(
     folder: FolderPathType = UK_DATA_PATH,
 ) -> Union[FilePathType, BytesIO]:
     if path is default_file:
+        logger.info(f"Loading from package data {default_file}.")
         return read_package_data(default_file, folder)
     else:
         return path
+
+
+def pandas_from_path_or_package_csv(
+    path: FilePathType,
+    default_file: FilePathType,
+    **kwargs,
+) -> DataFrame:
+    """Import a csv file as a DataFrame, managing if package_data used."""
+    path = path_or_package_data(path, default_file)
+    return read_csv(path, **kwargs)
 
 
 def generate_i_m_index(
@@ -228,6 +284,18 @@ def aggregate_rows(
         else:
             aggregated_df[sector] = full_df[letters]
     return aggregated_df
+
+
+def trim_year_range_generator(
+    years: Iterable[Union[str, int]], first_year: int, last_year: int
+) -> Generator[int, None, None]:
+    for year in years:
+        if first_year <= int(year) <= last_year:
+            yield int(year)
+
+
+def iter_ints_to_list_strs(labels: Iterable[Union[str, int]]) -> list[str]:
+    return [str(label) for label in labels]
 
 
 # def y_ij_m_to_networkx(y_ij_m_results: Series,

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 from plotly.colors import qualitative
-from plotly.express import bar, scatter_mapbox, set_mapbox_access_token
+from plotly.express import bar, line, scatter_mapbox, set_mapbox_access_token
 from plotly.graph_objects import Figure, Scattermapbox
 
 from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
@@ -332,3 +332,18 @@ def sector_flows_bar_chart(
             textfont_color=dash_font_config.font_colour,
         )
     return chart
+
+
+def time_series_line(
+    time_series: DataFrame,
+    # attribute: str = "employment",
+    # region: str = "Manchester",
+    # dates: Optional[list[Union[int, date]]] = None,
+    transpose: bool = True,
+    labels: dict = {"AREA_NAME": "Region"},
+    **kwargs,
+) -> Figure:
+    if transpose:
+        time_series = time_series.T
+    return line(time_series, labels=labels, **kwargs)
+    # return line(time_series, labels=labels)

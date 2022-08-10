@@ -7,7 +7,6 @@ from pandas import DataFrame
 
 from regional_input_output.input_output_tables import (
     COVID_FLAGS_COLUMN,
-    DOI_URL_PREFIX,
     AggregatedSectorDictType,
     InputOutputCPATable,
     InputOutputTable,
@@ -17,7 +16,11 @@ from regional_input_output.input_output_tables import (
     load_region_employment_excel,
 )
 from regional_input_output.uk_data import io_table_1841
-from regional_input_output.utils import aggregate_rows, filter_by_region_name_and_type
+from regional_input_output.utils import (
+    DOI_URL_PREFIX,
+    aggregate_rows,
+    filter_by_region_name_and_type,
+)
 
 
 @pytest.fixture

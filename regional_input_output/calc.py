@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from logging import getLogger
-from typing import Final, Iterable, Optional, Union
+from typing import Callable, Final, Iterable, Optional, Union
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
@@ -14,6 +14,7 @@ from .utils import CITY_COLUMN, OTHER_CITY_COLUMN, generate_i_m_index, generate_
 logger = getLogger(__name__)
 
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
+METRES_TO_KILOMETERS: Final[float] = 0.001
 
 CITY_POPULATION_COLUMN_NAME: Final[str] = "Q_i^m"
 
@@ -159,6 +160,53 @@ def calc_region_distances(
         region_distances[region_distances[final_distance_column] == 0].index
     )
     return region_distances
+
+
+# def calc_region_distances(
+#     cities_df: GeoDataFrame,
+#     regions: Iterable[str] = UK_CITY_REGIONS,
+#     other_regions: Optional[Iterable[str]] = None,
+#     distance_CRS: str = UK_EPSG_GEO_CODE,
+#     origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
+#     destination_region_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
+#     final_distance_column: str = DISTANCE_COLUMN,
+#     unit_divide_conversion: float = DISTANCE_UNIT_DIVIDE,
+# ) -> GeoDataFrame:
+
+
+def centroid_distance_table(
+    region_df: GeoDataFrame,
+) -> DataFrame:
+    """Return a table of region_df centroid distances divided by."""
+    return region_df.centroid.apply(
+        lambda origin_region: region_df.centroid.distance(origin_region)
+    )
+
+
+def calc_transport_table(
+    regions_df: GeoDataFrame,
+    region_names: Optional[Iterable[str]] = None,
+    distance_CRS: Optional[str] = UK_EPSG_GEO_CODE,
+    distance_func: Callable[[GeoDataFrame], DataFrame] = centroid_distance_table,
+    scaling_factor: float = METRES_TO_KILOMETERS,
+    region_names_column: Optional[str] = None,
+) -> DataFrame:
+    """Return a distance matrix calculated by `distance_func`.
+
+    Note:
+        * `region_names_index_or_column_name` assumes `index` is simply
+        the DataFrame index."""
+    if distance_CRS:
+        regions_df = regions_df.to_crs(distance_CRS)
+    if region_names_column:
+        regions_df.set_index(region_names_column)
+    if region_names:
+        regions_df[region_names]
+    return distance_func(regions_df) * scaling_factor
+
+
+def doubly_constrained(regions_df: DataFrame) -> DataFrame:
+    pass
 
 
 # def doubly_constrained(regions_df: GeoDataFrame) -> GeoDataFrame:
@@ -410,12 +458,29 @@ def import_export_convergence(
     return model_e_m, model_y_ij_m
 
 
-def scale_by_population(
+def scale_region_var_by_national(
     national_var: Union[float, Series],
     national_sector_var: Union[float, Series],
     region_var: Union[float, Series],
 ) -> Union[float, Series]:
     return national_sector_var * region_var / national_var
+
+
+# def scale_var_by_national(
+#     var: Union[float, Series],
+#     national_var: Union[float, Series],
+#     national_portion: Union[float, Series],
+# ) -> Union[float, Series]:
+#     return national_proportion * var / national_var
+
+
+def proportional_projection(
+    var_last_state: Union[float, Series],
+    # last_var_date: date,
+    proportion_var_last_state: Union[float, Series],
+    proportion_var_next_state: Union[float, Series],
+) -> Union[float, Series]:
+    return var_last_state * proportion_var_last_state / proportion_var_next_state
 
 
 # def diagonalise(series: Series) -> DataFrame:
