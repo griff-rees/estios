@@ -1,6 +1,6 @@
-# Regional Input-Output Economics
+# Economic Spatial Temporal Input-Output Systems: ESTIOS
 
-This package combines classic work on Input-Output economics[^leontif] with a flexibility of region types (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)) and transport costs[^wilson] per sector.
+This package combines classic work on Input-Output economics[^leontif] on trade between different sectors with a flexibility of region types (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)), transport costs[^wilson] and changes over time.
 
 To begin we infer UK city Input-Output tables from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
 
