@@ -137,8 +137,8 @@ class TestDownloadingDataFiles:
         local_file_name: str = "test_extract.csv"
         download_and_extract_zip_file(
             self.input_output_example_zip,
-            self.zip_file_path,
             tmp_path / local_file_name,
+            zip_file_path=self.zip_file_path,
         )
         with open(tmp_path / local_file_name) as test_saved_file:
             assert test_saved_file.name.endswith(local_file_name)
@@ -149,7 +149,7 @@ class TestDownloadingDataFiles:
         with caplog.at_level(DEBUG):
             download_and_extract_zip_file(
                 self.input_output_example_zip,
-                self.zip_file_path,
+                zip_file_path=self.zip_file_path,
             )
             with open(self.zip_file_path) as test_saved_file:
                 assert test_saved_file.name == str(self.zip_file_path)

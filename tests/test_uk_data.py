@@ -52,8 +52,10 @@ TEST_REGIONS: Final[list[str]] = ["York", "Leeds", "Bristol"]
 
 
 @pytest.fixture
-def ons_2018_projection() -> ONSPopulationProjection:
-    return ONSPopulationProjection(regions=TEST_REGIONS)
+def ons_2018_projection(pop_projection) -> ONSPopulationProjection:
+    return ONSPopulationProjection(
+        regions=TEST_REGIONS, meta_data=pop_projection, ons_path=pop_projection.path
+    )
 
 
 @pytest.fixture

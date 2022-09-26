@@ -11,6 +11,7 @@ from pandas import DataFrame
 
 from ..utils import (
     MetaData,
+    download_and_extract_zip_file,
     invert_dict,
     iter_ints_to_list_strs,
     name_converter,
@@ -85,6 +86,9 @@ ONS_POPULATION_META_DATA: Final[MetaData] = MetaData(
     year=FIRST_YEAR,
     region=REGION,
     url=ONS_POPULATIONS_PROJECTION_2018_ZIP_URL,
+    path=ONS_POPULATION_PROJECTIONS_FILE_NAME,
+    _save_func=download_and_extract_zip_file,  # type: ignore
+    _save_kwargs=dict(zip_file_path=ONS_POPULATION_PROJECTIONS_FILE_NAME),
 )
 
 

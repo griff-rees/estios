@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Generator
+
 import pytest
 
 from regional_input_output.models import (
@@ -9,10 +11,11 @@ from regional_input_output.models import (
 )
 from regional_input_output.uk_data.employment import generate_employment_quarterly_dates
 from regional_input_output.uk_data.ons_population_projections import (
+    ONS_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
 )
 from regional_input_output.uk_data.regions import get_all_centre_for_cities_dict
-from regional_input_output.utils import THREE_UK_CITY_REGIONS, MonthDay
+from regional_input_output.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
 
 
 @pytest.fixture
@@ -69,3 +72,14 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 @pytest.fixture
 def month_day() -> MonthDay:
     return MonthDay()
+
+
+# @pytest.fixture(scope="session") doesn't seem to speed up...
+@pytest.fixture(scope="session")
+def pop_projection(tmp_path_factory) -> Generator[MetaData, None, None]:
+    """Extract ONS population projection for testing and remove when concluded."""
+    pop_projection: MetaData = ONS_POPULATION_META_DATA
+    pop_projection.set_folder(tmp_path_factory.mktemp("test-session"))
+    pop_projection.save_local()
+    yield pop_projection
+    pop_projection.delete_local()

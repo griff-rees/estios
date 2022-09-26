@@ -129,13 +129,17 @@ class MetaData:
     def __str__(self) -> str:
         return f"Source: {self.name} for {self.region} {self.year}"
 
+    def set_folder(self, folder_path: PathLike) -> None:
+        """Change path to passed folder_path while keeping self.path stem."""
+        self.path = Path(str(folder_path)) / Path(str(self.path)).name
+
     def save_local(self, force_overwrite: bool = False) -> None:
         """Get file from self.url and save locally."""
         if not self.path:
             logger.error(f"Path must be set to save {self}")
             return
         if not self._save_func:
-            logger.error(f"Much set 'self._save_func' to run 'self.save_local'")
+            logger.error(f"'self._save_func' must be set to run 'self.save_local'")
             return
         if self.is_local:
             if not force_overwrite:
@@ -146,7 +150,7 @@ class MetaData:
         try:
             assert self.url
             logger.info(f"Saving {self.url} to {self.path} with {self._save_func}")
-            self._save_func(self.url, self.path, **self._save_kwargs)
+            self._save_func(url=self.url, local_path=self.path, **self._save_kwargs)
         except AssertionError:
             raise AssertionError(f"{self.url} required to to download and save {self}")
 
@@ -166,11 +170,14 @@ class MetaData:
 
 def download_and_extract_zip_file(
     url: str,
-    zip_file_path: PathLike,
     local_path: Optional[PathLike] = None,
+    zip_file_path: PathLike = None,
     user_agent: str = CURL_USER_AGENT,
+    **kwargs: Any,
 ) -> None:
     """Download and extract a zip file and return stream."""
+    if not zip_file_path:
+        raise ValueError(f"'zip_file_path' is necessary for extration")
     logger.info(f"Downloading {url} ...")
     if not local_path:
         logger.info(
