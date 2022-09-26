@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
+import shutil
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from io import BytesIO
 from logging import getLogger
 from os import PathLike
 from pathlib import Path
 from pkgutil import get_data
-from typing import IO, Final, Generator, Iterable, Optional, Union
+from typing import IO, Any, Final, Generator, Iterable, Optional, Protocol, Union
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+from zipfile import ZipFile
 
 # from networkx import DiGraph
 from numpy import log
@@ -23,6 +27,8 @@ FolderPathType = Union[str, PathLike]
 AggregatedSectorDictType = dict[str, list[str]]
 AnnualConfigType = Union[Iterable[int], dict[int, dict]]
 DateConfigType = Union[Iterable[date], dict[date, dict]]
+
+CURL_USER_AGENT: Final[str] = "curl/7.79.1"
 
 CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
@@ -70,6 +76,33 @@ class MonthDay:
 DEFAULT_ANNUAL_MONTH_DAY: Final[MonthDay] = MonthDay()
 
 
+def download_and_save_file(
+    url: str, local_path: Optional[FilePathType] = None, **kwargs
+) -> None:
+    """Download the file from `url` and save it to `local_path`"""
+    if not local_path:
+        logger.debug(f"'local_path' not specified, using {local_path} from {url}")
+        local_path = extract_file_name_from_url(url)
+    logger.info(f"Downloading {url} to save to {local_path} ...")
+    with urlopen(url, **kwargs) as response, open(str(local_path), "wb") as out_file:
+        shutil.copyfileobj(response, out_file)
+
+
+def extract_file_name_from_url(url: str) -> str:
+    """Extract file name from end of a URL and raise warnings for edge cases."""
+    return Path(urlparse(url).path).name
+
+
+class DataSaver(Protocol):
+
+    """A protocol for standardising different ways of managing data sources."""
+
+    def __call__(
+        self, url: str, local_path: Optional[FilePathType], **kwargs: Any
+    ) -> None:
+        ...
+
+
 @dataclass
 class MetaData:
 
@@ -81,21 +114,88 @@ class MetaData:
     authors: Optional[Union[str, list[str], dict[str, str]]] = None
     url: Optional[str] = None
     doi: Optional[str] = None
+    path: Optional[FilePathType] = None
+    _save_func: Optional[DataSaver] = download_and_save_file
+    _save_kwargs: dict[str, Any] = field(default_factory=dict)
+    _package_data: bool = False
+    _package_path: Optional[FilePathType] = Path("uk/data")
 
     def __post_init__(self) -> None:
         if not self.url and self.doi:
             self.url = DOI_URL_PREFIX + self.doi
+        if self._package_data:
+            self.path = str(self._package_path) / Path(str(self.path))
 
     def __str__(self) -> str:
         return f"Source: {self.name} for {self.region} {self.year}"
 
+    def save_local(self, force_overwrite: bool = False) -> None:
+        """Get file from self.url and save locally."""
+        if not self.path:
+            logger.error(f"Path must be set to save {self}")
+            return
+        if not self._save_func:
+            logger.error(f"Much set 'self._save_func' to run 'self.save_local'")
+            return
+        if self.is_local:
+            if not force_overwrite:
+                logger.warning(
+                    f"{self.path} already exists. To force set 'force_overwrite' to True"
+                )
+                return
+        try:
+            assert self.url
+            logger.info(f"Saving {self.url} to {self.path} with {self._save_func}")
+            self._save_func(self.url, self.path, **self._save_kwargs)
+        except AssertionError:
+            raise AssertionError(f"{self.url} required to to download and save {self}")
+
+    @property
+    def is_local(self) -> bool:
+        """Return True if local copy exists, False otherwise."""
+        return Path(str(self.path)).is_file()
+
+    def delete_local(self) -> None:
+        """Delete local copy of file."""
+        if self.is_local:
+            logger.info(f"Deleting {self.path} from {self}")
+            Path(str(self.path)).unlink()
+        else:
+            logger.warning(f"Cannot delete {self.path} which does not exist.")
+
+
+def download_and_extract_zip_file(
+    url: str,
+    zip_file_path: PathLike,
+    local_path: Optional[PathLike] = None,
+    user_agent: str = CURL_USER_AGENT,
+) -> None:
+    """Download and extract a zip file and return stream."""
+    logger.info(f"Downloading {url} ...")
+    if not local_path:
+        logger.info(
+            f"'local_path' not specified, setting to '{Path(zip_file_path).name}'"
+        )
+        local_path = zip_file_path
+    logger.debug(f"Preparing to read using user-agent {user_agent}")
+    zip_request = Request(url, headers={"User-Agent": user_agent})
+    with ZipFile(BytesIO(urlopen(zip_request).read())) as zip_files:
+        logger.info(f"Extracting '{zip_file_path}' to save to '{local_path}' ...")
+        with (
+            zip_files.open(str(zip_file_path)) as zip_file,
+            open(local_path, "wb") as out_file,
+        ):
+            shutil.copyfileobj(zip_file, out_file)
+
 
 def name_converter(names: list, name_mapper: dict[str, str]) -> list[str]:
-    """Return region names with any conversions specified in _region_name_mapper"""
+    """Return region names with any conversions specified in name_mapper"""
     return [name if not name in name_mapper else name_mapper[name] for name in names]
 
 
 def invert_dict(d: dict) -> dict:
+    """Attempt to have dict values point to keys assuming unique mapping."""
+    logger.warning(f"Inverting a dict assuming uniqueness of keys and values")
     return {v: k for k, v in d.items()}
 
 

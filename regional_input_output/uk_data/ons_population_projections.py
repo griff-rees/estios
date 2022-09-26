@@ -21,6 +21,13 @@ from .region_names import METROPOLITAN_COUNTIES_ENGLAND
 
 logger = getLogger(__name__)
 
+ONS_POPULATIONS_PROJECTION_2018_ZIP_URL: Final[str] = (
+    "https://www.ons.gov.uk/"
+    "file?uri=/peoplepopulationandcommunity/populationandmigration/"
+    "populationprojections/datasets/localauthoritiesinenglandz1/"
+    "2018based/2018snpppopulation.zip"
+)
+
 ONS_POPULATION_PROJECTIONS_FILE_NAME: Final[PathLike] = Path(
     "2018 SNPP Population persons.csv"
 )
@@ -77,6 +84,7 @@ ONS_POPULATION_META_DATA: Final[MetaData] = MetaData(
     name=NAME,
     year=FIRST_YEAR,
     region=REGION,
+    url=ONS_POPULATIONS_PROJECTION_2018_ZIP_URL,
 )
 
 
