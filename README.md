@@ -4,17 +4,24 @@ This package combines classic work on Input-Output economics[^leontif] on trade 
 
 To begin we infer UK city Input-Output tables from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
 
-This is a proof of concept and much more work is needed to reach the level of detail we would like. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/regional-input-output/issues/new)) are welcome.
+This is a proof of concept and much more work is needed to reach the level of detail we would like. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/estios/issues/new)) are welcome.
 
 ## Basic installation
 
+We use [geopandas](https://geopandas.org/en/stable/) and it will be necessary to install some system pacakges to manage this. [`GDAL`](https://gdal.org/) is often the main source of difficulty. Via `debian` `linux` distros you should be able to simply install the library without modificaitons. On `macOS` via [`homebrew`](https://formulae.brew.sh/formula/gdal) you can install that with
+
+```console
+$ brew install gdal
+```
+See [`fiona`](https://fiona.readthedocs.io/en/latest/README.html#installation) and [geopandas documentation](https://geopandas.org/en/stable/getting_started/install.html#installing-with-pip) for more information, and feel free to raise a ticket.
+
 We use `pyproject.toml` with `poetry` to manage [dependencies](https://python-poetry.org/docs/dependency-specification/).
 
-With that version of `poetry` simply downloading a `zip` of this package or a `git clone` should be enough to set up a local environment. Below is an example using `poetry`:
+With `poetry` version `>=1.2` simply downloading a `zip` of this package or a `git clone` should be enough to set up a local environment. Below is an example using `poetry`:
 
 ```console
 $ poetry init
-$ poetry add path/to/regional-input-output.zip
+$ poetry add path/to/estios.zip
 ```
 
 ## Running an interactive visualisation
@@ -22,7 +29,7 @@ $ poetry add path/to/regional-input-output.zip
 Once the local `poetry` environment is created, run
 
 ```console
-$ poetry run region-io server --no-auth
+$ poetry run estios server --no-auth
 MAPBOX access token not found in local .env file.
 Starting dash server with port 8090 and ip 127.0.0.1 at /uk-cities
 Server running on: http://127.0.0.1:8090/uk-cities

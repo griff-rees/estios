@@ -10,7 +10,7 @@ Below is an example using `poetry` for managing an isolated local install:
 
 ```console
 $ poetry init
-$ poetry add path/to/regional-input-output.zip
+$ poetry add path/to/estios.zip
 ```
 
 ## Running an interactive visualisation
@@ -21,7 +21,7 @@ Once the local `poetry` environment is created, run:
     `--no-auth` disables a login dropdown for the visualisation.
 
 ```console
-$ poetry run region-io server --no-auth
+$ poetry run estios server --no-auth
 MAPBOX access token not found in local .env file.
 Starting dash server with port 8090 and ip 127.0.0.1 at /uk-cities
 Server running on: http://127.0.0.1:8090/uk-cities
