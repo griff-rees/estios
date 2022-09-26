@@ -22,14 +22,11 @@ from typing import (
 from warnings import filterwarnings
 
 from geopandas import GeoDataFrame
-from numpy import exp
 from pandas import DataFrame, MultiIndex, Series
 from shapely.errors import ShapelyDeprecationWarning
 
 from .calc import (
-    CITY_POPULATION_COLUMN_NAME,
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
-    DISTANCE_COLUMN,
     DISTANCE_UNIT_DIVIDE,
     INITIAL_P,
     E_i_m,
@@ -55,12 +52,14 @@ from .input_output_tables import (
     load_employment_by_region_and_sector_csv,
     load_region_employment_excel,
 )
+from .spatial_interaction import AttractionConstrained, SpatialInteractionBaseClass
 from .uk_data import ons_IO_2017
 from .uk_data.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,
     UK_JOBS_BY_SECTOR_SCALING,
     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
 )
+from .uk_data.ons_population_projections import ONS_PROJECTION_YEARS
 from .uk_data.regions import (
     CENTRE_FOR_CITIES_CSV_FILE_NAME,
     CITIES_TOWNS_GEOJSON_FILE_NAME,
@@ -68,9 +67,12 @@ from .uk_data.regions import (
     load_and_join_centre_for_cities_data,
 )
 from .utils import (
+    DEFAULT_ANNUAL_MONTH_DAY,
     SECTOR_10_CODE_DICT,
-    UK_NATIONAL_COLUMN_NAME,
     AggregatedSectorDictType,
+    AnnualConfigType,
+    DateConfigType,
+    MonthDay,
     aggregate_rows,
     column_to_series,
     filter_by_region_name_and_type,
@@ -82,135 +84,11 @@ logger = getLogger(__name__)
 
 filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
-DEFAULT_TIME_SERIES_CONFIG = {
+DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
     EMPLOYMENT_QUARTER_DEC_2017: {
         "io_table_file_path": ons_IO_2017.EXCEL_FILE_NAME,
     }
 }
-
-
-@dataclass
-class SpatialInteractionBaseClass:
-
-    # beta: float
-    distances: GeoDataFrame
-    employment: DataFrame
-    employment_column_name: str = CITY_POPULATION_COLUMN_NAME
-    distance_column_name: str = DISTANCE_COLUMN
-    national_term: bool = True
-    national_column_name: str = UK_NATIONAL_COLUMN_NAME
-
-    _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
-
-    @property
-    def y_ij_m(self) -> DataFrame:
-        """Placeholder for initial conditions for model y_ij_m DataFrame."""
-        raise NotImplementedError("This is not implemented in the BaseClass")
-
-    @property
-    def ij_m_index(self) -> MultiIndex:
-        """Return region x other region x sector MultiIndex."""
-        return self._gen_ij_m_func(self.employment.index, self.employment.columns)
-
-    def _func_by_index(self, func):
-        return [
-            func(region, other_region, sector)
-            for region, other_region, sector in self.ij_m_index
-        ]
-
-    def _Q_i_m_func(self, region, other_region, sector) -> float:
-        return self.employment.loc[region][sector]
-
-    def _distance_func(self, region, other_region, sector) -> float:
-        return self.distances[self.distance_column_name][region][other_region]
-
-    @property
-    def Q_i_m_list(self) -> list[float]:
-        return self._func_by_index(self._Q_i_m_func)
-
-    @property
-    def distance_list(self) -> list[float]:
-        return self._func_by_index(self._distance_func)
-
-    def distance_and_Q(self) -> DataFrame:
-        """Return basic DataFrame with Distance and Q_i^m columns."""
-        return DataFrame(
-            {
-                self.employment_column_name: self.Q_i_m_list,
-                self.distance_column_name: self.distance_list,
-            },
-            index=self.ij_m_index,
-        )
-
-
-@dataclass
-class AttractionConstrained(SpatialInteractionBaseClass):
-
-    beta: float = 0.0002
-    constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
-
-    def __repr__(self) -> str:
-        """Return base config of model."""
-        return f"Singly constrained attraction β = {self.beta}"
-
-    def __post_init__(self) -> None:
-        """Calculate core singly constrained spatial components."""
-        self.B_j_m = self.distance_and_Q()
-        self.B_j_m["-β c_{ij}"] = -1 * self.B_j_m[self.distance_column_name] * self.beta
-        self.B_j_m["exp(-β c_{ij})"] = self.B_j_m["-β c_{ij}"].apply(lambda x: exp(x))
-        self.B_j_m["Q_i^m * exp(-β c_{ij})"] = (
-            self.B_j_m[self.employment_column_name] * self.B_j_m["exp(-β c_{ij})"]
-        )
-        self.B_j_m["sum Q_i^m * exp(-β c_{ij})"] = self.B_j_m.groupby(
-            ["Other_City", "Sector"]
-        )["Q_i^m * exp(-β c_{ij})"].transform("sum")
-
-        # Equation 16
-        self.B_j_m["B_j^m"] = 1 / self.B_j_m["sum Q_i^m * exp(-β c_{ij})"]
-
-    @property
-    def y_ij_m(self) -> DataFrame:
-        """A dataframe initial conditions for model y_ij_m DataFrame."""
-        return DataFrame(
-            data={
-                self.employment_column_name: self.B_j_m[self.employment_column_name],
-                "B_j^m": self.B_j_m["B_j^m"],
-                "exp(-β c_{ij})": self.B_j_m["exp(-β c_{ij})"],
-                self.constrained_column_name: (
-                    self.B_j_m["B_j^m"] * self.B_j_m["Q_i^m * exp(-β c_{ij})"]
-                ),
-            }
-        )
-
-
-@dataclass
-class DoublyConstrained(SpatialInteractionBaseClass):
-
-    beta: float = 0.0002
-    constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
-
-    def __repr__(self) -> str:
-        """Return base config of model."""
-        return f"Singly constrained attraction β = {self.beta}"
-
-    def __post_init__(self) -> None:
-        """Calculate core singly constrained spatial components."""
-        self.b_ij_m = self.distance_and_Q()
-        self.b_ij_m["-β c_{ij}"] = (
-            -1 * self.b_ij_m[self.distance_column_name] * self.beta
-        )
-        self.b_ij_m["exp(-β c_{ij})"] = self.b_ij_m["-β c_{ij}"].apply(lambda x: exp(x))
-
-    def doubly_constrained(self) -> DataFrame:
-        pass
-
-
-# def NullRawRegionError(BaseException):
-#     pass
-
-
-# def RawRegionTypeError(NotImplementedError):
-#     pass
 
 
 @dataclass
@@ -226,8 +104,7 @@ class InterRegionInputOutputBaseClass:
     )
     P_initial_export_proportion: float = INITIAL_P
 
-    region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
-    region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
+    date: Optional[date] = None
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
         default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
@@ -271,8 +148,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
     national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_XLS_FILE_NAME
     employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
-    date: Optional[date] = None
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
+    region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
+    region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     _national_employment: Optional[DataFrame] = None
     _employment_by_sector_and_region: Optional[DataFrame] = None
@@ -590,6 +468,7 @@ class InterRegionInputOutputTimeSeries(
     # _populate_common_config_from_nth_model: Optional[int] = -1
     # _copy_config_from_nth_io_model: int = 0
     # _global_config_key_name: str = "__all_io_models__"
+    # _temporal_metrics: dict[str: Callable[[InterRegionInputOutput], DataFrame]] = field(default_factory=dict)
     _io_model_config_index: Optional[int] = -1
 
     def __post_init__(self) -> None:
@@ -632,9 +511,30 @@ class InterRegionInputOutputTimeSeries(
                     setattr(io_model, key, value)
 
     @classmethod
+    def from_years(
+        cls,
+        years: AnnualConfigType = ONS_PROJECTION_YEARS,
+        default_month_day: MonthDay = DEFAULT_ANNUAL_MONTH_DAY,
+        **kwargs,
+    ) -> "InterRegionInputOutputTimeSeries":
+        """Generate an InterRegionInputOutputTimeSeries from a list of dates."""
+        logger.info(
+            f"Generating an InputOutputTimeSeries using {default_month_day} for each year."
+        )
+        date_config: DateConfigType
+        if isinstance(years, dict):
+            date_config = {
+                default_month_day.from_year(year): config_dict
+                for year, config_dict in years.items()
+            }
+        else:
+            date_config = [default_month_day.from_year(year) for year in years]
+        return cls.from_dates(date_config, **kwargs)
+
+    @classmethod
     def from_dates(
         cls,
-        dates: Union[Iterable[date], dict[date, dict]] = DEFAULT_TIME_SERIES_CONFIG,
+        dates: DateConfigType = DEFAULT_TIME_SERIES_CONFIG,
         input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput,
         **kwargs,
     ) -> "InterRegionInputOutputTimeSeries":
@@ -642,11 +542,13 @@ class InterRegionInputOutputTimeSeries(
         logger.info(
             "Generating an InputOutputTimeSeries with dates and passed general config."
         )
-        io_models = []
+        io_models: list[InterRegionInputOutput] = []
         if type(dates) is dict:
             logger.debug(f"Iterating over {len(dates)} with dict configs")
             for date, config_dict in dates.items():
-                io_model = input_output_model_cls(date=date, **(config_dict | kwargs))
+                io_model: InterRegionInputOutput = input_output_model_cls(
+                    date=date, **(config_dict | kwargs)
+                )
                 io_models.append(io_model)
                 logger.debug(f"Added {io_model} to list for generating time series.")
             return cls(
@@ -740,3 +642,7 @@ class InterRegionInputOutputTimeSeries(
     def calc_models(self) -> None:
         for model in self:
             model.import_export_convergence()
+
+    @property
+    def national_employment_ts(self) -> DataFrame:
+        return DataFrame({model.date: model.national_employment for model in self})

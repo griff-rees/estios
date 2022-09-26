@@ -5,8 +5,8 @@ import pytest
 from geopandas import GeoDataFrame
 from plotly.graph_objects import Figure
 
-from regional_input_output.models import InterRegionInputOutput
-from regional_input_output.visualisation import (
+from estios.models import InterRegionInputOutput
+from estios.visualisation import (
     add_mapbox_edges,
     convert_geom_for_mapbox,
     draw_ego_flows_network,

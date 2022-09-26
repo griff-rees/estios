@@ -4,7 +4,7 @@
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from regional_input_output.calc import calc_region_distances, scale_by_population
+from estios.calc import calc_region_distances, scale_region_var_by_national
 
 
 def test_3_city_distances(three_cities_io) -> None:
@@ -41,7 +41,7 @@ def test_scale_by_population(three_cities, quarterly_2017_employment_dates) -> N
     regional_population_ts: Series = national_population_ts * 0.3
     national_employment_ts: Series = national_population_ts * 0.7
 
-    estimated_regional_employment_ts: Series = scale_by_population(
+    estimated_regional_employment_ts: Series = scale_region_var_by_national(
         national_population_ts, regional_population_ts, national_employment_ts
     )
     assert_series_equal(

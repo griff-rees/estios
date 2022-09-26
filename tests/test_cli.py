@@ -3,7 +3,7 @@
 
 from typer.testing import CliRunner
 
-from regional_input_output.cli import app
+from estios.cli import app
 
 runner = CliRunner()
 
