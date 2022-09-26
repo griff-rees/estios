@@ -4,10 +4,7 @@
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from regional_input_output.calc import (
-    calc_region_distances,
-    scale_region_var_by_national,
-)
+from estios.calc import calc_region_distances, scale_region_var_by_national
 
 
 def test_3_city_distances(three_cities_io) -> None:

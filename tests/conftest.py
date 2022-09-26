@@ -5,17 +5,14 @@ from typing import Generator
 
 import pytest
 
-from regional_input_output.models import (
-    InterRegionInputOutput,
-    InterRegionInputOutputTimeSeries,
-)
-from regional_input_output.uk_data.employment import generate_employment_quarterly_dates
-from regional_input_output.uk_data.ons_population_projections import (
+from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from estios.uk_data.employment import generate_employment_quarterly_dates
+from estios.uk_data.ons_population_projections import (
     ONS_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
 )
-from regional_input_output.uk_data.regions import get_all_centre_for_cities_dict
-from regional_input_output.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
+from estios.uk_data.regions import get_all_centre_for_cities_dict
+from estios.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
 
 
 @pytest.fixture

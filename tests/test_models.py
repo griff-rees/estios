@@ -5,16 +5,13 @@ import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from regional_input_output import __version__
-from regional_input_output.models import (  # NullRawRegionError,; RawRegionTypeError,
+from estios import __version__
+from estios.models import (  # NullRawRegionError,; RawRegionTypeError,
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )
-from regional_input_output.uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
-from regional_input_output.uk_data.ons_population_projections import (
-    FIRST_YEAR,
-    LAST_YEAR,
-)
+from estios.uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
+from estios.uk_data.ons_population_projections import FIRST_YEAR, LAST_YEAR
 
 
 def test_version() -> None:

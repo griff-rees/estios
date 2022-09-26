@@ -8,12 +8,12 @@ from pathlib import Path
 import pytest
 from pandas import MultiIndex
 
-from regional_input_output.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
-from regional_input_output.uk_data.ons_population_projections import (
+from estios.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
+from estios.uk_data.ons_population_projections import (
     ONS_POPULATION_PROJECTIONS_FILE_NAME,
     ONS_POPULATIONS_PROJECTION_2018_ZIP_URL,
 )
-from regional_input_output.utils import (
+from estios.utils import (
     SECTOR_10_CODE_DICT,
     THREE_UK_CITY_REGIONS,
     FilePathType,

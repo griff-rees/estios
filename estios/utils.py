@@ -173,7 +173,6 @@ def download_and_extract_zip_file(
     local_path: Optional[PathLike] = None,
     zip_file_path: PathLike = None,
     user_agent: str = CURL_USER_AGENT,
-    **kwargs: Any,
 ) -> None:
     """Download and extract a zip file and return stream."""
     if not zip_file_path:

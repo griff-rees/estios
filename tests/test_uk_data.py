@@ -8,7 +8,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from regional_input_output.uk_data.ons_population_projections import (
+from estios.uk_data.ons_population_projections import (
     FIRST_YEAR,
     LAST_YEAR,
     NATIONAL_RETIREMENT_AGE,
@@ -18,7 +18,7 @@ from regional_input_output.uk_data.ons_population_projections import (
     ONSPopulationProjection,
     aggregate_region_by_age_range,
 )
-from regional_input_output.uk_data.regions import (
+from estios.uk_data.regions import (
     UK_CITY_REGIONS,
     get_all_centre_for_cities_dict,
     load_and_join_centre_for_cities_data,

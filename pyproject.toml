@@ -1,8 +1,9 @@
 [tool.poetry]
-name = "regional-input-output"
+name = "estios"
 version = "0.1.0"
-description = "rioecon: Regional Input Output ECONomics. Also worth checking regio-econ etc."
+description = "Economic Spatial Temporal Input-Output Systems"
 authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
+maintainers = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -40,13 +41,13 @@ profile = "black"
 
 [tool.pytest.ini_options]
 addopts = """
---cov=regional_input_output
+--cov=estios
 --cov-report=term:skip-covered
 --pdbcls=IPython.terminal.debugger:TerminalPdb
 """
 
 [tool.poetry.scripts]
-region-io = "regional_input_output.cli:app"
+estios = "estios.cli:app"
 
 # Pre-commit hooks related config.
 [tool.pycln]

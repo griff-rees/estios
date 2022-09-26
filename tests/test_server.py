@@ -9,8 +9,8 @@ from typing import Final, Generator
 import pytest
 from dash import Dash
 
-from regional_input_output.server.auth import AuthDB
-from regional_input_output.server.dash_app import DEFAULT_SERVER_PATH, get_server_dash
+from estios.server.auth import AuthDB
+from estios.server.dash_app import DEFAULT_SERVER_PATH, get_server_dash
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
 
@@ -40,7 +40,7 @@ def server_paths(server) -> Generator[str, None, None]:
 
 def test_server_no_auth(caplog) -> None:
     no_auth_log: tuple[str, int, str] = (
-        "regional_input_output.server.dash_app",
+        "estios.server.dash_app",
         WARNING,
         "No authentication required.",
     )
@@ -53,7 +53,7 @@ def test_server_no_auth(caplog) -> None:
 def test_server_auth(caplog, tmp_path) -> None:
     tmp_file = tmp_path / "test.db"
     auth_log: tuple[str, int, str] = (
-        "regional_input_output.server.dash_app",
+        "estios.server.dash_app",
         INFO,
         f"Adding basic authentication from {tmp_file}.",
     )
@@ -82,7 +82,7 @@ def test_AuthDB(tmp_json_auth_file) -> None:
 
 def test_io_table(caplog) -> None:
     io_table_log: tuple[str, int, str] = (
-        "regional_input_output.server.dash_app",
+        "estios.server.dash_app",
         INFO,
         "Appending 'table-div' to layout.",
     )
