@@ -18,7 +18,7 @@ app = Typer()
 
 
 @app.callback()
-def callback() -> None:
+def estios() -> None:
     """Regional Input-Output economic model."""
 
 

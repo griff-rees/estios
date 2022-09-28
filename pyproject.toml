@@ -32,6 +32,10 @@ mkdocs-material = "^8.3.9"
 [tool.poetry.group.dev.dependencies]
 pytest-remotedata = "^0.3.3"
 
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-typer = "^0.0.2"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

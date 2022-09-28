@@ -11,4 +11,4 @@ By examining the technical relationships, the method provides a way of consideri
 
 The Wilsonian family of spatial interaction models are ways of predicting movements between sets of origins and destinations within a system. They not only account for the distances between origin-destination pairs, but also incorporate the factors which might make one destination more attractive than another.
 
-This package contains public sector information licensed under the Open Government Licence v3.0.
+This package contains public sector information licensed under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
