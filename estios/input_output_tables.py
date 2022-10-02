@@ -8,8 +8,8 @@ from typing import Any, Callable, Final, Iterable, Optional, Union
 
 from pandas import DataFrame, Index, Series, read_csv, read_excel
 
-from .uk_data import io_table_1841, ons_IO_2017
-from .uk_data.employment import (
+from .uk import io_table_1841, ons_IO_2017
+from .uk.employment import (
     DATE_COLUMN_NAME,
     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
     UK_NATIONAL_EMPLOYMENT_SHEET,

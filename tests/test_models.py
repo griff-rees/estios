@@ -10,8 +10,8 @@ from estios.models import (  # NullRawRegionError,; RawRegionTypeError,
     InterRegionInputOutput,
     InterRegionInputOutputTimeSeries,
 )
-from estios.uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
-from estios.uk_data.ons_population_projections import FIRST_YEAR, LAST_YEAR
+from estios.uk.employment import EMPLOYMENT_QUARTER_DEC_2017
+from estios.uk.ons_population_projections import FIRST_YEAR, LAST_YEAR
 
 
 def test_version() -> None:

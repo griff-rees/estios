@@ -18,7 +18,7 @@ from zipfile import ZipFile
 from numpy import log
 from pandas import DataFrame, MultiIndex, Series, read_csv
 
-from .uk_data.employment import CITY_SECTOR_REGION_PREFIX
+from .uk.employment import CITY_SECTOR_REGION_PREFIX
 
 logger = getLogger(__name__)
 
@@ -60,7 +60,7 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
     "Other services": ["R", "S", "T"],
 }
 
-UK_DATA_PATH: Final[Path] = Path("uk_data/data")
+UK_DATA_PATH: Final[Path] = Path("uk/data")
 DOI_URL_PREFIX: Final[str] = "https://doi.org/"
 
 

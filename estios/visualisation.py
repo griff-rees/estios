@@ -15,7 +15,7 @@ from plotly.express import bar, line, scatter_mapbox, set_mapbox_access_token
 from plotly.graph_objects import Figure, Scattermapbox
 
 from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
-from .uk_data.regions import CENTRE_FOR_CITIES_EPSG, CENTRE_FOR_CITIES_REGION_COLUMN
+from .uk.regions import CENTRE_FOR_CITIES_EPSG, CENTRE_FOR_CITIES_REGION_COLUMN
 from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero
 
 logger = getLogger(__name__)

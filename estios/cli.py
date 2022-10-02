@@ -11,7 +11,7 @@ from .server.dash_app import (
     DEFAULT_SERVER_PORT,
     run_server_dash,
 )
-from .uk_data.employment import EMPLOYMENT_QUARTER_DEC_2017
+from .uk.employment import EMPLOYMENT_QUARTER_DEC_2017
 from .utils import enforce_end_str, enforce_start_str
 
 app = Typer()

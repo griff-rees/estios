@@ -8,7 +8,7 @@ from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
 from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
-from .uk_data.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
+from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
 from .utils import CITY_COLUMN, OTHER_CITY_COLUMN, generate_i_m_index, generate_ij_index
 
 logger = getLogger(__name__)

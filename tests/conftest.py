@@ -6,12 +6,12 @@ from typing import Generator
 import pytest
 
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
-from estios.uk_data.employment import generate_employment_quarterly_dates
-from estios.uk_data.ons_population_projections import (
+from estios.uk.employment import generate_employment_quarterly_dates
+from estios.uk.ons_population_projections import (
     ONS_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
 )
-from estios.uk_data.regions import get_all_centre_for_cities_dict
+from estios.uk.regions import get_all_centre_for_cities_dict
 from estios.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
 
 

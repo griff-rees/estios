@@ -53,14 +53,14 @@ from .input_output_tables import (
     load_region_employment_excel,
 )
 from .spatial_interaction import AttractionConstrained, SpatialInteractionBaseClass
-from .uk_data import ons_IO_2017
-from .uk_data.employment import (
+from .uk import ons_IO_2017
+from .uk.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,
     UK_JOBS_BY_SECTOR_SCALING,
     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
 )
-from .uk_data.ons_population_projections import ONS_PROJECTION_YEARS
-from .uk_data.regions import (
+from .uk.ons_population_projections import ONS_PROJECTION_YEARS
+from .uk.regions import (
     CENTRE_FOR_CITIES_CSV_FILE_NAME,
     CITIES_TOWNS_GEOJSON_FILE_NAME,
     UK_CITY_REGIONS,

@@ -21,16 +21,13 @@ from plotly.graph_objects import Figure, layout
 from starlette.middleware.wsgi import WSGIMiddleware
 
 from ..models import InterRegionInputOutputTimeSeries
-from ..uk_data.employment import (
+from ..uk.employment import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
     CONFIG_2015_TO_2017_QUARTERLY,
     EMPLOYMENT_QUARTER_DEC_2017,
 )
-from ..uk_data.regions import (
-    CENTRE_FOR_CITIES_REGION_COLUMN,
-    get_all_centre_for_cities_dict,
-)
+from ..uk.regions import CENTRE_FOR_CITIES_REGION_COLUMN, get_all_centre_for_cities_dict
 from ..utils import enforce_end_str, enforce_start_str
 from ..visualisation import (
     DEFAULT_REGION_PALATE,

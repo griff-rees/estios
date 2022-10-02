@@ -15,7 +15,7 @@ from estios.input_output_tables import (
     load_io_table_excel,
     load_region_employment_excel,
 )
-from estios.uk_data import io_table_1841
+from estios.uk import io_table_1841
 from estios.utils import DOI_URL_PREFIX, aggregate_rows, filter_by_region_name_and_type
 
 
