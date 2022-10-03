@@ -10,30 +10,31 @@ readme = "README.md"
 python = "~3.10"
 geopandas = "^0.10.2"
 plotly = "^5.3.1"
-jupyter-dash = "^0.4.0"
-python-dotenv = {version = "^0.19.2", extras = ["cli"]}
-fastapi = "^0.70.1"
-uvicorn = "^0.16.0"
-dash-auth = "^1.4.1"
 typer = {version = "^0.4.0", extras = ["all"]}
 openpyxl = "^3.0.9"
 xlrd = "^2.0.1"
-jupyterlab = "^3.2.2"
 setuptools = "^62.6.0"
 numpy = "^1.23.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.jupyter.dependencies]
+jupyterlab = "^3.2.2"
+
+[tool.poetry.group.server.dependencies]
+python-dotenv = {version = "^0.19.2", extras = ["cli"]}
+jupyter-dash = "^0.4.0"
+fastapi = "^0.70.1"
+uvicorn = "^0.16.0"
+dash-auth = "^1.4.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest-remotedata = "^0.3.3"
 pytest = "^6.1"
 pre-commit = "^2.18.1"
 pytest-cov = "^3.0.0"
 pytest-sugar = "^0.9.4"
-mkdocs-material = "^8.3.9"
-
-[tool.poetry.group.dev.dependencies]
-pytest-remotedata = "^0.3.3"
-
 
 [tool.poetry.group.docs.dependencies]
+mkdocs-material = "^8.3.9"
 mkdocs-typer = "^0.0.2"
 mkdocstrings = {extras = ["python"], version = "^0.19.0"}
 mkdocs-literate-nav = "^0.5.0"
