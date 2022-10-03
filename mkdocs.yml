@@ -9,6 +9,7 @@ nav:
     - 'Data': data.md
     - 'Specification': spec.md
     - 'License': license.md
+- Theory: theory.md
 - Installation: install.md
 - Reference: reference/
 - Issues: https://github.com/griff-rees/estios/issues
