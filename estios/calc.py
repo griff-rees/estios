@@ -47,7 +47,7 @@ def X_i_m(
 ) -> DataFrame:
     """Return the total production of sector 𝑚 in region 𝑖and cache results.
 
-    X_i^m = X_*^m * Q_i^m/Q_*^m
+    $X_i^m = X_*^m * Q_i^m/Q_*^m$
     """
     return total_sales * employment / national_employment
 
@@ -57,7 +57,7 @@ def M_i_m(
 ) -> DataFrame:
     """Return the imports of sector 𝑚 in region 𝑖and cache results.
 
-    M_i^m = M_*^m * Q_i^m/Q_*^m
+    $M_i^m = M_*^m * Q_i^m/Q_*^m$
     """
     return imports * employment / national_employment
 
@@ -67,7 +67,7 @@ def F_i_m(
 ) -> DataFrame:
     """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
-    F_i^m = F_*^m * Q_i^m/Q_*^m
+    $F_i^m = F_*^m * Q_i^m/Q_*^m$
     """
     return final_demand * employment / national_employment
 
@@ -77,7 +77,7 @@ def E_i_m(
 ) -> DataFrame:
     """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
-    E_i^m = E_*^m * Q_i^m/Q_*^m
+    $E_i^m = E_*^m * Q_i^m/Q_*^m$
     """
     return exports * employment / national_employment
 
@@ -86,14 +86,10 @@ def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFr
     """Return sum of all total demands for good 𝑚 in region 𝑖.
 
     Equation 1:
-    x_i^{mn} = a_i^{mn}X_i^n
+    $x_i^{mn} = a_i^{mn}X_i^n$
 
     Equation 2:
-
-        .. math::
-            X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{a_i^{mn}X_i^n}
-
-    Note: the \\s is to avoid a docstring warning, and should have a single \
+    $X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \sum_n{{a_i^{mn}X_i^n}}$
     """
     return X_i_m.apply(
         lambda row: (row * technical_coefficients.T).sum(),

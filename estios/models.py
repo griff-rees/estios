@@ -300,7 +300,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def X_i_m(self) -> DataFrame:
         """Return the total production of sector 𝑚 in region 𝑖and cache results.
 
-        X_i^m = X_*^m * Q_i^m/Q_*^m
+        $X_i^m = X_*^m * Q_i^m/Q_*^m$
         """
         return X_i_m(
             total_sales=self.io_table[self.sectors].loc["Total Sales"],
@@ -312,7 +312,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def M_i_m(self) -> DataFrame:
         """Return the imports of sector 𝑚 in region 𝑖and cache results.
 
-        M_i^m = M_*^m * Q_i^m/Q_*^m
+        $M_i^m = M_*^m * Q_i^m/Q_*^m$
         """
         return M_i_m(
             imports=self.io_table[self.sectors].loc["Imports"],
@@ -324,7 +324,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def F_i_m(self) -> DataFrame:
         """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
-        F_i^m = F_*^m * Q_i^m/Q_*^m
+        $F_i^m = F_*^m * Q_i^m/Q_*^m$
         """
         return F_i_m(
             final_demand=self.io_table.loc[
@@ -338,7 +338,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def E_i_m(self) -> DataFrame:
         """Return the exports of sector 𝑚 in region 𝑖and cache results.
 
-        E_i^m = E_*^m * Q_i^m/Q_*^m
+        $E_i^m = E_*^m * Q_i^m/Q_*^m$
         """
         return E_i_m(
             exports=self.io_table.loc[self.sectors, self.export_column_names].sum(
@@ -363,14 +363,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         """Return sum of all total demands for good 𝑚 in region 𝑖.
 
         Equation 1:
-        x_i^{mn} = a_i^{mn}X_i^n
-
-        Equation 2:
-
-        .. math::
-            X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{a_i^{mn}X_i^n}
-
-        Note: the \\s is to avoid a docstring warning and imply LaTeX.
+        $x_i^{mn} = a_i^{mn}X_i^n$
         """
         return x_i_mn_summed(
             X_i_m=self.X_i_m, technical_coefficients=self.technical_coefficients

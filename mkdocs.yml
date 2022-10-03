@@ -3,32 +3,46 @@ theme:
   name: material
 
 nav:
-    - Home: index.md
-    - 'Information':
-        - 'About': about.md
-        - 'Data': data.md
-        - 'Specification': spec.md
-        - 'License': license.md
-    - Installation: install.md
-    - Issues: https://github.com/griff-rees/estios/issues
+- Home: index.md
+- 'Information':
+    - 'About': about.md
+    - 'Data': data.md
+    - 'Specification': spec.md
+    - 'License': license.md
+- Installation: install.md
+- Reference: reference/
+- Issues: https://github.com/griff-rees/estios/issues
 
 repo_url: https://github.com/griff-rees/estios/
 
 plugins:
-    - search:
-        min_search_length: 3
-        lang: en
+- search:
+    min_search_length: 3
+    lang: en
+- gen-files:
+    scripts:
+    - docs/gen_ref_pages.py
+- literate-nav:
+    nav_file: DOC_STRINGS.md
+- section-index
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [.]
+    watch:
+    - estios
+
 
 markdown_extensions:
-    - pymdownx.arithmatex:
-        generic: true
-    - footnotes
-    - admonition
-    - pymdownx.details
-    - pymdownx.superfences
-    - mkdocs-typer
+- pymdownx.arithmatex:
+    generic: true
+- footnotes
+- admonition
+- pymdownx.details
+- pymdownx.superfences
+- mkdocs-typer
 
 extra_javascript:
-    - javascripts/mathjax.js
-    - https://polyfill.io/v3/polyfill.min.js?features=es6
-    - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+- javascripts/mathjax.js
+- https://polyfill.io/v3/polyfill.min.js?features=es6
+- https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

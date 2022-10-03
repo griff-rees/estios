@@ -541,6 +541,17 @@ python-dateutil = ">=2.8.1"
 dev = ["flake8", "markdown", "twine", "wheel"]
 
 [[package]]
+name = "griffe"
+version = "0.22.2"
+description = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+async = ["aiofiles (>=0.7,<1.0)"]
+
+[[package]]
 name = "h11"
 version = "0.13.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
@@ -945,6 +956,40 @@ watchdog = ">=2.0"
 i18n = ["babel (>=2.9.0)"]
 
 [[package]]
+name = "mkdocs-autorefs"
+version = "0.4.1"
+description = "Automatically link across pages in MkDocs."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+Markdown = ">=3.3"
+mkdocs = ">=1.1"
+
+[[package]]
+name = "mkdocs-gen-files"
+version = "0.4.0"
+description = "MkDocs plugin to programmatically generate documentation pages during the build"
+category = "dev"
+optional = false
+python-versions = ">=3.7,<4.0"
+
+[package.dependencies]
+mkdocs = ">=1.0.3,<2.0.0"
+
+[[package]]
+name = "mkdocs-literate-nav"
+version = "0.5.0"
+description = "MkDocs plugin to specify the navigation in Markdown instead of YAML"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+mkdocs = ">=1.0.3,<2.0.0"
+
+[[package]]
 name = "mkdocs-material"
 version = "8.3.9"
 description = "Documentation that simply works"
@@ -969,6 +1014,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "mkdocs-section-index"
+version = "0.3.4"
+description = "MkDocs plugin to allow clickable sections that lead to an index page"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+mkdocs = ">=1.1,<2.0"
+
+[[package]]
 name = "mkdocs-typer"
 version = "0.0.2"
 description = "An MkDocs extension to generate documentation for Typer command line applications"
@@ -979,6 +1035,40 @@ python-versions = ">=3.7"
 [package.dependencies]
 markdown = ">=3.0.0,<4.0.0"
 typer = "<1.0.0"
+
+[[package]]
+name = "mkdocstrings"
+version = "0.19.0"
+description = "Automatic documentation from sources, for MkDocs."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+Jinja2 = ">=2.11.1"
+Markdown = ">=3.3"
+MarkupSafe = ">=1.1"
+mkdocs = ">=1.2"
+mkdocs-autorefs = ">=0.3.1"
+mkdocstrings-python = {version = ">=0.5.2", optional = true, markers = "extra == \"python\""}
+pymdown-extensions = ">=6.3"
+
+[package.extras]
+crystal = ["mkdocstrings-crystal (>=0.3.4)"]
+python = ["mkdocstrings-python (>=0.5.2)"]
+python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
+
+[[package]]
+name = "mkdocstrings-python"
+version = "0.7.1"
+description = "A Python handler for mkdocstrings."
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+griffe = ">=0.11.1"
+mkdocstrings = ">=0.19"
 
 [[package]]
 name = "munch"
@@ -1946,7 +2036,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.10"
-content-hash = "5bdc9d3f2ce7d2ca48d18647e992bbe23dab0b3ebc2b6eeb58f9029a99f54110"
+content-hash = "39f98cbf6c3f443a7258a3a3676e3546e99cf4c8271b0df349de37fa6d1b1c41"
 
 [metadata.files]
 ansi2html = [
@@ -2332,6 +2422,10 @@ ghp-import = [
     {file = "ghp-import-2.1.0.tar.gz", hash = "sha256:9c535c4c61193c2df8871222567d7fd7e5014d835f97dc7b7439069e2413d343"},
     {file = "ghp_import-2.1.0-py3-none-any.whl", hash = "sha256:8337dd7b50877f163d4c0289bc1f1c7f127550241988d568c1db512c4324a619"},
 ]
+griffe = [
+    {file = "griffe-0.22.2-py3-none-any.whl", hash = "sha256:cea5415ac6a92f4a22638e3f1f2e661402bac09fb8e8266936d67185a7e0d0fb"},
+    {file = "griffe-0.22.2.tar.gz", hash = "sha256:1408e336a4155392bbd81eed9f2f44bf144e71b9c664e905630affe83bbc088e"},
+]
 h11 = [
     {file = "h11-0.13.0-py3-none-any.whl", hash = "sha256:8ddd78563b633ca55346c8cd41ec0af27d3c79931828beffb46ce70a379e7442"},
     {file = "h11-0.13.0.tar.gz", hash = "sha256:70813c1135087a248a4d38cc0e1a0181ffab2188141a93eaf567940c3957ff06"},
@@ -2546,6 +2640,18 @@ mkdocs = [
     {file = "mkdocs-1.3.1-py3-none-any.whl", hash = "sha256:fda92466393127d2da830bc6edc3a625a14b436316d1caf347690648e774c4f0"},
     {file = "mkdocs-1.3.1.tar.gz", hash = "sha256:a41a2ff25ce3bbacc953f9844ba07d106233cd76c88bac1f59cb1564ac0d87ed"},
 ]
+mkdocs-autorefs = [
+    {file = "mkdocs-autorefs-0.4.1.tar.gz", hash = "sha256:70748a7bd025f9ecd6d6feeba8ba63f8e891a1af55f48e366d6d6e78493aba84"},
+    {file = "mkdocs_autorefs-0.4.1-py3-none-any.whl", hash = "sha256:a2248a9501b29dc0cc8ba4c09f4f47ff121945f6ce33d760f145d6f89d313f5b"},
+]
+mkdocs-gen-files = [
+    {file = "mkdocs-gen-files-0.4.0.tar.gz", hash = "sha256:377bff8ee8e93515916689f483d971643f83a94eed7e92318854da8f344f0163"},
+    {file = "mkdocs_gen_files-0.4.0-py3-none-any.whl", hash = "sha256:3241a4c947ecd11763ca77cc645015305bf71a0e1b9b886801c114fcf9971e71"},
+]
+mkdocs-literate-nav = [
+    {file = "mkdocs-literate-nav-0.5.0.tar.gz", hash = "sha256:c63d4385bb2b520baede25badad2d0936acebff3da175922c600d0a91902d8ff"},
+    {file = "mkdocs_literate_nav-0.5.0-py3-none-any.whl", hash = "sha256:b41149172af38c1a1df5e8d63292cbe7ed2a1431cd5daf884289036f2a9c7cca"},
+]
 mkdocs-material = [
     {file = "mkdocs-material-8.3.9.tar.gz", hash = "sha256:dc82b667d2a83f0de581b46a6d0949732ab77e7638b87ea35b770b33bc02e75a"},
     {file = "mkdocs_material-8.3.9-py2.py3-none-any.whl", hash = "sha256:263f2721f3abe533b61f7c8bed435a0462620912742c919821ac2d698b4bfe67"},
@@ -2554,9 +2660,21 @@ mkdocs-material-extensions = [
     {file = "mkdocs-material-extensions-1.0.3.tar.gz", hash = "sha256:bfd24dfdef7b41c312ede42648f9eb83476ea168ec163b613f9abd12bbfddba2"},
     {file = "mkdocs_material_extensions-1.0.3-py3-none-any.whl", hash = "sha256:a82b70e533ce060b2a5d9eb2bc2e1be201cf61f901f93704b4acf6e3d5983a44"},
 ]
+mkdocs-section-index = [
+    {file = "mkdocs-section-index-0.3.4.tar.gz", hash = "sha256:050151bfe7c0e374f197335e0ecb19c45b53dbafc0f817aa203f0cc24bcf7d10"},
+    {file = "mkdocs_section_index-0.3.4-py3-none-any.whl", hash = "sha256:214f7a6df9d35a5772e9577f3899ff3edd90044064589e6dd4d84615b72a8024"},
+]
 mkdocs-typer = [
     {file = "mkdocs_typer-0.0.2-py3-none-any.whl", hash = "sha256:24d88407b458403db47a953621a31a29f37e781015925d929e783a4719203991"},
     {file = "mkdocs_typer-0.0.2.tar.gz", hash = "sha256:150e1320a02cff86deea55a173da1d72728a9801742b2deba2926d1a33d36c07"},
+]
+mkdocstrings = [
+    {file = "mkdocstrings-0.19.0-py3-none-any.whl", hash = "sha256:3217d510d385c961f69385a670b2677e68e07b5fea4a504d86bf54c006c87c7d"},
+    {file = "mkdocstrings-0.19.0.tar.gz", hash = "sha256:efa34a67bad11229d532d89f6836a8a215937548623b64f3698a1df62e01cc3e"},
+]
+mkdocstrings-python = [
+    {file = "mkdocstrings-python-0.7.1.tar.gz", hash = "sha256:c334b382dca202dfa37071c182418a6df5818356a95d54362a2b24822ca3af71"},
+    {file = "mkdocstrings_python-0.7.1-py3-none-any.whl", hash = "sha256:a22060bfa374697678e9af4e62b020d990dad2711c98f7a9fac5c0345bef93c7"},
 ]
 munch = [
     {file = "munch-2.5.0-py2.py3-none-any.whl", hash = "sha256:6f44af89a2ce4ed04ff8de41f70b226b984db10a91dcc7b9ac2efc1c77022fdd"},
