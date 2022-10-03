@@ -4,7 +4,7 @@
 | --------   | ------------------------|
 | $P_i$      |  population of city $i$   |
 | $Q_m^i$    |  employment in sector $m$ in city $i$ |
-| $X_m^i$    |  total production of sector $m$ in city i−m = 1, 2, 3, ….S and $i$ = 1, 2, 3, …..N |
+| $X_m^i$    |  total production of sector $m$ in city $i$ where $m = 1, 2, 3, …, S$ and $i = 1, 2, 3, …, N$ |
 | $F_m^i$    |  final demands for $m$ in $i$ |
 | $e_m^i$    |  total exports of $m$ from $i$ to other cities (excluding international exports) |
 | $m_m^i$    |  total imports of $m$ into $i$ from other cities (excluding international imports) |
@@ -42,7 +42,7 @@ where the total production of $m$ in $i$ + imports from other cities + internati
 As definied above, $X_m^i$ is the total production of sector $m$ in city $i$, and we can estimate that from national totals with
 
 $$
-X_m^i = X_*^m ∗ Q_m^i / Q_*^m
+X_m^i = X_*^m * Q_m^i / Q_{*}^m
 $$
 
-where $X_m^∗$ and $Q_*^m$ are the macro equivalents to estimate with respect to (so far, $X_∗^m$ and $Q_*^m$ are national levels of production and employment respectively).
+where $X_*^m$ and $Q_*^m$ are the macro equivalents to estimate with respect to (so far, $X_*^m$ and $Q_*^m$ are national levels of production and employment respectively).
