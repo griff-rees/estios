@@ -5,6 +5,7 @@ description = "Economic Spatial Temporal Input-Output Systems"
 authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 maintainers = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 readme = "README.md"
+repository = "https://github.com/griff-rees/estios"
 
 [tool.poetry.dependencies]
 python = "~3.10"
