@@ -111,10 +111,13 @@ class MetaData:
     name: str
     year: int
     region: str
+    description: Optional[str] = None
     authors: Optional[Union[str, list[str], dict[str, str]]] = None
     url: Optional[str] = None
     doi: Optional[str] = None
     path: Optional[FilePathType] = None
+    license: Optional[str] = None
+    date_time_obtained: Optional[datetime] = None
     _save_func: Optional[DataSaver] = download_and_save_file
     _save_kwargs: dict[str, Any] = field(default_factory=dict)
     _package_data: bool = False
