@@ -33,10 +33,10 @@ from .calc import (
     F_i_m,
     M_i_m,
     X_i_m,
-    andrews_suggestion,
     calc_region_distances,
     generate_e_m_dataframe,
     import_export_convergence,
+    region_and_sector_convergence,
     regional_io_projection,
     technical_coefficients,
     x_i_mn_summed,
@@ -117,7 +117,7 @@ class InterRegionInputOutputBaseClass:
     national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
     io_table_scale: float = IO_TABLE_SCALING
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
-    _exogenous_i_m_func: Callable[..., Series] = andrews_suggestion
+    _exogenous_i_m_func: Callable[..., Series] = region_and_sector_convergence
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
     _region_load_func: Callable[
         ..., GeoDataFrame

@@ -360,7 +360,7 @@ def doubly_constrained(regions_df: DataFrame) -> DataFrame:
 #     return doubly_constrained_df
 
 
-def andrews_suggestion(
+def region_and_sector_convergence(
     F_i_m: DataFrame,
     E_i_m: DataFrame,
     x_i_mn_summed: DataFrame,
@@ -368,7 +368,7 @@ def andrews_suggestion(
     M_i_m: DataFrame,
     employment: DataFrame,
 ) -> Series:
-    """Implementation of Andrew's suggstion for enforcing constraints."""
+    """Enforce exogenous constraints through convergence by region and sector."""
     exogenous_i_m_constant: Series = (
         F_i_m.stack()
         + E_i_m.stack()
@@ -384,10 +384,11 @@ def andrews_suggestion(
     # m_i^m = e_i^m + F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
     # exogenous_i_m_constant = F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
     # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
+
     # Convergence element
     # c_1 = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
     # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
-    # Possibility I've messed up needing to sum the other employment (ie i != j)
+    # Worth checking summation of other employment (ie i != j)
     convergence_by_sector: Series = exogenous_i_m_constant.groupby("Sector").apply(
         lambda sector: employment[sector.name]
         * sector.sum()
@@ -395,17 +396,12 @@ def andrews_suggestion(
         # groupby within.?
     )
 
-    # Need to replace Area with City in future
     convergence_by_region: Series = convergence_by_sector.reorder_levels(
         ["Area", "Sector"]
     )
     convergence_by_region = convergence_by_region.reindex(exogenous_i_m_constant.index)
-
-    # from pdb import set_trace; set_trace()
-
     net_constraint: Series = exogenous_i_m_constant - convergence_by_region
     # This accounts for economic activity outside the 3 cities included in the model enforcing convergence
-    # net_constraint: Series = exogenous_i_m_constant - convergence_by_region
     return exogenous_i_m_constant, convergence_by_region, net_constraint
 
 
