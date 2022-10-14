@@ -30,18 +30,28 @@ plugins:
     handlers:
       python:
         paths: [.]
+        options:
+          separate_signature: true
+          show_signature_annotations: true
     watch:
     - estios
 
 
 markdown_extensions:
-- pymdownx.arithmatex:
-    generic: true
 - footnotes
 - admonition
 - pymdownx.details
-- pymdownx.superfences
 - mkdocs-typer
+- pymdownx.arithmatex:
+    generic: true
+- pymdownx.superfences:
+    custom_fences:
+      - name: math
+        class: arithmatex
+        format: !!python/object/apply:pymdownx.arithmatex.arithmatex_fenced_format
+          kwds:
+            mode: generic
+            tag: pre
 
 extra_css:
 - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css

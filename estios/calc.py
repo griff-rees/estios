@@ -83,13 +83,13 @@ def E_i_m(
 
 
 def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
-    """Return sum of all total demands for good 𝑚 in region 𝑖.
+    """Return sum of all total demands for good m in region i.
 
     Equation 1:
-    $x_i^{mn} = a_i^{mn}X_i^n$
+        $x_i^{mn} = a_i^{mn}X_i^n$
 
     Equation 2:
-    $X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \sum_n{{a_i^{mn}X_i^n}}$
+        $X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{{a_i^{mn}X_i^n}}$
     """
     return X_i_m.apply(
         lambda row: (row * technical_coefficients.T).sum(),
@@ -131,7 +131,6 @@ def calc_region_distances(
 ) -> GeoDataFrame:
     """Calculate a GeoDataFrame with a Distance column between cities in metres.
 
-    The ``rest_uk`` boolean adds a generic term for the rest of
     Note: This assumes the cities_df index has origin region as row.name[0],
     and destination region as row.name[].
     """

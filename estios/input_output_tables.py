@@ -157,7 +157,7 @@ def load_io_table_csv(
     intermediate_column_name: str = INTERMEDIATE_COLUMN_NAME,
     **kwargs,
 ) -> DataFrame:
-    """Import a Input-Ouput Table as a DataFrame from an csv file.
+    """Import an Input-Ouput Table as a DataFrame from a csv file.
 
     Todo:
         * Raise warning if the file has the wrong extension.
@@ -197,7 +197,7 @@ def load_io_table_excel(
     intermediate_column_name: str = INTERMEDIATE_COLUMN_NAME,
     **kwargs,
 ) -> DataFrame:
-    """Import a Input-Ouput Table as a DataFrame from an ONS xlsx file."""
+    """Import an Input-Ouput Table as a DataFrame from an ONS xlsx file."""
     path = path_or_package_data(path, ons_IO_2017.EXCEL_FILE_NAME)
     io_table: DataFrame = read_excel(
         path,
