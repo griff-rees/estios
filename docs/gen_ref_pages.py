@@ -1,4 +1,4 @@
-"""Generate the code reference pages."""
+"""Generate documentation pages from docstrings."""
 
 from logging import getLogger
 from pathlib import Path
@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 CODE_PATH: FilePathType = "estios"
 CODE_DOC_REGEX: str = "*.py"
 DOC_SUFFIX: str = ".md"
-GEN_DOC_PATH: FilePathType = "reference"
+GEN_DOC_PATH: FilePathType = "estios"
 DOC_NAV_FILE_NAME: FilePathType = "DOC_STRINGS.md"
 DOC_NAV_FILE_PATH: Path = Path(str(GEN_DOC_PATH)) / str(DOC_NAV_FILE_NAME)
 

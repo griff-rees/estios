@@ -11,7 +11,7 @@ nav:
     - 'License': license.md
 - Theory: theory.md
 - Installation: install.md
-- Reference: reference/
+- '<tt>estios</tt>': estios/  # Must match GEN_DOC_PATH/ from docs/gen_ref_pages.py
 - Issues: https://github.com/griff-rees/estios/issues
 
 repo_url: https://github.com/griff-rees/estios/
