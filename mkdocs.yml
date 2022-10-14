@@ -35,6 +35,8 @@ plugins:
           show_signature_annotations: true
     watch:
     - estios
+# - bibtex:
+#   bib_file: "https://api.zotero.org/groups/2921373/items?format=bibtex"
 
 
 markdown_extensions:
