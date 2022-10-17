@@ -1,17 +1,15 @@
-from datetime import date
-from logging import INFO
+"""
+Core tests of running regional input output modelling.
 
+Todo:
+    * test raising NullRawRegionError and RawRegionTypeError,
+"""
 import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
 from estios import __version__
-from estios.models import (  # NullRawRegionError,; RawRegionTypeError,
-    InterRegionInputOutput,
-    InterRegionInputOutputTimeSeries,
-)
-from estios.uk.employment import EMPLOYMENT_QUARTER_DEC_2017
-from estios.uk.ons_population_projections import FIRST_YEAR, LAST_YEAR
+from estios.models import InterRegionInputOutput
 
 
 def test_version() -> None:
@@ -25,11 +23,11 @@ class TestInputOutputModel:
 
     def test_default_construction(self) -> None:
         io_model = InterRegionInputOutput()
-        assert str(io_model) == "Input output model of 2017: 10 sectors, 10 cities"
+        assert str(io_model) == "Input output model of 2017: 10 sectors, 10 regions"
 
     def test_3_city_construction(self, three_cities) -> None:
         io_model = InterRegionInputOutput(regions=three_cities)
-        assert str(io_model) == "Input output model of 2017: 10 sectors, 3 cities"
+        assert str(io_model) == "Input output model of 2017: 10 sectors, 3 regions"
 
     def test_3_city_distances(self, three_cities_io) -> None:
         CORRECT_DISTANCES = Series(
@@ -247,7 +245,9 @@ class TestInputOutputModelAllCities:
     """Test results for 48 cities in England over 10 aggregated sectors."""
 
     def test_all_city_construction(self, all_cities_io) -> None:
-        assert str(all_cities_io) == "Input output model of 2017: 10 sectors, 48 cities"
+        assert (
+            str(all_cities_io) == "Input output model of 2017: 10 sectors, 48 regions"
+        )
 
     def test_all_city_distances(self, all_cities_io) -> None:
         CORRECT_HEAD_DISTANCES = Series(
@@ -278,96 +278,3 @@ class TestInputOutputModelAllCities:
         assert_series_equal(
             all_cities_io.distances["Distance"].tail(), CORRECT_TAIL_DISTANCES
         )
-
-
-class TestInputOutputTimeSeries:
-
-    """Test a TimeSeries of InputOutput models."""
-
-    def test_one_time_point(self) -> None:
-        employment_date_list = [
-            EMPLOYMENT_QUARTER_DEC_2017,
-        ]
-        time_series = InterRegionInputOutputTimeSeries.from_dates(employment_date_list)
-        assert len(time_series) == 1
-
-    def test_two_dupe_time_points(self) -> None:
-        employment_date_list = [
-            EMPLOYMENT_QUARTER_DEC_2017,
-            EMPLOYMENT_QUARTER_DEC_2017,
-        ]
-        time_series = InterRegionInputOutputTimeSeries.from_dates(employment_date_list)
-        assert len(time_series) == 2
-        assert len(time_series[1:]) == 1
-
-    def test_two_dupe_time_points_append(self, three_cities_io) -> None:
-        employment_date_list = [
-            EMPLOYMENT_QUARTER_DEC_2017,
-            EMPLOYMENT_QUARTER_DEC_2017,
-        ]
-        time_series = InterRegionInputOutputTimeSeries.from_dates(employment_date_list)
-        time_series.append(three_cities_io)
-        assert len(time_series) == 3
-        assert len(time_series[1:]) == 2
-        assert list(time_series.years) == 3 * [EMPLOYMENT_QUARTER_DEC_2017.year]
-
-    def test_pass_1_io_model(self, three_cities_io, caplog) -> None:
-        caplog.set_level(INFO)
-        time_series = InterRegionInputOutputTimeSeries(
-            io_models=[
-                three_cities_io,
-            ]
-        )
-        assert len(time_series) == 1
-        assert list(time_series.years) == [EMPLOYMENT_QUARTER_DEC_2017.year]
-        assert str(time_series) == (
-            "Input output models from 2017-12-01 to 2017-12-01: 10 sectors, 3 cities"
-        )
-
-    def test_pass_2_io_models(self, three_cities_io, caplog) -> None:
-        caplog.set_level(INFO)
-        time_series = InterRegionInputOutputTimeSeries(
-            io_models=[three_cities_io, three_cities_io]
-        )
-        assert len(time_series) == 2
-        assert list(time_series.years) == [
-            EMPLOYMENT_QUARTER_DEC_2017.year,
-            EMPLOYMENT_QUARTER_DEC_2017.year,
-        ]
-        assert str(time_series) == (
-            "Input output models from 2017-12-01 to 2017-12-01: 10 sectors, 3 cities"
-        )
-
-    def test_2017_quarters(
-        self, quarterly_2017_employment_dates, three_cities, caplog
-    ) -> None:
-        config_dict = {
-            date: {"employment_date": date} for date in quarterly_2017_employment_dates
-        }
-        time_series = InterRegionInputOutputTimeSeries.from_dates(
-            config_dict, regions=three_cities
-        )
-        assert time_series[0].date == date(2017, 3, 1)
-        assert time_series.dates.index(time_series[0].date) == 0
-        assert len(time_series) == 4
-        assert str(time_series) == (
-            "Input output models from 2017-03-01 to 2017-12-01: 10 sectors, 3 cities"
-        )
-        time_series.calc_models()
-        for model in time_series:
-            assert hasattr(model, "y_ij_m_model")
-            assert hasattr(model, "e_m_model")
-
-    def test_2020_to_2043(self, three_cities_2018_2043, month_day, caplog) -> None:
-        """Test generating a longer time series with three cities."""
-        assert three_cities_2018_2043[0].year == FIRST_YEAR  # date(2018, 1, 1)
-        assert three_cities_2018_2043[-1].year == LAST_YEAR
-        assert three_cities_2018_2043.dates.index(month_day.from_year(FIRST_YEAR)) == 0
-        assert len(three_cities_2018_2043) == 26
-        assert str(three_cities_2018_2043) == (
-            "Input output models from 2018-01-01 to 2043-01-01: 10 sectors, 3 cities"
-        )
-        three_cities_2018_2043.calc_models()
-        for model in three_cities_2018_2043:
-            assert hasattr(model, "y_ij_m_model")
-            assert hasattr(model, "e_m_model")

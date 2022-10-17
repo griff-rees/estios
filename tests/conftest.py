@@ -6,6 +6,7 @@ from typing import Generator
 import pytest
 
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from estios.temporal import annual_io_time_series
 from estios.uk.employment import generate_employment_quarterly_dates
 from estios.uk.ons_population_projections import (
     ONS_POPULATION_META_DATA,
@@ -54,16 +55,12 @@ def all_cities_io(all_cities: dict[str, str]) -> InterRegionInputOutput:
 
 @pytest.fixture
 def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
-    return InterRegionInputOutputTimeSeries.from_years(
-        years=ONS_PROJECTION_YEARS, regions=three_cities
-    )
+    return annual_io_time_series(years=ONS_PROJECTION_YEARS, regions=three_cities)
 
 
 @pytest.fixture
 def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
-    return InterRegionInputOutputTimeSeries.from_years(
-        years=range(2018, 2021), regions=three_cities
-    )
+    return annual_io_time_series(years=range(2018, 2021), regions=three_cities)
 
 
 @pytest.fixture

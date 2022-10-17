@@ -9,11 +9,46 @@ from typing import Final, Iterable, Optional
 from geopandas import GeoDataFrame, read_file
 from pandas import DataFrame, read_csv
 
-from ..utils import FilePathType, path_or_package_data
+from ..utils import FilePathType, MetaData, path_or_package_data
 
 logger = getLogger(__name__)
 
 UK_EPSG_GEO_CODE: Final[str] = "EPSG:27700"  # UK Coordinate Reference System (CRS)
+
+
+ONS_2017_REGION_GEOJSON_URL: Final[str] = (
+    "http://geoportal1-ons.opendata.arcgis.com/datasets/"
+    "a267b55f601a4319a9955b0197e3cb81_0.geojson"
+)
+ONS_2017_REGION_GEOJSON_FILE_NAME: Final[str] = (
+    "Local_Authority_Districts_(December_2017)_Names_and_Codes_"
+    "in_the_United_Kingdom.geojson"
+)
+
+ONS_CITY_GEOMETRY_META_DATA: Final[MetaData] = MetaData(
+    name="2017 Cities",
+    year=2017,
+    region="UK",
+    url=ONS_2017_REGION_GEOJSON_URL,
+    path=ONS_2017_REGION_GEOJSON_FILE_NAME,
+    license="https://www.ons.gov.uk/methodology/geography/licences",
+    _package_data=True,
+)
+
+
+# @dataclass
+# class CentreForCitiesCity:
+#
+#     canonical_name: str
+#     alternate_names: list[str]
+#     codes: list[str]
+#     # geometry
+#     # Data sources
+#
+#     def __post_init__(self):
+#         if not self.codes:
+#             raise ValueError("Codes required")
+
 
 UK_CITY_REGIONS: Final[dict[str, str]] = {
     "Birmingham": "West Midlands",  # BIRMINGHAM & SMETHWICK

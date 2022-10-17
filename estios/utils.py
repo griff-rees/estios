@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import shutil
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from io import BytesIO
@@ -9,7 +10,18 @@ from logging import getLogger
 from os import PathLike
 from pathlib import Path
 from pkgutil import get_data
-from typing import IO, Any, Final, Generator, Iterable, Optional, Protocol, Union
+from typing import (
+    IO,
+    Any,
+    Collection,
+    Final,
+    Generator,
+    Iterable,
+    Optional,
+    Protocol,
+    TypeAlias,
+    Union,
+)
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
@@ -24,6 +36,8 @@ logger = getLogger(__name__)
 
 FilePathType = Union[str, IO, PathLike]
 FolderPathType = Union[str, PathLike]
+RegionConfigType = Union[Collection[str], dict[str, str], dict[str, list[str]]]
+SectorConfigType: TypeAlias = RegionConfigType
 AggregatedSectorDictType = dict[str, list[str]]
 AnnualConfigType = Union[Iterable[int], dict[int, dict]]
 DateConfigType = Union[Iterable[date], dict[date, dict]]
@@ -106,13 +120,25 @@ class DataSaver(Protocol):
 @dataclass
 class MetaData:
 
-    """Manage info on source material."""
+    """Manage info on source material.
+
+    Todo:
+        * Check uk.regions authors example for Collections type case.
+    """
 
     name: str
     year: int
     region: str
     description: Optional[str] = None
-    authors: Optional[Union[str, list[str], dict[str, str]]] = None
+    authors: Optional[
+        Union[
+            str,
+            list[str],
+            dict[str, str],
+            dict[str, dict[str, str]],
+            dict[str, Collection[str]],
+        ]
+    ] = None
     url: Optional[str] = None
     doi: Optional[str] = None
     path: Optional[FilePathType] = None
@@ -405,6 +431,14 @@ def trim_year_range_generator(
 
 def iter_ints_to_list_strs(labels: Iterable[Union[str, int]]) -> list[str]:
     return [str(label) for label in labels]
+
+
+def collect_dupes(sequence: Iterable) -> dict[Any, int]:
+    return {key: count for key, count in Counter(sequence).items() if count > 1}
+
+
+def str_keys_of_dict(dict_to_stringify) -> dict[str, Any]:
+    return {str(key): val for key, val in dict_to_stringify.items()}
 
 
 # def y_ij_m_to_networkx(y_ij_m_results: Series,

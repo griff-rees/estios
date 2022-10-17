@@ -120,7 +120,7 @@ def generate_e_m_dataframe(
 
 
 def calc_region_distances(
-    cities_df: GeoDataFrame,
+    regions_df: GeoDataFrame,
     regions: Iterable[str] = UK_CITY_REGIONS,
     other_regions: Optional[Iterable[str]] = None,
     distance_CRS: str = UK_EPSG_GEO_CODE,
@@ -129,22 +129,22 @@ def calc_region_distances(
     final_distance_column: str = DISTANCE_COLUMN,
     unit_divide_conversion: float = DISTANCE_UNIT_DIVIDE,
 ) -> GeoDataFrame:
-    """Calculate a GeoDataFrame with a Distance column between cities in metres.
+    """Calculate a GeoDataFrame with a Distance column between regions in metres.
 
-    Note: This assumes the cities_df index has origin region as row.name[0],
+    Note: This assumes the regions_df index has origin region as row.name[0],
     and destination region as row.name[].
     """
     if not other_regions:
         other_regions = regions
-    projected_cities_df = cities_df.to_crs(distance_CRS)
+    projected_regions_df = regions_df.to_crs(distance_CRS)
     region_distances: GeoDataFrame = GeoDataFrame(
         index=generate_ij_index(regions, other_regions), columns=[final_distance_column]
     )
     region_distances[origin_region_column] = region_distances.apply(
-        lambda row: projected_cities_df["geometry"][row.name[0]], axis=1
+        lambda row: projected_regions_df["geometry"][row.name[0]], axis=1
     )
     region_distances[destination_region_column] = region_distances.apply(
-        lambda row: projected_cities_df["geometry"][row.name[1]], axis=1
+        lambda row: projected_regions_df["geometry"][row.name[1]], axis=1
     )
     region_distances[final_distance_column] = region_distances.apply(
         lambda row: row[origin_region_column].distance(row[destination_region_column])
@@ -158,7 +158,7 @@ def calc_region_distances(
 
 
 # def calc_region_distances(
-#     cities_df: GeoDataFrame,
+#     regions_df: GeoDataFrame,
 #     regions: Iterable[str] = UK_CITY_REGIONS,
 #     other_regions: Optional[Iterable[str]] = None,
 #     distance_CRS: str = UK_EPSG_GEO_CODE,
@@ -400,12 +400,12 @@ def region_and_sector_convergence(
     )
     convergence_by_region = convergence_by_region.reindex(exogenous_i_m_constant.index)
     net_constraint: Series = exogenous_i_m_constant - convergence_by_region
-    # This accounts for economic activity outside the 3 cities included in the model enforcing convergence
+    # This accounts for economic activity outside the 3 regions included in the model enforcing convergence
     return exogenous_i_m_constant, convergence_by_region, net_constraint
 
 
 def import_export_convergence(
-    e_m_cities: DataFrame,
+    e_m_regions: DataFrame,
     y_ij_m: DataFrame,
     exogenous_i_m: Series,
     # employment: DataFrame,
@@ -415,7 +415,7 @@ def import_export_convergence(
     y_ij_m_symbol: str = LATEX_y_ij_m,
 ) -> tuple[DataFrame, DataFrame]:
     """Iterate i times of step 2 (eq 14, 15 18) of the spatial interaction model."""
-    model_e_m: DataFrame = e_m_cities.copy()
+    model_e_m: DataFrame = e_m_regions.copy()
     model_y_ij_m: DataFrame = y_ij_m.copy()
 
     for i in range(iterations):
@@ -486,5 +486,6 @@ def regional_io_projection(
     Todo:
         * Test an option using diagonalise
     """
+    logger.warning("Using regional_io_projection, this needs testing!")
     # return technical_coefficients * diagonalise(regional_output)
     return technical_coefficients * regional_output

@@ -122,6 +122,9 @@ def test_retirement_age_dict() -> None:
 
 
 class TestONSPopulationProjection:
+
+    """Test processing ONSPopulation Projections from 2018."""
+
     def test_loading_populations(self, ons_2018_projection, ons_2018_years) -> None:
         assert ons_2018_projection.first_trade_year == FIRST_YEAR
         assert ons_2018_projection.last_trade_year == LAST_YEAR

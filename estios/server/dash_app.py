@@ -21,6 +21,7 @@ from plotly.graph_objects import Figure, layout
 from starlette.middleware.wsgi import WSGIMiddleware
 
 from ..models import InterRegionInputOutputTimeSeries
+from ..temporal import date_io_time_series
 from ..uk.employment import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
@@ -449,11 +450,11 @@ def get_server_dash(
         if all_cities:
             logger.info("Using almost all UK cities (currently only England).")
             almost_all_cities: dict[str, str] = get_all_centre_for_cities_dict()
-            input_output_ts = InterRegionInputOutputTimeSeries.from_dates(
+            input_output_ts = date_io_time_series(
                 config_data, regions=almost_all_cities
             )
         else:
-            input_output_ts = InterRegionInputOutputTimeSeries.from_dates(config_data)
+            input_output_ts = date_io_time_series(config_data)
     assert input_output_ts, "No InputOuput TimeSeries to visualise"
     logger.warning(
         "Currently runs all InputOutput models irrespective of cached results"
