@@ -7,6 +7,8 @@ from typing import Callable, Final, Union
 
 # Input-Output Tables sourced from
 #  https://www.ons.gov.uk/economy/nationalaccounts/supplyandusetables/datasets/inputoutputsupplyandusetables
+#  https://www.ons.gov.uk/economy/nationalaccounts/supplyandusetables/datasets/ukinputoutputanalyticaltablesdetailed
+#  https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/supplyandusetables/datasets/ukinputoutputanalyticaltablesdetailed/2017/nasu1719pr.xlsx
 
 # Input-Ouput Table excel data file and configuration
 

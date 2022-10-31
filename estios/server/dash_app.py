@@ -428,10 +428,10 @@ def get_dash_app(
 def get_jupyter_app(
     input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
 ) -> JupyterDash:
-    app: JupyterDash = get_dash_app(input_output_ts)
+    app: JupyterDash = get_dash_app(input_output_ts, **kwargs)
     # app.run_server(mode='jupyterlab', port = 8090, dev_tools_ui=True, #debug=True,
     #                dev_tools_hot_reload =True, threaded=True)
-    app.run_server(mode="inline", dev_tools_hot_reload=True, **kwargs)
+    app.run_server(mode="inline", dev_tools_hot_reload=True)
     return app
 
 

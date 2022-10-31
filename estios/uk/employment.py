@@ -52,6 +52,7 @@ CONFIG_2017_QUARTERLY: Final[dict[date, dict["str", date]]] = {
     for date in generate_employment_quarterly_dates([2017], reverse=False)
 }
 EMPLOYMENT_QUARTER_DEC_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-1]
+EMPLOYMENT_QUARTER_JUN_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-3]
 
 CONFIG_2015_TO_2017_QUARTERLY: Final[dict[date, dict["str", date]]] = {
     date: {"employment_date": date}

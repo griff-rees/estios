@@ -4,7 +4,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from logging import getLogger
-from typing import Any, Callable, Final, Iterable, Optional, Union
+from typing import Any, Callable, Final, Iterable, Optional, Sequence, Union
 
 from pandas import DataFrame, Index, Series, read_csv, read_excel
 
@@ -76,7 +76,7 @@ CITY_SECTOR_ENGINE: Final[str] = "python"
 
 
 def crop_io_table_to_sectors(
-    full_io_table_df: DataFrame, sectors: Iterable[str], sector_prefix: str = None
+    full_io_table_df: DataFrame, sectors: Iterable[str], sector_prefix: str = ""
 ) -> DataFrame:
     """Drop extra rows and colums of full_io_table_df to just input-output of sectors."""
     if sector_prefix:
@@ -257,8 +257,8 @@ def aggregate_io_table(
 
     for sector_column in agg_sector_dict:
         for sector_row in agg_sector_dict:
-            sector_column_names: list[str] = agg_sector_dict[sector_column]
-            sector_row_names: list[str] = agg_sector_dict[sector_row]
+            sector_column_names: Sequence[str] = agg_sector_dict[sector_column]
+            sector_row_names: Sequence[str] = agg_sector_dict[sector_row]
             aggregated_sector_io_table.loc[
                 sector_column, sector_row
             ] = (  # Check column row order

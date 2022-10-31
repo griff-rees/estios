@@ -45,7 +45,7 @@ def technical_coefficients(
 def X_i_m(
     total_sales: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the total production of sector 𝑚 in region 𝑖and cache results.
+    """Return the total production of sector $m$ in region $i$ and cache results.
 
     $X_i^m = X_*^m * Q_i^m/Q_*^m$
     """
@@ -55,7 +55,7 @@ def X_i_m(
 def M_i_m(
     imports: Series, employment: DataFrame, national_employment: DataFrame
 ) -> DataFrame:
-    """Return the imports of sector 𝑚 in region 𝑖and cache results.
+    """Return the imports of sector $m$ in region $i$ and cache results.
 
     $M_i^m = M_*^m * Q_i^m/Q_*^m$
     """
@@ -133,6 +133,9 @@ def calc_region_distances(
 
     Note: This assumes the regions_df index has origin region as row.name[0],
     and destination region as row.name[].
+
+    Todo:
+        * This should be refactored for calc_centroid_table
     """
     if not other_regions:
         other_regions = regions
@@ -366,7 +369,7 @@ def region_and_sector_convergence(
     X_i_m: DataFrame,
     M_i_m: DataFrame,
     employment: DataFrame,
-) -> Series:
+) -> tuple[Series, Series, Series]:
     """Enforce exogenous constraints through convergence by region and sector."""
     exogenous_i_m_constant: Series = (
         F_i_m.stack()
@@ -465,14 +468,91 @@ def scale_region_var_by_national(
 #     return national_proportion * var / national_var
 
 
-def proportional_projection(
-    var_last_state: Union[float, Series],
-    # last_var_date: date,
-    proportion_var_last_state: Union[float, Series],
-    proportion_var_next_state: Union[float, Series],
-) -> Union[float, Series]:
-    return var_last_state * proportion_var_last_state / proportion_var_next_state
+def calc_ratio(
+    a: float | Series | DataFrame, b: float | Series, d: float | Series
+) -> float | Series | DataFrame:
+    """For ratio $a:b = c:d$, calc $c$ from $a$, $b$ and $d$.
 
+    Rearrange ratio:
+
+    $a/b = c/d$
+
+    to solve for $c$
+
+    $c = (a*d)/b$
+
+    Examples:
+        The `type` returned should be the same as parameter `a`. Thus: if `a` is a `float`, a `float` is returned
+
+        >>> calc_ratio(1, 5, 10)
+        2.0
+
+        similar if `a` is a `pandas` `Series` objects
+
+        >>> a = Series([1, 4, 5])
+        >>> b = Series([2, 8, 10])
+        >>> d = Series([5, 7, 9])
+        >>> calc_ratio(a, b, d)
+        0    2.5
+        1    3.5
+        2    4.5
+        dtype: float64
+
+        or `a` is a `DataFrame`
+
+        >>> a = DataFrame({ "x": a, "y": a*3 })
+        >>> calc_ratio(a, b, d)
+             x     y
+        0  2.5   7.5
+        1  3.5  10.5
+        2  4.5  13.5
+
+        the last is equivalent to
+
+        >>> from numpy import array
+        >>> array([3, 12, 15]) * array([5, 7, 9])
+        array([ 15,  84, 135])
+        >>> array([15, 84, 135]) / ([2, 8, 10])
+        array([ 7.5, 10.5, 13.5])
+
+    Todo:
+        * Specify returned column or sequence name (**kwargs)
+    """
+    if isinstance(a, DataFrame):
+        return a.apply((lambda column: calc_ratio(column, b, d)))
+    else:
+        return a * d / b
+
+
+# def calc_ratio_df(
+#     a_df: DataFrame,
+#     b: Union[float, Series],
+#     d: Union[float, Series],
+# ) -> DataFrame:
+#     """Apply calc_ratio to dataframe a_df.
+#
+#     Examples:
+#         This works for both floats
+#
+#         >>> a_df = DataFrame({
+#             "x": (3, 7, 9),
+#             "y": (6, 14, 18),
+#
+#         })
+#         >>> b = Series([2, 8, 10]); d = Series([5, 7, 9])
+#         >>> calc_ratio_df(1, 5, 10)
+#         2.0
+#
+#         and pandas Series
+#
+#         >>> a = Series([1, 4, 5]); b = Series([2, 8, 10]); d = Series([5, 7, 9])
+#         >>> calc_ratio(a, b, d)
+#         0    2.5
+#         1    3.5
+#         2    4.5
+#         dtype: float64
+#     """
+#     return a_df.apply((lambda column: calc_ratio(column, b, d)))
 
 # def diagonalise(series: Series) -> DataFrame:
 #     return DataFrame(diag(series),index=series.index,columns=series.index)

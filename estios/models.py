@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 from collections.abc import MutableSequence
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -77,7 +78,9 @@ from .utils import (
     filter_by_region_name_and_type,
     generate_ij_index,
     generate_ij_m_index,
+    iter_attr_by_key,
     str_keys_of_dict,
+    tuples_to_ordered_dict,
 )
 
 logger = getLogger(__name__)
@@ -101,11 +104,16 @@ class InterRegionInputOutputBaseClass:
     Todo:
         * Refactor raw_regions vs regions
         * Refactor raw_sectors vs sector_aggregation
+        * Move column_name attributes to InputOutputTable class
+        * Consider moving sector names etc to InputOutputTable class
     """
 
     max_import_export_model_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
+    raw_io_table: Optional[InputOutputTable] = None
     raw_regions: dict[str, str] = field(default_factory=dict)
-    regions: dict[str, str] = field(default_factory=lambda: deepcopy(UK_CITY_REGIONS))
+    regions: dict[str, str] | list[str] = field(
+        default_factory=lambda: deepcopy(UK_CITY_REGIONS)
+    )
 
     raw_sectors: dict[str, str] = field(default_factory=dict)
     sector_aggregation: Optional[AggregatedSectorDictType] = field(
@@ -123,22 +131,35 @@ class InterRegionInputOutputBaseClass:
     )
     imports_column_name: str = IMPORTS_COLUMN_NAME
     total_production_column_name: str = TOTAL_PRODUCTION_COLUMN_NAME
+    raw_national_employment: Optional[DataFrame | Series] = None
+    national_employment: Optional[Series] = None
     national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
     io_table_scale: float = IO_TABLE_SCALING
+    national_population: Optional[float] = None
+    national_working_population: Optional[float] = None
+    regional_populations: Optional[Series] = None
+    regional_working_populations: Optional[Series] = None
+    regional_employment: Optional[DataFrame] = None
+    regional_employment_scale: float = 1.0
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _exogenous_i_m_func: Callable[..., Series] = region_and_sector_convergence
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
-    _region_load_func: Callable[
-        ..., GeoDataFrame
-    ] = load_and_join_centre_for_cities_data
 
     @property
     def region_names(self) -> list[str]:
         """Return the region names."""
-        return list(self.regions.keys())
+        if isinstance(self.regions, dict):
+            return list(self.regions.keys())
+        else:
+            return self.regions
 
     @property
     def sectors(self) -> list[str]:
+        """A list of sectors used in the model
+
+        Todo:
+            * Manage disambiguation between sectors and sector_names.
+        """
         if self.sector_aggregation:
             return [*self.sector_aggregation]
         elif self.raw_sectors:
@@ -156,6 +177,10 @@ class InterRegionInputOutputBaseClass:
             return self.sectors
 
 
+class MissingIOTable(Exception):
+    pass
+
+
 @dataclass
 class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
@@ -163,6 +188,8 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     Todo:
         * Abstract path for employment data to ease setting directly.
+        * Manage extracting time point result rather than filtering each time (eg: need for employment date)
+        * Remove regional attributes and regional spatial path to ease copying
     """
 
     io_table_file_path: PathLike = ons_IO_2017.EXCEL_FILE_NAME
@@ -170,29 +197,39 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         PathLike
     ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
     national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_XLS_FILE_NAME
-    employment_date: date = EMPLOYMENT_QUARTER_DEC_2017
+    employment_date: Optional[date] = EMPLOYMENT_QUARTER_DEC_2017
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
     region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
-    _national_employment: Optional[DataFrame] = None
     _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
+    _region_load_func: Callable[
+        ..., GeoDataFrame
+    ] = load_and_join_centre_for_cities_data
 
     def __post_init__(self) -> None:
-        """Initialise model based on path attributes in preparation for run."""
-        self._raw_io_table: InputOutputTable = self._io_table_cls(
-            path=self.io_table_file_path, **self.io_table_kwargs
-        )
+        """Initialise model based on path attributes in preparation for run.
+
+        Todo:
+            * Refactor _raw_io_table and raw_io_table components.
+        """
+        if self.raw_io_table is not None:
+            self._raw_io_table: InputOutputTable = self.raw_io_table
+        elif self.io_table_file_path:
+            self._raw_io_table = self._io_table_cls(
+                path=self.io_table_file_path, **self.io_table_kwargs
+            )
+        else:
+            raise MissingIOTable(f"Input-Ouput Table needed to run the model.")
         if not self._raw_region_data and self.region_attributes_path:
             self._raw_region_data: GeoDataFrame = self._region_load_func(
                 region_path=self.region_attributes_path,
                 spatial_path=self.region_spatial_path,
             )
-        if not self._national_employment and self.national_employment_path:
-            self._national_employment: DataFrame = load_region_employment_excel(
-                path=self.national_employment_path
-            )
+        self._set_national_employment()
+        # if not self.national_employment and self.national_employment_path:
+        #     self.national_empoyment = self._set_national_employment()
         if (
             not self._employment_by_sector_and_region
             and self.region_sector_employment_path
@@ -255,26 +292,84 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             logger.warning(
                 f"Date not set, falling back to employment_date: {self.employment_date}."
             )
-            return self.employment_date.year
+            if self.employment_date:
+                return self.employment_date.year
+            else:
+                raise ValueError(
+                    f"At least `self.date` or `self.employment_date` required"
+                )
 
-    @cached_property
-    def national_employment(self) -> DataFrame:
-        """Return DataFrame, aggregated if sector_aggregation set."""
+    def _set_national_employment(self):
+        """Return DataFrame, aggregated if sector_aggregation set.
+
+        Todo:
+            * Refactor around raw_national_employment vs national_employment
+            * Potential risk the scaling is applied more times that it should be
+        """
+        if self.raw_national_employment and self.national_employment:
+            logger.warning(
+                f"Both raw_national_employment and national_employment set for {self}. national_employment used."
+            )
+        if self.national_employment is None:
+            if self.raw_national_employment is None and self.national_employment_path:
+                logger.warning(
+                    f"Loading {self.national_employment_path} with scale {self.national_employment_scale}"
+                )
+                self.raw_national_employment = load_region_employment_excel(
+                    path=self.national_employment_path
+                )
+            if self.raw_national_employment is not None:
+                if isinstance(self.raw_national_employment, Series):
+                    logger.warning(
+                        f"Setting National Employment from raw_national_employment length {len(self.raw_national_employment)}"
+                    )
+                    self.national_employment = self.raw_national_employment
+                elif isinstance(self.raw_national_employment, DataFrame):
+                    logger.warning(
+                        f"Extracting National Employment from {self} raw_national employment "
+                        f"DataFrame of length {len(self.raw_national_employment)} "
+                        f"with scaling {self.national_employment_scale}"
+                    )
+                    self.national_employment = (
+                        self.raw_national_employment.loc[str(self.employment_date)]
+                        # * self.national_employment_scale  # This was originally applied twice, hopefully fixed now
+                    )
+        logger.warning(
+            f"Setting {self} National Employment with scaling {self.national_employment_scale}"
+        )
+        assert type(self.national_employment) in (
+            Series,
+            DataFrame,
+        )  # Should be defined or error raised
+        # self.national_employment = self.national_employment*self.national_employment_scale
         if self.sector_aggregation:
-            self._aggregated_national_employment: DataFrame = aggregate_rows(
-                self._national_employment
+            # if self.national_employment.columns.to_list() == list(self.sector_aggregation.keys()):
+            #     logger.warning(f"sector_aggregation method called for pre-aggregated national employment on {self}")
+
+            # if
+            # self._aggregated_national_employment: DataFrame = aggregate_rows(
+            #     self.national_employment,
+            #     sector_dict=self.sector_aggregation,
+            # )
+            # self.national_employment = (
+            #     self._aggregated_national_employment.loc[str(self.employment_date)]
+            #     * self.national_employment_scale
+            # )
+            logger.warning(
+                f"Aggregating national employment by {len(self.sector_aggregation)} groups"
             )
-            return (
-                self._aggregated_national_employment.loc[str(self.employment_date)]
-                * self.national_employment_scale
+            self.national_employment = aggregate_rows(
+                self.national_employment, sector_dict=self.sector_aggregation
             )
-        elif self._national_employment is None:
-            raise TypeError("'_national_employment' attribute cannot be None.")
-        elif isinstance(self._national_employment, DataFrame):
-            return (
-                self._national_employment.loc[str(self.employment_date)]
-                * self.national_employment_scale
+        if self.national_employment_scale:
+            logger.warning(
+                f"Scaling national_employment of {self} by {self.national_employment_scale}"
             )
+            self.national_employment = (
+                self.national_employment * self.national_employment_scale
+            )
+        # elif self._national_employment is None:
+        #     raise TypeError("'_national_employment' attribute cannot be None.")
 
     @cached_property
     def io_table(self) -> DataFrame:
@@ -282,6 +377,8 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         Todo:
             * Check ways of skipping aggregation
+            * Fix use of _raw_io_table
+            * Check scaling approach
         """
         if self.sector_aggregation:
             return self._raw_io_table.get_aggregated_io_table() * self.io_table_scale
@@ -306,8 +403,15 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def employment_table(self) -> DataFrame:
-        """Return employment table, aggregated if self.sector_aggregation set."""
-        if self.sector_aggregation:
+        """Return employment table, aggregated if self.sector_aggregation set.
+
+        Todo:
+            * Refactor into a separate function
+            * Ease passing table without calling filter
+        """
+        if self.regional_employment is not None:
+            return self.regional_employment
+        elif self.sector_aggregation:
             self._employment_by_sector_and_region_aggregated = aggregate_rows(
                 self._employment_by_sector_and_region, True
             )
@@ -541,12 +645,12 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
     @property
     def sectors(self) -> SectorConfigType:
         """Return sectors from _core_model."""
-        return self._core_model.sectors if self._core_model else {}
+        return self._core_model.sectors if self._core_model else []
 
     @property
     def regions(self) -> RegionConfigType:
         """Return sectors from _core_model."""
-        return self._core_model.regions if self._core_model else {}
+        return self._core_model.regions if self._core_model else []
 
     @property
     def sector_names(self) -> NamesListType:
@@ -636,6 +740,17 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
         for model in self:
             model.import_export_convergence()
 
+    def _return_iter_attr(
+        self,
+        attr_name: str,
+    ) -> OrderedDict[date, DataFrame]:
+        """Wrappy to manage retuing Generator dict attributes over time series."""
+        return tuples_to_ordered_dict(iter_attr_by_key(self, attr_name))
+
     @property
-    def national_employment_ts(self) -> DataFrame:
-        return DataFrame({model.date: model.national_employment for model in self})
+    def national_employment_ts(self) -> OrderedDict[date, DataFrame]:
+        return self._return_iter_attr("national_employment")
+
+    @property
+    def regional_employment_ts(self) -> OrderedDict[date, DataFrame]:
+        return self._return_iter_attr("regional_employment")

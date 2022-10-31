@@ -12,11 +12,17 @@ from estios.uk.ons_population_projections import (
     FIRST_YEAR,
     LAST_YEAR,
     NATIONAL_RETIREMENT_AGE,
-    ONS_NAME_CONVERSION_DICT,
+    ONS_ENGLAND_NAME_CONVERSION_DICT,
     PENSION_AGES,
     RETIREMENT_AGE_INCREASE_YEAR,
     ONSPopulationProjection,
     aggregate_region_by_age_range,
+)
+from estios.uk.ons_uk_population_projections import (
+    ONS_UK_POPULATION_META_DATA,
+    get_uk_pop_scaled_all_ages_ts,
+    get_uk_pop_scaled_working_ages_ts,
+    get_uk_pop_unscaled_projection,
 )
 from estios.uk.regions import (
     UK_CITY_REGIONS,
@@ -28,11 +34,11 @@ from estios.uk.regions import (
 
 YORK_WORK_POP_2038_TO_2043: Final[Series] = Series(
     {
-        "2039": 139990.391,
-        "2040": 139748.718,
-        "2041": 139659.302,
-        "2042": 139565.108,
-        "2043": 139595.587,
+        "2039": 135791.297,
+        "2040": 135645.789,
+        "2041": 135647.204,
+        "2042": 135679.399,
+        "2043": 135692.09,
     },
     name="York",
 )
@@ -49,13 +55,6 @@ YORK_FULL_POP_2038_TO_2043: Final[Series] = Series(
 )
 
 TEST_REGIONS: Final[list[str]] = ["York", "Leeds", "Bristol"]
-
-
-@pytest.fixture
-def ons_2018_projection(pop_projection) -> ONSPopulationProjection:
-    return ONSPopulationProjection(
-        regions=TEST_REGIONS, meta_data=pop_projection, ons_path=pop_projection.path
-    )
 
 
 @pytest.fixture
@@ -121,7 +120,7 @@ def test_retirement_age_dict() -> None:
             assert age == NATIONAL_RETIREMENT_AGE + 1
 
 
-class TestONSPopulationProjection:
+class TestONSEnglandPopulationProjection:
 
     """Test processing ONSPopulation Projections from 2018."""
 
@@ -145,47 +144,101 @@ class TestONSPopulationProjection:
         assert test_discontinuous_years.last_trade_year == LAST_YEAR
         assert test_discontinuous_years.years == ons_2018_years
 
-    def test_aggregate_leeds(self, ons_2018_projection) -> None:
+    def test_aggregate_leeds(self, ons_york_leeds_bristol_projection) -> None:
         """Test aggregating employment by age for Leeds."""
         assert_series_equal(
-            ons_2018_projection.working_age_projections.loc["York"][-5:],
+            ons_york_leeds_bristol_projection.working_age_projections.loc["York"][-5:],
             YORK_WORK_POP_2038_TO_2043,
         )
 
-    def test_full_population_projection_leeds(self, ons_2018_projection) -> None:
+    def test_full_population_projection_leeds(
+        self, ons_york_leeds_bristol_projection
+    ) -> None:
         """Test full population projection for Leeds."""
         assert_series_equal(
-            ons_2018_projection.full_population_projections.loc["York"][-5:],
+            ons_york_leeds_bristol_projection.full_population_projections.loc["York"][
+                -5:
+            ],
             YORK_FULL_POP_2038_TO_2043,
         )
 
-    def test_specify_york_leeds_working_age(self, ons_2018_projection) -> None:
+    def test_specify_york_leeds_working_age(
+        self, ons_york_leeds_bristol_projection
+    ) -> None:
         """Test working population projection filtered for Leeds and Manchester."""
         assert_series_equal(
-            ons_2018_projection.region_work_population_projections.loc["York"][-5:],
+            ons_york_leeds_bristol_projection.region_work_population_projections.loc[
+                "York"
+            ][-5:],
             YORK_WORK_POP_2038_TO_2043,
         )
         assert (
-            ons_2018_projection.region_work_population_projections.index.to_list()
+            ons_york_leeds_bristol_projection.region_work_population_projections.index.to_list()
             == TEST_REGIONS
         )
 
-    def test_specify_york_leeds_full_population(self, ons_2018_projection) -> None:
+    def test_specify_york_leeds_full_population(
+        self, ons_york_leeds_bristol_projection
+    ) -> None:
         """Test full population projection filtered for Leeds and Manchester."""
         assert_series_equal(
-            ons_2018_projection.full_population_projections.loc["York"][-5:],
+            ons_york_leeds_bristol_projection.full_population_projections.loc["York"][
+                -5:
+            ],
             YORK_FULL_POP_2038_TO_2043,
         )
         assert (
-            ons_2018_projection.region_population_projections.index.to_list()
+            ons_york_leeds_bristol_projection.region_population_projections.index.to_list()
             == TEST_REGIONS
         )
 
-    def test_converted_region_names(self, ons_2018_projection) -> None:
+    def test_converted_region_names(self, ons_york_leeds_bristol_projection) -> None:
         """Test Bristol name is converted to ONS index for queries."""
-        BRISTOL_ONS_ROW_NAME: str = ONS_NAME_CONVERSION_DICT["Bristol"]
+        BRISTOL_ONS_ROW_NAME: str = ONS_ENGLAND_NAME_CONVERSION_DICT["Bristol"]
         CONVERTED_CITY_NAMES = TEST_REGIONS[:-1] + [
             BRISTOL_ONS_ROW_NAME,
         ]
-        assert ons_2018_projection.converted_regions == CONVERTED_CITY_NAMES
-        # ons_2018_projection.regions.append("Bristol")
+        assert (
+            ons_york_leeds_bristol_projection.converted_regions == CONVERTED_CITY_NAMES
+        )
+        # ons_york_leeds_bristol_projection.regions.append("Bristol")
+
+
+@pytest.mark.remote_data
+class TestONSWholeUKPopulationProjection:
+
+    """Test loading ONS UK population"""
+
+    @classmethod
+    def setup_class(cls):
+        cls.test_unscaled_projection = get_uk_pop_unscaled_projection()
+        # ONS_UK_POPULATION_META_DATA.save_local()
+
+    @classmethod
+    def teardown_class(cls):
+        ONS_UK_POPULATION_META_DATA.delete_local()
+
+    def test_load(self, caplog):
+        """Test importing and processing national population projection."""
+        all_ages_ts = self.test_unscaled_projection.loc["All ages"].iloc[0]
+        working_age_ts = self.test_unscaled_projection.loc["Working age"].iloc[0]
+        assert working_age_ts[-1] == 47449.335
+        assert all_ages_ts[-1] == 82461.846
+
+    def test_scaling_working_ages(self, caplog):
+        """Test scaling working age results by 1000"""
+        working_ages_ts = get_uk_pop_scaled_working_ages_ts()
+        assert working_ages_ts[-1] == 47449335.0
+
+    def test_scaling_all_ages(self, caplog):
+        """Test scaling all ages results by 1000"""
+        all_ages_ts = get_uk_pop_scaled_all_ages_ts()
+        assert all_ages_ts[-1] == 82461846.0
+
+
+class TestONSWorkingPopulation2017:
+
+    """Test extracting regional working population for 2017."""
+
+    def test_2017(self, caplog) -> None:
+        pass

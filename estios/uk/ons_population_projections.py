@@ -5,37 +5,40 @@ from dataclasses import dataclass, field
 from logging import getLogger
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Final, Generator, Iterable, Optional, Union
+from typing import Callable, Final, Generator, Iterable, Optional, Sequence, Union
 
 from pandas import DataFrame
 
 from ..utils import (
     MetaData,
+    OpenGovernmentLicense,
+    RegionConfigType,
     download_and_extract_zip_file,
     invert_dict,
     iter_ints_to_list_strs,
     name_converter,
-    pandas_from_path_or_package_csv,
+    pandas_from_path_or_package,
     trim_year_range_generator,
 )
+from .ons_population_estimates import ONS_2017_ALL_AGES_COLUMN_NAME
 from .region_names import METROPOLITAN_COUNTIES_ENGLAND
 
 logger = getLogger(__name__)
 
-ONS_POPULATIONS_PROJECTION_2018_ZIP_URL: Final[str] = (
+ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL: Final[str] = (
     "https://www.ons.gov.uk/"
     "file?uri=/peoplepopulationandcommunity/populationandmigration/"
     "populationprojections/datasets/localauthoritiesinenglandz1/"
     "2018based/2018snpppopulation.zip"
 )
 
-ONS_POPULATION_PROJECTIONS_FILE_NAME: Final[PathLike] = Path(
+ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME: Final[PathLike] = Path(
     "2018 SNPP Population persons.csv"
 )
-NAME: Final[str] = "ONS Standard Population Projections"
+NAME: Final[str] = "ONS England Standard Population Projections"
 
 WORKING_AGE_MINIMUM: Final[int] = 16
-NATIONAL_RETIREMENT_AGE: Final[int] = 66
+NATIONAL_RETIREMENT_AGE: Final[int] = 64
 
 FIRST_YEAR: Final[int] = 2018
 LAST_YEAR: Final[int] = 2043
@@ -53,8 +56,8 @@ REGION: Final[str] = "England"
 
 REGION_COLUMN_NAME: Final[str] = "AREA_NAME"
 AGE_COLUMN_NAME: Final[str] = "AGE_GROUP"
-ALL_AGES_ROW_INDEX: Final[str] = "All ages"
-AGE_ROW_NAMES_FILTER: Final[list[str]] = ["90 and over", ALL_AGES_ROW_INDEX]
+ALL_AGES_ROW_INDEX: Final[str] = ONS_2017_ALL_AGES_COLUMN_NAME
+# AGE_ROW_NAMES_FILTER: Final[list[str]] = ["90 and over", ALL_AGES_ROW_INDEX]
 SEX_FILTER_STR: Final[str] = "and SEX == 'persons'"
 ALL_AGES_FILTER_STR: Final[
     str
@@ -75,20 +78,23 @@ CITY_AND_COUNTY_NAMES_WITH_SUFFIX: Final[dict[str, str]] = {
 }
 
 
-ONS_NAME_CONVERSION_DICT: Final[dict[str, str]] = {
+ONS_ENGLAND_NAME_CONVERSION_DICT: Final[dict[str, str]] = {
     **METROPOLITAN_COUNTY_NAMES_WITH_SUFFIX,
     **CITY_AND_COUNTY_NAMES_WITH_SUFFIX,
 }
 
 
-ONS_POPULATION_META_DATA: Final[MetaData] = MetaData(
+ONS_ENGLAND_POPULATION_META_DATA: Final[MetaData] = MetaData(
     name=NAME,
     year=FIRST_YEAR,
     region=REGION,
-    url=ONS_POPULATIONS_PROJECTION_2018_ZIP_URL,
-    path=ONS_POPULATION_PROJECTIONS_FILE_NAME,
+    url=ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL,
+    path=ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME,
+    license=OpenGovernmentLicense,
     _save_func=download_and_extract_zip_file,  # type: ignore
-    _save_kwargs=dict(zip_file_path=ONS_POPULATION_PROJECTIONS_FILE_NAME),
+    _package_data=True,
+    _save_kwargs=dict(zip_file_path=ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME),
+    _reader_func=pandas_from_path_or_package,
 )
 
 
@@ -103,12 +109,19 @@ def aggregate_region_by_age_range(
     additional_filter_str: str = SEX_FILTER_STR,
     youngest_age_number: int = YOUNGEST_AGE_INT,
     oldest_age_number: int = OLDEST_AGE_INT,
+    # regions: Optional[list[str]] = None,
 ) -> DataFrame:
-    """Return a dataframe aggregating population counts between min and max ages."""
-    # return  df.query('AGE_GROUP not in ["90 and over"] and SEX == "persons"').groupby(region_column_name).sum()
-    # drop_row_values += [str(age) for age in list(range(youngest_age_number, min_age)) + list(range(max_age, oldest_age_number + 1))]
-    # return  df.query(f'{age_column_name} not in {drop_row_values} {additional_filter_str}').groupby(region_column_name).sum()
-    age_range = [str(age) for age in age_range]
+    """Return a dataframe aggregating population counts between min and max ages.
+
+    Todo:
+        * Consider replacing with other aggregation method
+        * Refactor to incorporate region elements or eliminate as a parameter
+    """
+    age_range = [
+        str(age)
+        for age in age_range
+        if oldest_age_number >= int(age) >= youngest_age_number
+    ]
     return (
         df.query(f"{age_column_name} in {age_range} {additional_filter_str}")
         .groupby(region_column_name)
@@ -127,12 +140,16 @@ def aggregate_region_by_age_range(
 #     return df.query(query)[columns]
 
 
+class AgeProjectionsNotSet(Exception):
+    pass
+
+
 @dataclass
 class PopulationProjection:
 
     years: list[int] = field(default_factory=list)
-    regions: list[str] = field(default_factory=list)
-    age_projections: DataFrame = None
+    regions: Sequence[str] = field(default_factory=list)
+    age_projections: Optional[DataFrame] = None
     first_trade_year: Optional[int] = None
     last_trade_year: Optional[int] = None
     min_working_age: int = WORKING_AGE_MINIMUM
@@ -152,15 +169,18 @@ class PopulationProjection:
             logger.debug(f"Using {self._region_name_mapper} to map regions for {self}")
         if not self.years and self.first_trade_year and self.last_trade_year:
             self.years = list(range(self.first_trade_year, self.last_trade_year + 1))
-        for year in self.years:
-            if (
-                year not in self.age_projections.columns
-                and str(year) not in self.age_projections.columns
-            ):
-                logger.warning(
-                    f"{year} not in {self.age_projections}, removing from {self}."
-                )
-                self.years.remove(year)
+        if not isinstance(self.age_projections, DataFrame):
+            logger.warning(f"{self} has no age_projection attribute.")
+        else:
+            for year in self.years:
+                if (
+                    year not in self.age_projections.columns
+                    and str(year) not in self.age_projections.columns
+                ):
+                    logger.warning(
+                        f"{year} not in {self.age_projections}, removing from {self}."
+                    )
+                    self.years.remove(year)
         if self.first_trade_year is None:
             self.first_trade_year = self.years[0]
         if self.last_trade_year is None:
@@ -174,6 +194,8 @@ class PopulationProjection:
     def working_age_projections(self) -> DataFrame:
         # return self.age_projections[k]
         # for region in self.regions:
+        if self.age_projections is None:
+            raise AgeProjectionsNotSet(f"`age_projections` must be set for {self}.")
         return aggregate_region_by_age_range(
             self.age_projections,
             self.working_ages,
@@ -184,7 +206,7 @@ class PopulationProjection:
             self.additional_person_filter_str,
             self._youngest_age_int,
             self._oldest_age_int,
-        )
+        )[self.years_column_names]
 
     @property
     def years_generator(self) -> Generator[int, None, None]:
@@ -210,6 +232,8 @@ class PopulationProjection:
 
     @property
     def full_population_projections(self) -> DataFrame:
+        if self.age_projections is None:
+            raise AgeProjectionsNotSet(f"`age_projections` must be set for {self}.")
         if isinstance(self.all_ages_query, str):
             return self.age_projections.query(self.all_ages_query).set_index(
                 self.region_column_name
@@ -237,7 +261,7 @@ class PopulationProjection:
     #     return self.age_projections[self.region_column_name].unique()
 
     @property
-    def converted_regions(self) -> list[str]:
+    def converted_regions(self) -> RegionConfigType:
         """Return region names with any conversions specified in _region_name_mapper"""
         if self._region_name_mapper:
             return name_converter(self.regions, self._region_name_mapper)
@@ -248,7 +272,7 @@ class PopulationProjection:
             return self.regions
 
     @property
-    def _inverse_region_name_mapper(self) -> Union[list[str], dict[str, str]]:
+    def _inverse_region_name_mapper(self) -> RegionConfigType:
         if self._region_name_mapper:
             return invert_dict(self._region_name_mapper)
         else:
@@ -272,24 +296,84 @@ class PopulationProjection:
 @dataclass
 class ONSPopulationProjection(PopulationProjection):
 
-    """ONS data file customisation of PopulationProjection class."""
+    """ONS data file customisation of PopulationProjection class.
+
+    Todo:
+        * Refactor to avoid repeated use of Filename if not needed
+        * Consider way that whenever the class is called the file is downloaded if possible
+    """
 
     first_trade_year: Optional[int] = FIRST_YEAR
     last_trade_year: Optional[int] = LAST_YEAR
-    ons_path: Optional[PathLike] = ONS_POPULATION_PROJECTIONS_FILE_NAME
-    meta_data: Optional[MetaData] = ONS_POPULATION_META_DATA
+    # ons_path: Optional[PathLike] = ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME
+    meta_data: Optional[MetaData] = ONS_ENGLAND_POPULATION_META_DATA
     additional_person_filter_str: str = SEX_FILTER_STR
+    # auto_download: bool = True
     _region_name_mapper: Optional[dict[str, str]] = field(
-        default_factory=lambda: ONS_NAME_CONVERSION_DICT
+        default_factory=lambda: ONS_ENGLAND_NAME_CONVERSION_DICT
     )
-    _pandas_file_reader: Callable[
-        [PathLike, PathLike], DataFrame
-    ] = pandas_from_path_or_package_csv
+    # _pandas_file_reader: Callable[
+    #     [PathLike, PathLike], DataFrame
+    # ] = pandas_from_path_or_package_csv
+
+    # def _read_age_projection(self, force=False) -> None:
+    #     """Read age projection via _pandas_file_reader method."""
+    #     if force or self.age_projections is None and self.ons_path:
+    #         self.age_projections: DataFrame = self._pandas_file_reader(
+    #             self.ons_path, ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME
+    #         )
+    #         return
+    #     else:
+    #         logger.warning(f"Could not call {self} _read_age_projection.")
 
     def __post_init__(self) -> None:
-        """Enfroce default values for ONS data."""
-        if self.age_projections is None and self.ons_path:
-            self.age_projections: DataFrame = self._pandas_file_reader(
-                self.ons_path, ONS_POPULATION_PROJECTIONS_FILE_NAME
-            )
+        """Enfroce default values for ONS data.
+
+        Todo:
+            * Refactor so getting age_projections is optional and lazy/async.
+            * Refactor to use MetaData read if possible
+        """
+        # if not self.meta_data.is_local:
+        #
+        # except FileNotFoundError:
+        #     logger.warning(f"{self} data not downloaded ")
+        # if self.meta_data.auto_download:
+        #     self._read_age_projection()
+        # if self.age_projections is None and self.ons_path:
+        #     self.age_projections: DataFrame = self._pandas_file_reader(
+        #         self.ons_path, ONS_ENGLAND_POPULATION_META_DATA.absolute_save_path
+        #     )
+        if self.age_projections is None and self.meta_data:
+            self.age_projections = self.meta_data.read()
+
         super().__post_init__()
+
+
+# ONS_UK_2018_FILE_NAME: Final[PathLike] = "uk_ppp_opendata2018.xml"
+#
+# ONS_UK_POPULATION_META_DATA: Final[MetaData] = MetaData(
+#     name="UK ONS Population Projection",
+#     year=FIRST_YEAR,
+#     region='UK',
+#     url=("https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/"
+#          "populationandmigration/populationprojections/datasets/"
+#          "tablea12principalprojectiongbsummary/2018based/"
+#          "gbpppsummary18.xls"),
+#         # "https://www.ons.gov.uk/file?uri=/peoplepopulationandcommunity/"
+#         #  "populationandmigration/populationprojections/datasets/"
+#         #  "z1zippedpopulationprojectionsdatafilesuk/2018based/tablez1opendata18uk.zip"),
+#     # path=ONS_UK_2018_FILE_NAME,
+#     auto_download=False,
+#     dates=ONS_PROJECTION_YEARS,
+#     _package_data=True,
+#     # _save_func=download_and_extract_zip_file,  # type: ignore
+#     # _save_kwargs=dict(zip_file_path=ONS_UK_2018_FILE_NAME),
+# )
+
+
+# ONS_UK_POPULATION_PROJECTION: Final[ONSPopulationProjection] = ONSPopulationProjection(
+#     meta_data=ONS_UK_POPULATION_META_DATA,
+#     ons_path=ONS_UK_2018_FILE_NAME,
+#     _region_name_mapper=None,
+#     _pandas_file_reader=read_excel,
+# )

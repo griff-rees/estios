@@ -1,15 +1,23 @@
 from datetime import date
 from logging import INFO
 
+import pytest
+
 from estios.models import InterRegionInputOutputTimeSeries
 from estios.temporal import annual_io_time_series, date_io_time_series
 from estios.uk.employment import EMPLOYMENT_QUARTER_DEC_2017
 from estios.uk.ons_population_projections import FIRST_YEAR, LAST_YEAR
+from estios.uk.scenarios import (
+    baseline_england_annual_population_projection_config,
+    baseline_england_annual_projection,
+)
 
 
 class TestAnnualProjection:
 
     """Test examples of annual Input-Output models."""
+
+    # TEST_REGIONS: Final[list[str]] = ["York", "Leeds", "Bristol"]
 
     def test_annual_default(self) -> None:
         projections: InterRegionInputOutputTimeSeries = annual_io_time_series()
@@ -17,6 +25,47 @@ class TestAnnualProjection:
             str(projections)
             == "26 Annual Spatial Input-Output models from 2018 to 2043: 10 sectors, 10 regions"
         )
+
+    @pytest.mark.remote_data
+    def test_annual_projection_config_default(self) -> None:
+        (
+            annual_projection_config,
+            first_io_time_point,
+        ) = baseline_england_annual_population_projection_config()
+        assert isinstance(annual_projection_config, dict)
+        assert tuple(annual_projection_config.keys()) == (2020, 2025)
+        assert first_io_time_point.year == 2017
+
+    @pytest.mark.remote_data
+    def test_annual_projection_config_years_none(self) -> None:
+        (
+            annual_projection_config,
+            first_io_time_point,
+        ) = baseline_england_annual_population_projection_config(years=None)
+        assert len(annual_projection_config) == 26
+        assert first_io_time_point.year == 2017
+
+    @pytest.mark.remote_data
+    def test_baseline_annual_projection_default(self) -> None:
+        io_model_ts: InterRegionInputOutputTimeSeries = (
+            baseline_england_annual_projection()
+        )
+        assert len(io_model_ts.national_employment_ts) == 3
+        assert (
+            str(io_model_ts)
+            == "3 Annual Spatial Input-Output models from 2017 to 2025: 10 sectors, 3 regions"
+        )
+
+    @pytest.mark.remote_data
+    def test_baseline_annual_projection_years_none(self) -> None:
+        io_model_ts: InterRegionInputOutputTimeSeries = (
+            baseline_england_annual_projection(years=None)
+        )
+        assert (
+            str(io_model_ts)
+            == "27 Annual Spatial Input-Output models from 2017 to 2043: 10 sectors, 3 regions"
+        )
+        assert len(io_model_ts.national_employment_ts) == 27
 
 
 class TestInputOutputTimeSeries:

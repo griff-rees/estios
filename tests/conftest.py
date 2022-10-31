@@ -4,21 +4,30 @@
 from typing import Generator
 
 import pytest
+from pandas import DataFrame
 
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.temporal import annual_io_time_series
 from estios.uk.employment import generate_employment_quarterly_dates
 from estios.uk.ons_population_projections import (
-    ONS_POPULATION_META_DATA,
+    ONS_ENGLAND_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
+    ONSPopulationProjection,
 )
+from estios.uk.ons_uk_population_history import ONS_UK_POPULATION_HISTORY_META_DATA
 from estios.uk.regions import get_all_centre_for_cities_dict
+from estios.uk.utils import load_contemporary_ons_population
 from estios.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
 
 
 @pytest.fixture
 def three_cities() -> dict[str, str]:
     return THREE_UK_CITY_REGIONS
+
+
+@pytest.fixture
+def three_city_names(three_cities) -> list[str]:
+    return three_cities.keys()
 
 
 @pytest.fixture
@@ -72,8 +81,42 @@ def month_day() -> MonthDay:
 @pytest.fixture(scope="session")
 def pop_projection(tmp_path_factory) -> Generator[MetaData, None, None]:
     """Extract ONS population projection for testing and remove when concluded."""
-    pop_projection: MetaData = ONS_POPULATION_META_DATA
+    pop_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA
+    # pop_projection.auto_download = True
+    pop_projection._package_data = False
     pop_projection.set_folder(tmp_path_factory.mktemp("test-session"))
     pop_projection.save_local()
     yield pop_projection
     pop_projection.delete_local()
+
+
+@pytest.fixture
+def ons_2018_projection(pop_projection, three_cities) -> ONSPopulationProjection:
+    return ONSPopulationProjection(regions=three_cities, meta_data=pop_projection)
+
+
+@pytest.fixture
+def york_leeds_bristol() -> list[str]:
+    return ["York", "Leeds", "Bristol"]
+
+
+@pytest.fixture
+def ons_york_leeds_bristol_projection(
+    pop_projection, york_leeds_bristol
+) -> ONSPopulationProjection:
+    return ONSPopulationProjection(regions=york_leeds_bristol, meta_data=pop_projection)
+
+
+@pytest.fixture
+def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
+    """Extract ONS population history to test and remove when concluded."""
+    pop_history: MetaData = ONS_UK_POPULATION_HISTORY_META_DATA
+    pop_history.set_folder(tmp_path_factory.mktemp("test-session"))
+    pop_history.save_local()
+    yield pop_history.read()
+    pop_history.delete_local()
+
+
+@pytest.fixture
+def pop_recent() -> DataFrame:
+    return load_contemporary_ons_population()
