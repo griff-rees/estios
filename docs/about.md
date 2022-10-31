@@ -1,6 +1,6 @@
-# Economic Spatial Temporal Input-Output Systems: ESTIOS
+# estios: Economic Spatial Temporal and Input-Output Systems
 
-This package has been created as part of the 'Input-output analytics for urban systems: experiments in history and planning' project at [The Alan Turing Institute](https://www.turing.ac.uk/).
+This package has been created as part of the [Input-output analytics for urban systems: experiments in history and planning](https://www.turing.ac.uk/research/research-projects/input-output-analytics-urban-systems) project at [The Alan Turing Institute](https://www.turing.ac.uk/).
 
 The foundational methods upon which this package is built are Leontief’s input-output analysis and Wilson’s family of spatial interaction models. It is the combination of the two which facilitates the creation of a mathematical model of trade flows on a regional level.
 
