@@ -42,4 +42,6 @@ class TestMatchNameAltNames:
 @pytest.mark.xfail
 def test_generate_uk_puas(caplog) -> None:
     uk_regions: PUAS = generate_uk_puas()
+    assert uk_regions["York"].code == "E06000014"
+    assert uk_regions["London"].code == "E06000014"
     assert False

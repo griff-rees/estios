@@ -8,20 +8,14 @@ from typing import Any, Callable, Final, Iterable, Optional, Sequence, Union
 
 from pandas import DataFrame, Index, Series, read_csv, read_excel
 
+from .sources import FilePathType, MetaData, path_or_package_data
 from .uk import io_table_1841, ons_IO_2017
 from .uk.employment import (
     DATE_COLUMN_NAME,
     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
     UK_NATIONAL_EMPLOYMENT_SHEET,
 )
-from .utils import (
-    SECTOR_10_CODE_DICT,
-    AggregatedSectorDictType,
-    FilePathType,
-    MetaData,
-    enforce_date_format,
-    path_or_package_data,
-)
+from .utils import SECTOR_10_CODE_DICT, AggregatedSectorDictType, enforce_date_format
 
 logger = getLogger(__name__)
 

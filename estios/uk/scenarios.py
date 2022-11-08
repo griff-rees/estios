@@ -10,13 +10,9 @@ from pandas import DataFrame, Series
 
 from ..calc import calc_ratio
 from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from ..sources import MetaData, MonthDay
 from ..temporal import annual_io_time_series
-from ..utils import (  # sum_by_rows_cols,
-    THREE_UK_CITY_REGIONS,
-    AnnualConfigType,
-    MetaData,
-    MonthDay,
-)
+from ..utils import THREE_UK_CITY_REGIONS, AnnualConfigType  # sum_by_rows_cols,
 from .employment import EMPLOYMENT_QUARTER_JUN_2017
 from .ons_population_estimates import (
     ONS_2017_ALL_AGES_COLUMN_NAME,

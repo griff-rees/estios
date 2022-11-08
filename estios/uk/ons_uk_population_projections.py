@@ -2,7 +2,7 @@ from typing import Final, Optional
 
 from pandas import DataFrame, Series
 
-from ..utils import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
+from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
 from .ons_population_estimates import ONS_2017_ALL_AGES_COLUMN_NAME
 
 FIRST_YEAR: Final[int] = 2018

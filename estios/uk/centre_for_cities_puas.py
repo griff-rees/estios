@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from typing import Final
 
-from ..utils import MetaData
+from ..sources import MetaData
 
 logger = getLogger(__name__)
 

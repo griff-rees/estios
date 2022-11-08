@@ -5,7 +5,7 @@ from pathlib import Path
 
 import mkdocs_gen_files
 
-from estios.utils import FilePathType
+from estios.sources import FilePathType
 
 logger = getLogger(__name__)
 

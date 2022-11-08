@@ -4,7 +4,7 @@
 from datetime import date
 from typing import Final
 
-from ..utils import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
+from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
 
 FIRST_YEAR: Final[int] = 1971
 LAST_YEAR: Final[int] = 2019

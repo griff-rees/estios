@@ -38,10 +38,11 @@ from logging import getLogger
 from typing import Any, Optional, Protocol, Type
 
 from .models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from .sources import DEFAULT_ANNUAL_MONTH_DAY, MonthDay
 from .uk import ons_IO_2017
 from .uk.employment import EMPLOYMENT_QUARTER_DEC_2017
 from .uk.ons_population_projections import ONS_PROJECTION_YEARS
-from .utils import DEFAULT_ANNUAL_MONTH_DAY, AnnualConfigType, DateConfigType, MonthDay
+from .utils import AnnualConfigType, DateConfigType
 
 logger = getLogger(__name__)
 

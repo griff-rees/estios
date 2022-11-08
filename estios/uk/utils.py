@@ -3,13 +3,12 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
-from datetime import date
 from logging import getLogger
 from typing import Final, Sequence
 
 from pandas import DataFrame, Series
 
-from ..utils import MetaData
+from ..sources import MetaData, Region, Regions
 from .centre_for_cities_puas import CENTRE_FOR_CITIES_2022_CITY_PUAS
 from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
@@ -19,23 +18,14 @@ logger = getLogger(__name__)
 def load_contemporary_ons_population(
     ons_region_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
 ) -> DataFrame:
-    """Load ONS contemporary data on regional meta data."""
+    """Load ONS contemporary data on regional meta data.
+
+    Todo:
+        * Abstract and refactor usage of is_local save_local and read
+    """
     if not ons_region_data.is_local:
         ons_region_data.save_local()
     return ons_region_data.read()
-
-
-@dataclass
-class Region:
-
-    name: str
-    code: str
-    geography_type: str
-    alternate_names: list[str] = field(default_factory=list)
-    date: date | int | None = None
-
-    def __str__(self) -> str:
-        return f"{self.geography_type} {self.name}"
 
 
 @dataclass
@@ -53,11 +43,6 @@ class PrimaryUrbanArea(Region):
     @property
     def la_names(self) -> list[str]:
         return list(region for region in self.local_authorities)
-
-
-class UKRegions(UserDict[str, Region]):
-    def __str__(self) -> str:
-        return f"{len(self)} UK regions"
 
 
 class PUAS(UserDict[str, PrimaryUrbanArea]):
@@ -81,6 +66,7 @@ PUA_ALTERNATE_NAMES: Final[AltNamesMapperType] = {
         "Kingston upon Hull",
         "Kingston upon Hull, City of",
     ),
+    "London": ("LONDON",),
 }
 
 
@@ -109,7 +95,7 @@ def generate_uk_puas(
     puas: PUAS | None = None,
     uk_region_df: DataFrame | None = None,
     puas_dict: dict[str, tuple[str, ...]] = CENTRE_FOR_CITIES_2022_CITY_PUAS,
-    regional_alt_names: dict[str, tuple[str, ...]] = REGION_ALTERNATE_NAMES,
+    regional_alt_names: dict[str, tuple[str, ...]] = PUA_ALTERNATE_NAMES,
     code_col: str = "Code",
     geo_col: str = "Geography",
 ) -> PUAS:
@@ -163,7 +149,7 @@ def sum_for_regions_by_attr(
     region_names: Sequence[str],
     column_names: Sequence[str | int],
     attr: str = "la_codes",
-    uk_regions: PUAS | UKRegions | None = None,
+    uk_regions: PUAS | Regions | None = None,
 ) -> dict[str, float | Series]:
     """Sum columns for passed pua_names from df.
 

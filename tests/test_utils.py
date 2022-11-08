@@ -9,6 +9,11 @@ import pytest
 from pandas import DataFrame, MultiIndex
 
 from estios.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
+from estios.sources import (
+    FilePathType,
+    download_and_save_file,
+    extract_file_name_from_url,
+)
 from estios.uk.ons_population_projections import (
     ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME,
     ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL,
@@ -17,11 +22,8 @@ from estios.uk.ons_uk_population_projections import ONS_UK_POPULATION_META_DATA
 from estios.utils import (  # download_and_extract_zip_file,
     SECTOR_10_CODE_DICT,
     THREE_UK_CITY_REGIONS,
-    FilePathType,
-    download_and_save_file,
     enforce_end_str,
     enforce_start_str,
-    extract_file_name_from_url,
     generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,

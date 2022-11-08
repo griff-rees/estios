@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame
 
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
+from estios.sources import MetaData, MonthDay
 from estios.temporal import annual_io_time_series
 from estios.uk.employment import generate_employment_quarterly_dates
 from estios.uk.ons_population_projections import (
@@ -17,7 +18,7 @@ from estios.uk.ons_population_projections import (
 from estios.uk.ons_uk_population_history import ONS_UK_POPULATION_HISTORY_META_DATA
 from estios.uk.regions import get_all_centre_for_cities_dict
 from estios.uk.utils import load_contemporary_ons_population
-from estios.utils import THREE_UK_CITY_REGIONS, MetaData, MonthDay
+from estios.utils import THREE_UK_CITY_REGIONS
 
 
 @pytest.fixture

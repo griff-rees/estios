@@ -9,15 +9,17 @@ from typing import Callable, Final, Generator, Iterable, Optional, Sequence, Uni
 
 from pandas import DataFrame
 
-from ..utils import (
+from ..sources import (
     MetaData,
     OpenGovernmentLicense,
-    RegionConfigType,
     download_and_extract_zip_file,
+    pandas_from_path_or_package,
+)
+from ..utils import (
+    RegionConfigType,
     invert_dict,
     iter_ints_to_list_strs,
     name_converter,
-    pandas_from_path_or_package,
     trim_year_range_generator,
 )
 from .ons_population_estimates import ONS_2017_ALL_AGES_COLUMN_NAME

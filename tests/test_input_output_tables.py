@@ -15,8 +15,9 @@ from estios.input_output_tables import (
     load_io_table_excel,
     load_region_employment_excel,
 )
+from estios.sources import DOI_URL_PREFIX
 from estios.uk import io_table_1841
-from estios.utils import DOI_URL_PREFIX, aggregate_rows, filter_by_region_name_and_type
+from estios.utils import aggregate_rows, filter_by_region_name_and_type
 
 
 @pytest.fixture

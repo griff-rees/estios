@@ -9,7 +9,7 @@ from typing import Final, Iterable, Optional
 from geopandas import GeoDataFrame, read_file
 from pandas import DataFrame, read_csv
 
-from ..utils import FilePathType, MetaData, path_or_package_data
+from ..sources import FilePathType, MetaData, path_or_package_data
 
 logger = getLogger(__name__)
 
