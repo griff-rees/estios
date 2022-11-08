@@ -43,7 +43,7 @@ def technical_coefficients(
 
 
 def X_i_m(
-    total_sales: Series, employment: DataFrame, national_employment: DataFrame
+    total_sales: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the total production of sector $m$ in region $i$ and cache results.
 
@@ -53,7 +53,7 @@ def X_i_m(
 
 
 def M_i_m(
-    imports: Series, employment: DataFrame, national_employment: DataFrame
+    imports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the imports of sector $m$ in region $i$ and cache results.
 
@@ -63,7 +63,7 @@ def M_i_m(
 
 
 def F_i_m(
-    final_demand: Series, employment: DataFrame, national_employment: DataFrame
+    final_demand: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 
@@ -73,7 +73,7 @@ def F_i_m(
 
 
 def E_i_m(
-    exports: Series, employment: DataFrame, national_employment: DataFrame
+    exports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the final demand of sector 𝑚 in region 𝑖and cache results.
 

@@ -6,7 +6,7 @@ Todo:
 """
 import pytest
 from pandas import DataFrame, Series
-from pandas.testing import assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 from estios import __version__
 from estios.models import InterRegionInputOutput
@@ -179,12 +179,86 @@ class TestInputOutputModel:
             },
             index=three_cities_results._ij_m_index,
         )
+        CORRECT_national_employment = Series(
+            {
+                "Agriculture": 422000,
+                "Production": 3129000,
+                "Construction": 2330000,
+                "Distribution, transport, hotels and restaurants": 9036000,
+                "Information and communication": 1459000,
+                "Financial and insurance": 1114000,
+                "Real estate": 589000,
+                "Professional and support activities": 6039000,
+                "Government, health & education": 8756000,
+                "Other services": 1989000,
+            },
+            dtype="int64",
+        )
+        CORRECT_X_i_m = DataFrame(
+            index=["Leeds", "Liverpool", "Manchester"],
+            data={
+                "Agriculture": (26718483.412322, 6679620.853081, 50097156.398104),
+                "Production": (
+                    47659402205.177376,
+                    41008498561.840843,
+                    30020989453.499519,
+                ),
+                "Construction": (
+                    15610763948.497858,
+                    10407175965.665239,
+                    11708072961.373394,
+                ),
+                "Distribution, transport, hotels and restaurants": (
+                    50560077467.906143,
+                    53408532536.520576,
+                    62666011509.517479,
+                ),
+                "Information and communication": (
+                    20341501028.10144,
+                    9492700479.780672,
+                    18985400959.561344,
+                ),
+                "Financial and insurance": (
+                    48722073608.617584,
+                    23200987432.675041,
+                    46401974865.350082,
+                ),
+                "Real estate": (
+                    26441434634.974537,
+                    29379371816.638374,
+                    58758743633.276749,
+                ),
+                "Professional and support activities": (
+                    56027189932.107979,
+                    29487994701.109459,
+                    70771187282.662704,
+                ),
+                "Government, health & education": (
+                    52047738693.467346,
+                    55596448149.840118,
+                    59145157606.212898,
+                ),
+                "Other services": (
+                    6780532931.121166,
+                    7507018602.31272,
+                    8717828054.298643,
+                ),
+            },
+        )
+        CORRECT_X_i_m.index.name = "Area"
+        assert_series_equal(
+            CORRECT_national_employment, three_cities_results.national_employment
+        )
         assert_series_equal(
             CORRECT_y_ij_m_df["Q_i^m"], three_cities_results._y_ij_m["Q_i^m"]
         )
         assert_series_equal(
             CORRECT_y_ij_m_df[B_j_m_im_column],
             three_cities_results._y_ij_m[B_j_m_im_column],
+        )
+        assert_frame_equal(
+            CORRECT_X_i_m,
+            three_cities_results.X_i_m.astype("float64"),
         )
 
     # def test_null_raw_io(self, three_cities_results) -> None:

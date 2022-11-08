@@ -707,16 +707,16 @@ def aggregate_rows(
         pre_agg_data.rename(
             columns={column: column[0] for column in pre_agg_data.columns}, inplace=True
         )
-    aggregated_df = DataFrame()
+    aggregated_data: Series | DataFrame = type(pre_agg_data)()
     for sector, letters in sector_dict.items():
-        if len(letters) > 1:
+        if len(letters) > 1 or isinstance(pre_agg_data, Series):
             if isinstance(pre_agg_data, DataFrame):
-                aggregated_df[sector] = pre_agg_data[letters].sum(axis=1)
+                aggregated_data[sector] = pre_agg_data[letters].sum(axis=1)
             else:
-                aggregated_df[sector] = pre_agg_data[letters].sum()
-        else:
-            aggregated_df[sector] = pre_agg_data[letters]
-    return aggregated_df
+                aggregated_data[sector] = pre_agg_data[letters].sum()
+        else:  # Prevent extra summming when aggregating DataFrames
+            aggregated_data[sector] = pre_agg_data[letters]
+    return aggregated_data
 
 
 def trim_year_range_generator(

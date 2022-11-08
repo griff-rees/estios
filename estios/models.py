@@ -299,8 +299,8 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                     f"At least `self.date` or `self.employment_date` required"
                 )
 
-    def _set_national_employment(self):
-        """Return DataFrame, aggregated if sector_aggregation set.
+    def _set_national_employment(self) -> None:
+        """Set national_employment Series, aggregated if sector_aggregation set.
 
         Todo:
             * Refactor around raw_national_employment vs national_employment
@@ -433,7 +433,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             total_sales=self.io_table[self.sectors].loc["Total Sales"],
             employment=self.employment_table,
             national_employment=self.national_employment,
-        )
+        ).astype("float64")
 
     @cached_property
     def M_i_m(self) -> DataFrame:
@@ -445,7 +445,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             imports=self.io_table[self.sectors].loc["Imports"],
             employment=self.employment_table,
             national_employment=self.national_employment,
-        )
+        ).astype("float64")
 
     @cached_property
     def F_i_m(self) -> DataFrame:
@@ -459,7 +459,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             ].sum(axis=1),
             employment=self.employment_table,
             national_employment=self.national_employment,
-        )
+        ).astype("float64")
 
     @cached_property
     def E_i_m(self) -> DataFrame:
@@ -473,7 +473,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             ),
             employment=self.employment_table,
             national_employment=self.national_employment,
-        )
+        ).astype("float64")
 
     @cached_property
     def distances(self) -> GeoDataFrame:
