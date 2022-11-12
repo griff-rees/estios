@@ -1,15 +1,90 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
-from typing import Callable
+from collections import UserDict
+from dataclasses import dataclass, field
+from datetime import date
+from typing import Callable, Final, Sequence
 
 from geopandas import GeoDataFrame
 from numpy import exp
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 
 from .calc import CITY_POPULATION_COLUMN_NAME, DISTANCE_COLUMN
+from .sources import MetaData
 from .utils import UK_NATIONAL_COLUMN_NAME, generate_ij_m_index
+
+LA_CODES_COLUMN: Final[str] = "la_codes"
+
+
+@dataclass
+class Region:
+
+    name: str
+    code: str
+    geography_type: str
+    alternate_names: list[str] = field(default_factory=list)
+    date: date | int | None = None
+
+    def __str__(self) -> str:
+        return f"{self.geography_type} {self.name}"
+
+
+@dataclass
+class RegionsManager(UserDict[str, Region]):
+
+    """Class for managing and indexing Regions."""
+
+    source: MetaData | None
+
+    def __str__(self) -> str:
+        return f"{len(self)} UK regions"
+
+
+class MissingAttributeColumnException(Exception):
+    pass
+
+
+def sum_for_regions_by_attr(
+    df: DataFrame,
+    region_names: Sequence[str],
+    column_names: Sequence[str | int],
+    regions: RegionsManager | UserDict,
+    attr: str = LA_CODES_COLUMN,
+) -> dict[str, float | Series]:
+    """Sum columns for passed pua_names from df.
+
+    Todo:
+        * Basic unit tests
+        * Potentially generalise for different number of sum calls.
+    """
+    try:
+        assert hasattr(regions[region_names[0]], attr)
+    except AssertionError:
+        raise MissingAttributeColumnException(
+            f"{region_names[0]} is not available for {attr} in passed regions"
+        )
+    return {
+        region: df.loc[getattr(regions[region], attr), column_names]
+        .sum()
+        .sum()  # .sum()
+        for region in region_names
+    }
+
+
+def sum_for_regions_by_la_code(
+    df: DataFrame,
+    region_names: Sequence[str],
+    column_names: Sequence[str | int],
+    regions: RegionsManager | UserDict,
+) -> dict[str, float | Series]:
+    return sum_for_regions_by_attr(
+        df=df,
+        region_names=region_names,
+        column_names=column_names,
+        regions=regions,
+        attr=LA_CODES_COLUMN,
+    )
 
 
 @dataclass

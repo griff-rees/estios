@@ -5,8 +5,9 @@ from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
 from estios.uk.utils import (
-    PUAS,
     REGION_ALTERNATE_NAMES,
+    PUASManager,
+    generate_base_regions,
     generate_uk_puas,
     match_name_or_alt_names,
 )
@@ -39,9 +40,15 @@ class TestMatchNameAltNames:
         assert result == REGION_ALTERNATE_NAMES["Aberbeen"]
 
 
+def test_generate_base_regions(caplog) -> None:
+    regions: PUASManager = generate_base_regions()
+    assert regions["West Lothian"].code == "S12000040"
+    assert regions["LONDON"].code == "E12000007"
+
+
 @pytest.mark.xfail
 def test_generate_uk_puas(caplog) -> None:
-    uk_regions: PUAS = generate_uk_puas()
+    uk_regions: PUASManager = generate_uk_puas()
     assert uk_regions["York"].code == "E06000014"
     assert uk_regions["London"].code == "E06000014"
     assert False

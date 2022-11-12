@@ -53,7 +53,7 @@ from .input_output_tables import (
     load_employment_by_region_and_sector_csv,
     load_region_employment_excel,
 )
-from .spatial_interaction import AttractionConstrained, SpatialInteractionBaseClass
+from .spatial import AttractionConstrained, SpatialInteractionBaseClass
 from .uk import ons_IO_2017
 from .uk.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,

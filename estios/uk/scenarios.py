@@ -11,6 +11,7 @@ from pandas import DataFrame, Series
 from ..calc import calc_ratio
 from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from ..sources import MetaData, MonthDay
+from ..spatial import sum_for_regions_by_attr, sum_for_regions_by_la_code
 from ..temporal import annual_io_time_series
 from ..utils import THREE_UK_CITY_REGIONS, AnnualConfigType  # sum_by_rows_cols,
 from .employment import EMPLOYMENT_QUARTER_JUN_2017
@@ -30,7 +31,7 @@ from .ons_uk_population_projections import (
     get_uk_pop_scaled_all_ages_ts,
     get_uk_pop_scaled_working_ages_ts,
 )
-from .utils import PUAS, generate_uk_puas, sum_for_regions_by_attr
+from .utils import PUASManager, generate_uk_puas
 
 logger = getLogger(__name__)
 
@@ -59,7 +60,7 @@ def baseline_england_annual_population_projection_config(
     ons_population_history: MetaData = ONS_UK_POPULATION_HISTORY_META_DATA,
     ons_contemporary_populations: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
     ons_2017_pop_meta_data: MetaData = ONS_2017_POPULATION_META_DATA,
-    uk_regions: PUAS | None = None,
+    uk_regions: PUASManager | None = None,
     month_day: MonthDay | None = None,
     years: Sequence[int] | None = TWO_YEARS,
     working_age_columns: Sequence[int] = WORKING_AGE_LIST,
@@ -164,8 +165,11 @@ def baseline_england_annual_population_projection_config(
     #     for region in regions
     # }
     last_regional_at_working_ages: Series = Series(
-        sum_for_regions_by_attr(
-            ons_2017_pop_df, regions, working_age_columns, uk_regions=uk_regions
+        sum_for_regions_by_la_code(
+            df=ons_2017_pop_df,
+            region_names=regions,
+            column_names=working_age_columns,
+            regions=uk_regions,
         )
     )
     last_national_employment_projection: DataFrame = first_io_time.national_employment
@@ -181,8 +185,11 @@ def baseline_england_annual_population_projection_config(
     #     for region in regions
     # }
     first_io_time.regional_populations = Series(
-        sum_for_regions_by_attr(
-            ons_2017_pop_df, regions, all_ages_column, uk_regions=uk_regions
+        sum_for_regions_by_la_code(
+            df=ons_2017_pop_df,
+            region_names=regions,
+            column_names=all_ages_column,
+            regions=uk_regions,
         )
     )
 
@@ -200,11 +207,11 @@ def baseline_england_annual_population_projection_config(
         # regional_at_working_ages = regional_pop_projections.working_age_projections.loc[regions][year_str]
         new_regional_populations: Series = Series(
             sum_for_regions_by_attr(
-                regional_pop_projections.full_population_projections,
-                regions,
-                [new_year_str],
-                "la_names",
-                uk_regions,
+                df=regional_pop_projections.full_population_projections,
+                region_names=regions,
+                column_names=[new_year_str],
+                regions=uk_regions,
+                attr="la_names",
             )
         )
         # new_regional_populations: Series = (
@@ -214,11 +221,11 @@ def baseline_england_annual_population_projection_config(
         # )
         new_regional_at_working_ages: Series = Series(
             sum_for_regions_by_attr(
-                regional_pop_projections.working_age_projections,
-                regions,
-                [new_year_str],
-                "la_names",
-                uk_regions,
+                df=regional_pop_projections.working_age_projections,
+                region_names=regions,
+                column_names=[new_year_str],
+                regions=uk_regions,
+                attr="la_names",
             )
         )
 

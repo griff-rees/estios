@@ -3,13 +3,18 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
+from datetime import date
 from logging import getLogger
 from typing import Final, Sequence
 
 from pandas import DataFrame, Series
 
-from ..sources import MetaData, Region, Regions
-from .centre_for_cities_puas import CENTRE_FOR_CITIES_2022_CITY_PUAS
+from ..sources import MetaData
+from ..spatial import Region
+from .centre_for_cities_puas import (
+    CENTRE_FOR_CITIES_2022_CITY_PUAS,
+    CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
+)
 from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
 logger = getLogger(__name__)
@@ -45,7 +50,12 @@ class PrimaryUrbanArea(Region):
         return list(region for region in self.local_authorities)
 
 
-class PUAS(UserDict[str, PrimaryUrbanArea]):
+class PUASManager(UserDict[str, PrimaryUrbanArea]):
+
+    """Custom RegionsManager for PrimaryUrbanArea classes."""
+
+    source: MetaData = CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA
+
     def __str__(self) -> str:
         return f"{len(self)} UK Primary Urban Areas"
 
@@ -92,15 +102,15 @@ def match_name_or_alt_names(
 
 
 def generate_uk_puas(
-    puas: PUAS | None = None,
+    puas: PUASManager | None = None,
     uk_region_df: DataFrame | None = None,
     puas_dict: dict[str, tuple[str, ...]] = CENTRE_FOR_CITIES_2022_CITY_PUAS,
     regional_alt_names: dict[str, tuple[str, ...]] = PUA_ALTERNATE_NAMES,
     code_col: str = "Code",
     geo_col: str = "Geography",
-) -> PUAS:
+) -> PUASManager:
     if not puas:
-        puas = PUAS()
+        puas = PUASManager()
     assert puas is not None
     if not uk_region_df:
         uk_region_df = load_contemporary_ons_population()
@@ -144,35 +154,24 @@ def generate_uk_puas(
     return puas
 
 
-def sum_for_regions_by_attr(
-    df: DataFrame,
-    region_names: Sequence[str],
-    column_names: Sequence[str | int],
-    attr: str = "la_codes",
-    uk_regions: PUAS | Regions | None = None,
-) -> dict[str, float | Series]:
-    """Sum columns for passed pua_names from df.
-
-    Todo:
-        * Basic unit tests
-        * Potentially generalise for different number of sum calls.
-    """
-    if uk_regions is None:
-        uk_regions = generate_uk_puas()
-    assert hasattr(uk_regions[region_names[0]], attr)
-    return {
-        region: df.loc[getattr(uk_regions[region], attr), column_names]
-        .sum()
-        .sum()  # .sum()
-        for region in region_names
-    }
-
-    # dtype: float64, 'Manchester': 16    27593.0
-    # 17    28329.0
-    # 18    29752.0
-    # 19    31489.0
-    # 20    34381.0
-    # 21    34721.0
+def generate_base_regions(
+    ons_region_df: DataFrame | None = None,
+    ons_region_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
+    regions_date: date | None = None,
+) -> PUASManager:
+    if not ons_region_df:
+        ons_region_df = load_contemporary_ons_population(
+            ons_region_data=ons_region_data
+        )
+    regions_manager = PUASManager()
+    for region in ons_region_df.itertuples():
+        regions_manager[region.Index] = PrimaryUrbanArea(
+            name=region.Index,
+            code=region.Code,
+            geography_type=region.Geography,
+            date=regions_date,
+        )
+    return regions_manager
 
     # last_working_age_dict = {
     #     region: ons_2017_pop_df.loc[uk_regions[region].la_codes,

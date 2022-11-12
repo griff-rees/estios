@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import shutil
-from collections import UserDict
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from io import BytesIO
@@ -41,27 +40,6 @@ VALID_FILE_EXTENSIONS: Final[tuple[str, ...]] = (
     ".zip",
     *tuple(EXTENSION_PANDAS_READ_MAPPER.keys()),
 )
-
-
-@dataclass
-class Region:
-
-    name: str
-    code: str
-    geography_type: str
-    alternate_names: list[str] = field(default_factory=list)
-    date: date | int | None = None
-
-    def __str__(self) -> str:
-        return f"{self.geography_type} {self.name}"
-
-
-class Regions(UserDict[str, Region]):
-
-    """Class for managing and indexing Regions."""
-
-    def __str__(self) -> str:
-        return f"{len(self)} UK regions"
 
 
 class MultplePotentialFilesError(Exception):
