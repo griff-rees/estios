@@ -4,7 +4,7 @@
 from collections import UserDict
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Callable, Final, Sequence
+from typing import Any, Callable, Final, Sequence
 
 from geopandas import GeoDataFrame
 from numpy import exp
@@ -30,8 +30,11 @@ class Region:
         return f"{self.geography_type} {self.name}"
 
 
+RegionsManagerType = UserDict[str, Region]
+
+
 @dataclass
-class RegionsManager(UserDict[str, Region]):
+class RegionsManager(RegionsManagerType):
 
     """Class for managing and indexing Regions."""
 
@@ -39,6 +42,9 @@ class RegionsManager(UserDict[str, Region]):
 
     def __str__(self) -> str:
         return f"{len(self)} UK regions"
+
+
+GenericRegionsManager = RegionsManagerType | UserDict[str, Any]
 
 
 class MissingAttributeColumnException(Exception):
@@ -49,7 +55,7 @@ def sum_for_regions_by_attr(
     df: DataFrame,
     region_names: Sequence[str],
     column_names: Sequence[str | int],
-    regions: RegionsManager | UserDict,
+    regions: GenericRegionsManager,
     attr: str = LA_CODES_COLUMN,
 ) -> dict[str, float | Series]:
     """Sum columns for passed pua_names from df.
@@ -76,7 +82,7 @@ def sum_for_regions_by_la_code(
     df: DataFrame,
     region_names: Sequence[str],
     column_names: Sequence[str | int],
-    regions: RegionsManager | UserDict,
+    regions: GenericRegionsManager,
 ) -> dict[str, float | Series]:
     return sum_for_regions_by_attr(
         df=df,
