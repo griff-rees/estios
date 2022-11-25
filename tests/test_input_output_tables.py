@@ -17,6 +17,7 @@ from estios.input_output_tables import (
 )
 from estios.sources import DOI_URL_PREFIX
 from estios.uk import io_table_1841
+from estios.uk.employment import CITY_SECTOR_REGION_PREFIX
 from estios.utils import aggregate_rows, filter_by_region_name_and_type
 
 
@@ -158,7 +159,9 @@ class TestLoadingEmploymentData:
     def test_filtering_for_specific_regions(self, aggregated_city_sector) -> None:
         """Test filtering for specific regions."""
         filtered_aggregate_city: DataFrame = filter_by_region_name_and_type(
-            aggregated_city_sector, THREE_CITY_REGIONS.keys()
+            aggregated_city_sector,
+            THREE_CITY_REGIONS.keys(),
+            region_type_prefix=CITY_SECTOR_REGION_PREFIX,
         )
         for city in THREE_CITY_REGIONS:
             assert city in filtered_aggregate_city.index

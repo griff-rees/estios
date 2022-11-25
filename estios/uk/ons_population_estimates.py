@@ -19,6 +19,7 @@ URL: Final[str] = (
 ONS_CONTEMPORARY_POPULATION_META_DATA: Final[MetaData] = MetaData(
     name="UK ONS Contemporary Population Estimates",
     year=2020,
+    canonical_date=date(2020, 6, 1),
     description=(
         "National and subnational mid-year population "
         "estimates for the UK and its constituent countries "
@@ -49,6 +50,7 @@ ONS_CONTEMPORARY_POPULATION_META_DATA: Final[MetaData] = MetaData(
     # path=ONS_UK_2018_FILE_NAME,
     auto_download=True,
     license=OpenGovernmentLicense,
+    dict_key_appreviation="uk_contemporary",
     _package_data=True,
     # _save_func=download_and_extract_zip_file,  # type: ignore
     # _save_kwargs=dict(zip_file_path=ONS_UK_2018_FILE_NAME),

@@ -4,7 +4,7 @@
 from collections import UserDict
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Callable, Final, Sequence
+from typing import Any, Callable, Final, Generator, Sequence
 
 from geopandas import GeoDataFrame
 from numpy import exp
@@ -21,10 +21,11 @@ LA_CODES_COLUMN: Final[str] = "la_codes"
 class Region:
 
     name: str
-    code: str
-    geography_type: str
-    alternate_names: list[str] = field(default_factory=list)
+    code: str | None
+    geography_type: str | None
+    alternate_names: dict[str, str] = field(default_factory=dict)
     date: date | int | None = None
+    flags: dict[str, bool | str | int] = field(default_factory=dict)
 
     def __str__(self) -> str:
         return f"{self.geography_type} {self.name}"
@@ -33,15 +34,35 @@ class Region:
 RegionsManagerType = UserDict[str, Region]
 
 
-@dataclass
+class NullCodeException(Exception):
+    pass
+
+
 class RegionsManager(RegionsManagerType):
 
     """Class for managing and indexing Regions."""
 
-    source: MetaData | None
+    meta_data: MetaData | None
+
+    def __init__(self, meta_data: MetaData | None = None) -> None:
+        super().__init__()
+        self.meta_data = meta_data
 
     def __str__(self) -> str:
-        return f"{len(self)} UK regions"
+        return f"{len(self)} UK region data from {self.meta_data}"
+
+    @property
+    def names(self) -> Generator[str, None, None]:
+        for region_name in self:
+            yield region_name
+
+    @property
+    def codes(self) -> Generator[str, None, None]:
+        for region_details in self.values():
+            if isinstance(region_details.code, str):
+                yield region_details.code
+            else:
+                raise NullCodeException(f"{self} has no code set.")
 
 
 GenericRegionsManager = RegionsManagerType | UserDict[str, Any]

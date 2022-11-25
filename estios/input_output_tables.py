@@ -23,7 +23,7 @@ IO_TABLE_NAME: Final[str] = "IOT"  # Todo: see if this is the standard sheet nam
 COEFFICIENT_TABLE_NAME: Final[str] = "A"
 
 CPA_COLUMN_NAME: Final[str] = "CPA"
-TOTAL_PRODUCTION_COLUMN_NAME: Final[str] = "Total Sales"
+TOTAL_PRODUCTION_COLUMN_NAME: Final[str] = "Intermediate Demand"
 IMPORTS_COLUMN_NAME: Final[str] = "Imports"
 FINAL_DEMAND_COLUMN_NAMES: Final[list[str]] = [
     "Household Purchase",

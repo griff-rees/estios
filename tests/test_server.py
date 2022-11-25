@@ -9,10 +9,14 @@ from typing import Final, Generator
 import pytest
 from dash import Dash
 
+from estios.models import InterRegionInputOutputTimeSeries
 from estios.server.auth import AuthDB
 from estios.server.dash_app import DEFAULT_SERVER_PATH, get_server_dash
 
 TEST_AUTH_PATH = Path("tests/a/test/path.json")
+
+test_server: Dash
+io_time_series: InterRegionInputOutputTimeSeries
 
 
 @pytest.fixture
@@ -45,9 +49,9 @@ def test_server_no_auth(caplog) -> None:
         "No authentication required.",
     )
     with caplog.at_level(INFO):
-        server: Dash = get_server_dash(auth=False)
+        test_server, io_time_series = get_server_dash(auth=False)
     assert no_auth_log in caplog.record_tuples
-    assert DEFAULT_SERVER_PATH in list(server_paths(server))
+    assert DEFAULT_SERVER_PATH in list(server_paths(test_server))
 
 
 def test_server_auth(caplog, tmp_path) -> None:
@@ -58,14 +62,15 @@ def test_server_auth(caplog, tmp_path) -> None:
         f"Adding basic authentication from {tmp_file}.",
     )
     with caplog.at_level(INFO):
-        server: Dash = get_server_dash(auth_db_path=tmp_file)
+        test_server, io_time_series = get_server_dash(auth_db_path=tmp_file)
     assert auth_log in caplog.record_tuples
 
 
 def test_path_prefix() -> None:
     test_path: str = "/a/path/test"
-    server: Dash = get_server_dash(path_prefix=test_path)
-    assert test_path in list(server_paths(server))
+    test_server, io_time_series = get_server_dash(path_prefix=test_path)
+    assert test_path in list(server_paths(test_server))
+    assert len(io_time_series) == 12
 
 
 def test_AuthDB(tmp_json_auth_file) -> None:
@@ -87,5 +92,5 @@ def test_io_table(caplog) -> None:
         "Appending 'table-div' to layout.",
     )
     with caplog.at_level(INFO):
-        server: Dash = get_server_dash(auth=False, io_table=True)
+        test_server, io_time_series = get_server_dash(auth=False, io_table=True)
     assert io_table_log in caplog.record_tuples

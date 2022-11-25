@@ -20,7 +20,7 @@ from typing import (
 from numpy import log
 from pandas import DataFrame, MultiIndex, Series
 
-from .uk.employment import CITY_SECTOR_REGION_PREFIX
+# from .uk.employment import CITY_SECTOR_REGION_PREFIX
 
 logger = getLogger(__name__)
 
@@ -28,7 +28,10 @@ RegionConfigType = Union[Sequence[str], dict[str, str], dict[str, Sequence[str]]
 SectorConfigType: TypeAlias = RegionConfigType
 AggregatedSectorDictType = dict[str, Sequence[str]]
 AnnualConfigType = Union[Sequence[int], dict[int, dict], OrderedDict[int, dict]]
+InputOutputConfigType = dict[str, Any]
 DateConfigType = Union[Sequence[date], dict[date, dict], OrderedDict[date, dict]]
+
+logger.warning(f"`InputOutputConfigType` and `DateConfigType` refactor  needed")
 
 CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
@@ -200,7 +203,7 @@ def enforce_date_format(cell: str) -> str:
 def filter_by_region_name_and_type(
     df: DataFrame,
     regions: Iterable[str],
-    region_type_prefix: str = CITY_SECTOR_REGION_PREFIX,
+    region_type_prefix: str,
 ) -> DataFrame:
     """Filter a DataFrame with region indicies to specific regions."""
     df_filtered: DataFrame = df.loc[[region_type_prefix + place for place in regions]]

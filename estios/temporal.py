@@ -78,8 +78,11 @@ def date_io_time_series(
     """Generate an InterRegionInputOutputTimeSeries from a list of dates.
 
     Note:
-        *  io_model_config_index may be removed in future
+        * io_model_config_index may be removed in future
         * Better way of handling annual without relying on bool...
+
+    Todo:
+        * Way of managing copying aspects of singe InterRegionInputOutput config
     """
     logger.info(
         "Generating an InputOutputTimeSeries with dates and passed general config."

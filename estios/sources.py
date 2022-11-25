@@ -236,9 +236,12 @@ class MetaData:
     date_time_obtained: Optional[datetime] = None
     auto_download: Optional[bool] = None
     dates: Optional[list[date] | list[int]] = None
+    canonical_date: Optional[date] = None
+    date_published: Optional[date] = None
     make_path: bool = True
     file_name_from_url: bool = True
     needs_scaling: bool = False
+    dict_key_appreviation: str | None = None
     _save_func: Optional[DataSaverCallable] = download_and_save_file  # type: ignore[assignment]
     _save_kwargs: dict[str, Any] = field(default_factory=dict)
     _package_data: bool = False

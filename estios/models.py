@@ -56,6 +56,7 @@ from .input_output_tables import (
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
 from .uk import ons_IO_2017
 from .uk.employment import (
+    CITY_SECTOR_REGION_PREFIX,
     EMPLOYMENT_QUARTER_DEC_2017,
     UK_JOBS_BY_SECTOR_SCALING,
     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
@@ -201,6 +202,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
     region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
+    region_type_prefix: str = CITY_SECTOR_REGION_PREFIX
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
@@ -416,11 +418,15 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                 self._employment_by_sector_and_region, True
             )
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_region_aggregated, self.region_names
+                self._employment_by_sector_and_region_aggregated,
+                self.region_names,
+                region_type_prefix=self.region_type_prefix,
             )
         else:
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_region, self.region_names
+                self._employment_by_sector_and_region,
+                self.region_names,
+                region_type_prefix=self.region_type_prefix,
             )
 
     @cached_property
@@ -564,6 +570,10 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                 "the `.import_export_convergence` method.",
             )
 
+    @property
+    def is_calculated(self) -> bool:
+        return hasattr(self, "e_m_model") and hasattr(self, "y_ij_m_model")
+
     @cached_property
     def regional_io_projections(self) -> dict[str, DataFrame]:
         """Projeting input-output table for specific regions.
@@ -659,6 +669,10 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
         else:
             return self.sectors
 
+    @property
+    def is_calculated(self) -> bool:
+        return all(model.is_calculated for model in self)
+
     # @property
     # def sectors(self) -> list[str]:
     #     if not len(self):
@@ -681,16 +695,14 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
             return self.regions
 
     @overload
-    def __getitem__(self, i: int) -> InterRegionInputOutput:
+    def __getitem__(self, index: int) -> InterRegionInputOutput:
         ...
 
     @overload
-    def __getitem__(self, s: slice) -> list[InterRegionInputOutput]:
+    def __getitem__(self, index: slice) -> list[InterRegionInputOutput]:
         ...
 
-    def __getitem__(
-        self, index
-    ) -> Optional[Union[InterRegionInputOutput, list[InterRegionInputOutput]]]:
+    def __getitem__(self, index):
         return self.io_models[index] if self.io_models else None
 
     @overload

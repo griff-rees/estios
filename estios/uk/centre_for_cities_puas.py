@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""Data source and configuration for the Centre for Cities definitions of UK Cities.
+
+Todo:
+    * Address issues with Bournemouth between 2014 and 2019 definitions
+"""
+
 from datetime import datetime
 from logging import getLogger
 from typing import Final
@@ -9,6 +15,7 @@ from ..sources import MetaData
 
 logger = getLogger(__name__)
 
+CentreForCitiesSpec = dict[str, tuple[str, ...]]
 
 CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA: Final[MetaData] = MetaData(
     name="Centre for Cities 2022 Primary Urban Areas (PUA)",
@@ -27,13 +34,24 @@ CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA: Final[MetaData] = MetaData(
     },
     url="https://www.centreforcities.org/wp-content/uploads/2022/08/2022-PUA-Table.pdf",
     date_time_obtained=datetime(2022, 8, 3, 10, 27),
+    dict_key_appreviation="pua",
     # license=
 )
 
 logger.warning(f"License info for Centre for Cities data needed.")
 
 
-CENTRE_FOR_CITIES_2022_CITY_PUAS: Final[dict[str, tuple[str, ...]]] = {
+# Changes from https://www.centreforcities.org/wp-content/uploads/2014/07/12-03-19-Primary-Urban-Areas-deffinitions.pdf
+CENTRE_FOR_CITIES_2014_PUAS: Final[CentreForCitiesSpec] = {
+    "Bournemouth": (
+        "Bournemouth",
+        "Christchurch",
+        "Poole",
+    ),
+}
+
+
+CENTRE_FOR_CITIES_2022_CITY_PUAS: Final[CentreForCitiesSpec] = {
     "Aberdeen": ("Aberdeen",),
     "Aldershot": (
         "Rushmoor",

@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
-from estios.uk.utils import (
-    REGION_ALTERNATE_NAMES,
-    PUASManager,
+from estios.spatial import GenericRegionsManager
+from estios.uk.centre_for_cities_puas import CENTRE_FOR_CITIES_2022_CITY_PUAS
+from estios.uk.ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
+from estios.uk.utils import (  # match_name_or_alt_names,
     generate_base_regions,
     generate_uk_puas,
-    match_name_or_alt_names,
 )
 
 
@@ -30,25 +29,25 @@ def test_load_contemp_ons_pop(pop_recent) -> None:
     )
 
 
-class TestMatchNameAltNames:
-
-    """Test and exceptions of name matching accross data sources."""
-
-    @pytest.mark.xfail
-    def test_aberdeen(self, pop_recent, caplog) -> None:
-        result: str | None = match_name_or_alt_names("Aberdeen City", pop_recent.index)
-        assert result == REGION_ALTERNATE_NAMES["Aberbeen"]
+# class TestMatchNameAltNames:
+#
+#     """Test and exceptions of name matching accross data sources."""
+#
+#     @pytest.mark.xfail
+#     def test_aberdeen(self, pop_recent, caplog) -> None:
+#         result: str | None = match_name_or_alt_names("Aberdeen City", pop_recent.index)
+#         assert result == REGION_ALTERNATE_NAMES["Aberbeen"]
 
 
 def test_generate_base_regions(caplog) -> None:
-    regions: PUASManager = generate_base_regions()
+    regions: GenericRegionsManager = generate_base_regions()
     assert regions["West Lothian"].code == "S12000040"
     assert regions["LONDON"].code == "E12000007"
+    assert regions.meta_data == ONS_CONTEMPORARY_POPULATION_META_DATA  # type: ignore
 
 
-@pytest.mark.xfail
 def test_generate_uk_puas(caplog) -> None:
-    uk_regions: PUASManager = generate_uk_puas()
+    uk_regions: GenericRegionsManager = generate_uk_puas()
     assert uk_regions["York"].code == "E06000014"
-    assert uk_regions["London"].code == "E06000014"
-    assert False
+    assert uk_regions["London"].code == "E12000007"
+    assert len(uk_regions) == len(CENTRE_FOR_CITIES_2022_CITY_PUAS)

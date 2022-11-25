@@ -5,6 +5,8 @@ from datetime import date
 from pathlib import Path
 from typing import Final, Iterable
 
+from ..utils import DateConfigType
+
 # ONS jobs data
 
 UK_JOBS_BY_SECTOR_XLS_FILE_NAME: Final[Path] = Path("jobs05sep2021.xls")
@@ -54,7 +56,7 @@ CONFIG_2017_QUARTERLY: Final[dict[date, dict["str", date]]] = {
 EMPLOYMENT_QUARTER_DEC_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-1]
 EMPLOYMENT_QUARTER_JUN_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-3]
 
-CONFIG_2015_TO_2017_QUARTERLY: Final[dict[date, dict["str", date]]] = {
+CONFIG_2015_TO_2017_QUARTERLY: Final[DateConfigType] = {
     date: {"employment_date": date}
     for date in generate_employment_quarterly_dates([2015, 2016, 2017], reverse=False)
 }

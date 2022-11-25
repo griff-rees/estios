@@ -105,6 +105,7 @@ def test_get_all_cities() -> None:
         assert test_dict[city] == region
 
 
+@pytest.mark.remote_data
 def test_aggregate_region_by_age_range(ons_2018_projection) -> None:
     test_aggregated: DataFrame = aggregate_region_by_age_range(
         ons_2018_projection.age_projections, ons_2018_projection.working_ages
@@ -120,6 +121,7 @@ def test_retirement_age_dict() -> None:
             assert age == NATIONAL_RETIREMENT_AGE + 1
 
 
+@pytest.mark.remote_data
 class TestONSEnglandPopulationProjection:
 
     """Test processing ONSPopulation Projections from 2018."""

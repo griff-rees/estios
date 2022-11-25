@@ -29,7 +29,12 @@ from ..uk.employment import (
     EMPLOYMENT_QUARTER_DEC_2017,
 )
 from ..uk.regions import CENTRE_FOR_CITIES_REGION_COLUMN, get_all_centre_for_cities_dict
-from ..utils import enforce_end_str, enforce_start_str
+from ..utils import (
+    DateConfigType,
+    InputOutputConfigType,
+    enforce_end_str,
+    enforce_start_str,
+)
 from ..visualisation import (
     DEFAULT_REGION_PALATE,
     FontConfig,
@@ -138,7 +143,7 @@ def get_dash_app(
     external_stylesheets: list[str] = EXTERNAL_STYLESHEETS,
     colour_options: ColourOptionsType = DEFAULT_COLOUR_OPTIONS,
     # sector_markers: Optional[list[int]] = None,
-    default_date: date = EMPLOYMENT_QUARTER_DEC_2017,
+    default_date: date | None = EMPLOYMENT_QUARTER_DEC_2017,
     default_top_sectors: int = DEFAULT_TOP_SECTORS,
     default_sectors_marker_hops: int = DEFAULT_SECTORS_MARKER_HOPS,
     default_region: str = DEFAULT_REGION,
@@ -158,6 +163,11 @@ def get_dash_app(
     font_config: FontConfig = FontConfig(),
     **kwargs,
 ) -> Dash:
+    if input_output_ts.is_calculated:
+        logger.warning(
+            "Running all InputOutput models due to no provided cached results"
+        )
+        input_output_ts.calc_models()
     from IPython import get_ipython
 
     app: Dash = (
@@ -173,6 +183,10 @@ def get_dash_app(
     #             default_sectors_marker_hops,
     #         )
     #     )
+    if not default_date or default_date not in input_output_ts.dates:
+        logger.warning(f"Setting default date to {input_output_ts[0].date}")
+        default_date = input_output_ts[0].date
+        assert isinstance(default_date, date)
     if region_colour_palette and isinstance(region_colour_palette, list):
         region_colour_palette = generate_colour_scheme(
             input_output_ts.regions, region_colour_palette
@@ -431,35 +445,43 @@ def get_jupyter_app(
     app: JupyterDash = get_dash_app(input_output_ts, **kwargs)
     # app.run_server(mode='jupyterlab', port = 8090, dev_tools_ui=True, #debug=True,
     #                dev_tools_hot_reload =True, threaded=True)
-    app.run_server(mode="inline", dev_tools_hot_reload=True)
+    app.run_server(
+        mode="inline",
+        dev_tools_hot_reload=True,
+    )
+    # app.run_server(mode="inline", dev_tools_hot_reload=True)
     return app
 
 
 def get_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
-    config_data: Optional[dict] = CONFIG_2015_TO_2017_QUARTERLY,
+    config_data: InputOutputConfigType
+    | DateConfigType
+    | None = CONFIG_2015_TO_2017_QUARTERLY,
     auth: bool = True,
     auth_db_path: DBPathType = DB_PATH,
     all_cities: bool = False,
     path_prefix: str = DEFAULT_SERVER_PATH,
     **kwargs,
-) -> Dash:
+) -> tuple[Dash, InterRegionInputOutputTimeSeries]:
     path_prefix = enforce_start_str(path_prefix, PATH_SPLIT_CHAR, True)
-    if not input_output_ts and config_data:
-        logger.info("Using default config_data configuration")
+    if not input_output_ts:
+        if not config_data:
+            logger.error(
+                f"No config data specified. Returning to default, this may be removed in future."
+            )
+            config_data = CONFIG_2015_TO_2017_QUARTERLY
+        if config_data == CONFIG_2015_TO_2017_QUARTERLY:
+            logger.error("Using default config_data configuration")
         if all_cities:
             logger.info("Using almost all UK cities (currently only England).")
             almost_all_cities: dict[str, str] = get_all_centre_for_cities_dict()
             input_output_ts = date_io_time_series(
-                config_data, regions=almost_all_cities
+                dates=config_data, regions=almost_all_cities  # type: ignore
             )
         else:
-            input_output_ts = date_io_time_series(config_data)
+            input_output_ts = date_io_time_series(config_data)  # type: ignore
     assert input_output_ts, "No InputOuput TimeSeries to visualise"
-    logger.warning(
-        "Currently runs all InputOutput models irrespective of cached results"
-    )
-    input_output_ts.calc_models()
     # server = FastAPI()
     # flask_dash_app: Flask = Flask(__name__)
     flask_dash_app: Dash = get_dash_app(
@@ -480,7 +502,7 @@ def get_server_dash(
         enforce_end_str(path_prefix, PATH_SPLIT_CHAR, False),
         WSGIMiddleware(flask_dash_app.server),
     )
-    return fastapi_server_app
+    return fastapi_server_app, input_output_ts
 
 
 def run_server_dash(
@@ -489,7 +511,11 @@ def run_server_dash(
     **kwargs,
 ) -> None:
     # dash_app: Dash = get_server_dash(input_output_ts,**kwargs)
-    app: FastAPI = get_server_dash(**kwargs)
+    app: FastAPI
+    io_time_series: InterRegionInputOutputTimeSeries
+    app, io_time_series = get_server_dash(**kwargs)
+    # yield io_time_series
+
     # server.mount("/dash", WSGIMiddleware(dash_app.server))
 
     # [print(route) for route in app.routes]
