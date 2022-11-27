@@ -31,7 +31,7 @@ from .ons_uk_population_projections import (
     get_uk_pop_scaled_all_ages_ts,
     get_uk_pop_scaled_working_ages_ts,
 )
-from .utils import PUASManager, generate_uk_puas
+from .utils import GenericRegionsManager, generate_uk_puas
 
 logger = getLogger(__name__)
 
@@ -60,7 +60,7 @@ def baseline_england_annual_population_projection_config(
     ons_population_history: MetaData = ONS_UK_POPULATION_HISTORY_META_DATA,
     ons_contemporary_populations: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
     ons_2017_pop_meta_data: MetaData = ONS_2017_POPULATION_META_DATA,
-    uk_regions: PUASManager | None = None,
+    uk_regions: GenericRegionsManager | None = None,
     month_day: MonthDay | None = None,
     years: Sequence[int] | None = TWO_YEARS,
     working_age_columns: Sequence[int] = WORKING_AGE_LIST,
