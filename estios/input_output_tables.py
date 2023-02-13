@@ -23,7 +23,8 @@ IO_TABLE_NAME: Final[str] = "IOT"  # Todo: see if this is the standard sheet nam
 COEFFICIENT_TABLE_NAME: Final[str] = "A"
 
 CPA_COLUMN_NAME: Final[str] = "CPA"
-TOTAL_PRODUCTION_COLUMN_NAME: Final[str] = "Intermediate Demand"
+TOTAL_PRODUCTION_INDEX_NAME: Final[str] = "Intermediate Demand"
+GROSS_VALUE_ADDED_INDEX_NAME: Final[str] = "Gross value added"
 IMPORTS_COLUMN_NAME: Final[str] = "Imports"
 FINAL_DEMAND_COLUMN_NAMES: Final[list[str]] = [
     "Household Purchase",
@@ -42,6 +43,9 @@ NET_SUBSIDIES_COLUMN_NAME: Final[str] = "Net subsidies"
 INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
+GROSS_CAPITAL_FORMATION_COLUMN_NAME: Final[str] = "Gross fixed capital formation"
+INVENTORY_CHANGE_COLUMN_NAME: Final[str] = "changes in inventories"
+ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: Final[str] = "Acquisitions less disposals of valuables"
 
 UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
     "columns": {
@@ -51,15 +55,18 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
         "Exports to EU": "P61EU",
         "Exports outside EU": "P61RW",
         "Exports of services": "P62",
+        GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
+        INVENTORY_CHANGE_COLUMN_NAME:	"P52",
+        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME:	"P53",
         TOTAL_OUTPUT_COLUMN_NAME: "TD",
     },
     "rows": {
-        "Intermediate Demand": "_T",
+        TOTAL_PRODUCTION_INDEX_NAME: "_T",
         "Imports": "Imports",
-        "Net Subsidies": NET_SUBSIDIES_COLUMN_NAME,
+        NET_SUBSIDIES_COLUMN_NAME: NET_SUBSIDIES_COLUMN_NAME,
         "Intermediate Demand purchase price": INTERMEDIATE_COLUMN_NAME,
         "Employee Compensation": "D1",
-        "Gross Value Added": "GVA",
+        GROSS_VALUE_ADDED_INDEX_NAME: "GVA",
         "Total Sales": "P1",
     },
 }
@@ -285,6 +292,8 @@ class InputOutputTable:
     sector_prefix_str: str = ""
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     meta_data: Optional[MetaData] = None
+    national_gva: str | Series | None = GROSS_VALUE_ADDED_INDEX_NAME
+    national_net_subsidies: str | Series | None = NET_SUBSIDIES_COLUMN_NAME
 
     dog_leg_columns: dict[str, str] = field(default_factory=dict)
     dog_leg_rows: dict[str, str] = field(default_factory=dict)
@@ -408,6 +417,11 @@ class InputOutputCPATable(InputOutputTable):
             self.full_io_table, self.cpa_column_name
         )
         self.sector_names = self._CPA_sectors_to_names
+        # for attr in ['national_gva', 'national_net_subsidies']:
+        #     if isinstance(attr, str):
+        #         logger.info(f"Setting {attr} from `self.io_table[{attr}]`.")
+        #         setattr(self, f"_{attr}_str", getattr(self, attr))
+        #         setattr(self, attr, self.code_io_table[attr])
 
     @property
     def _CPA_sectors_to_names(self) -> Series:

@@ -42,14 +42,30 @@ def technical_coefficients(
     return (io_matrix / final_output).astype("float64")
 
 
+def X_m(
+    base_io_table: DataFrame,
+    gva: Series,
+    net_subsidies: Series,
+) -> Series:
+    """Total national production of all sectors $m$.
+
+    $X*_m = O*_m + G*_m + S*_m$
+
+    $O*_m$: national output of sector $m$ at base prince
+    $G*_m$: national Gross Value added of sector $m$ 
+    $S*_m$: national net subsidies of sector $m$
+    """
+    return base_io_table.sum() + gva + net_subsidies
+
+
 def X_i_m(
-    total_sales: Series, employment: DataFrame, national_employment: Series
+    total_production: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the total production of sector $m$ in region $i$ and cache results.
 
     $X_i^m = X_*^m * Q_i^m/Q_*^m$
     """
-    return total_sales * employment / national_employment
+    return total_production * employment / national_employment
 
 
 def M_i_m(

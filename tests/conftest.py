@@ -4,8 +4,9 @@
 from typing import Generator
 
 import pytest
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
+from estios.input_output_tables import InputOutputCPATable
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
 from estios.temporal import annual_io_time_series
@@ -74,6 +75,11 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 
 @pytest.fixture
+def ons_cpa_io_table() -> InputOutputCPATable:
+    return InputOutputCPATable()
+
+
+@pytest.fixture
 def month_day() -> MonthDay:
     return MonthDay()
 
@@ -121,3 +127,21 @@ def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
 @pytest.fixture
 def pop_recent() -> DataFrame:
     return load_contemporary_ons_population()
+
+@pytest.fixture
+def correct_uk_ons_X_m_national(three_cities_io) -> Series:
+    return Series(
+        [
+             272997328683.096,
+            5564510362211.610,
+            2953222552470.090,
+            6052276697689.360,
+            1797685549558.830,
+            2350643301666.180,
+            3410315660836.110,
+            4206339454407.310,
+            4977015624637.480,
+            933480385688.2780,
+        ],
+        index=three_cities_io.sectors,
+    )

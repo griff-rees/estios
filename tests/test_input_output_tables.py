@@ -22,11 +22,6 @@ from estios.utils import aggregate_rows, filter_by_region_name_and_type
 
 
 @pytest.fixture
-def test_ons_io_table() -> InputOutputCPATable:
-    return InputOutputCPATable()
-
-
-@pytest.fixture
 def test_csv_io_table() -> InputOutputTable:
     return InputOutputTable()
 
@@ -41,27 +36,27 @@ class TestLoadingONSIOTableData:
         io_2017: DataFrame = load_io_table_excel()
         assert "Taxes less subsidies on production" in io_2017.index
 
-    def test_ons_io_table_export(self, test_ons_io_table) -> None:
+    def ons_cpa_io_table_export(self, test_ons_io_table) -> None:
         """Test loading and managing an ONS Input Output excel file."""
-        assert test_ons_io_table.sectors.tail().index[0] == "CPA_R93"
-        assert len(test_ons_io_table.sectors) == 105
+        assert ons_cpa_io_table.sectors.tail().index[0] == "CPA_R93"
+        assert len(ons_cpa_io_table.sectors) == 105
         assert (
-            test_ons_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+            ons_cpa_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
             == 1.512743278316663e-06
         )
 
-    def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
+    def test_aggregated_sectors_dict(self, ons_cpa_io_table) -> None:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
         sectors_aggregated: AggregatedSectorDictType = (
-            test_ons_io_table._aggregated_sectors_dict
+            ons_cpa_io_table._aggregated_sectors_dict
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
-    def test_ons_io_table_aggregation(self, test_ons_io_table) -> None:
+    def ons_cpa_io_table_aggregation(self, test_ons_io_table) -> None:
         """Test loading and manaing an ONS Input Output excel file."""
         FIN_REAL_IO: float = 29562.858422906436
-        aggregated_io_table: DataFrame = test_ons_io_table.get_aggregated_io_table()
+        aggregated_io_table: DataFrame = ons_cpa_io_table.get_aggregated_io_table()
         assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
     @pytest.mark.xfail(reason="requires an external data file")
@@ -96,24 +91,24 @@ class TestLoadingCSVIOTable:
     # def test_csv_io_table_export(self, test_csv_io_table) -> None:
     #     """Test loading and managing a csv Input Output file."""
     #     assert test_csv_io_table.sectors.tail().index[0] == "CPA_R93"
-    #     assert len(test_ons_io_table.sectors) == 105
+    #     assert len(ons_cpa_io_table.sectors) == 105
     #     assert (
-    #         test_ons_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+    #         ons_cpa_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
     #         == 1.512743278316663e-06
     #     )
 
-    # def test_aggregated_sectors_dict(self, test_ons_io_table) -> None:
+    # def test_aggregated_sectors_dict(self, ons_cpa_io_table) -> None:
     #     """Test creating a dictionay to aggregate sectors."""
     #     TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
     #     sectors_aggregated: AggregatedSectorDictType = (
-    #         test_ons_io_table._aggregated_sectors_dict()
+    #         ons_cpa_io_table._aggregated_sectors_dict()
     #     )
     #     assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
-    # def test_ons_cvs_table_aggregation(self, test_ons_io_table) -> None:
+    # def test_ons_cvs_table_aggregation(self, ons_cpa_io_table) -> None:
     #     """Test loading and manaing an csv Input Output excel file."""
     #     FIN_REAL_IO: float = 29562.858422906436
-    #     aggregated_io_table: DataFrame = test_ons_io_table.get_aggregated_io_table()
+    #     aggregated_io_table: DataFrame = ons_cpa_io_table.get_aggregated_io_table()
     #     assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
 

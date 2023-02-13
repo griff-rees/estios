@@ -41,13 +41,16 @@ from .calc import (
     regional_io_projection,
     technical_coefficients,
     x_i_mn_summed,
+    X_m,
 )
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
     IMPORTS_COLUMN_NAME,
     IO_TABLE_SCALING,
-    TOTAL_PRODUCTION_COLUMN_NAME,
+    GROSS_VALUE_ADDED_INDEX_NAME,
     UK_EXPORT_COLUMN_NAMES,
+    NET_SUBSIDIES_COLUMN_NAME,
+    TOTAL_PRODUCTION_INDEX_NAME,
     InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
@@ -97,7 +100,7 @@ DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
 NamesListType = Union[list[str], Collection[str]]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class InterRegionInputOutputBaseClass:
 
     """Bass attributes for InputOutput Model and TimeSeries.
@@ -131,13 +134,15 @@ class InterRegionInputOutputBaseClass:
         default_factory=lambda: UK_EXPORT_COLUMN_NAMES
     )
     imports_column_name: str = IMPORTS_COLUMN_NAME
-    total_production_column_name: str = TOTAL_PRODUCTION_COLUMN_NAME
+    total_production_index_name: str = TOTAL_PRODUCTION_INDEX_NAME
     raw_national_employment: Optional[DataFrame | Series] = None
     national_employment: Optional[Series] = None
     national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
     io_table_scale: float = IO_TABLE_SCALING
     national_population: Optional[float] = None
     national_working_population: Optional[float] = None
+    national_gva_row_name: str = GROSS_VALUE_ADDED_INDEX_NAME
+    national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
     regional_populations: Optional[Series] = None
     regional_working_populations: Optional[Series] = None
     regional_employment: Optional[DataFrame] = None
@@ -145,6 +150,24 @@ class InterRegionInputOutputBaseClass:
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _exogenous_i_m_func: Callable[..., Series] = region_and_sector_convergence
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
+
+    @property
+    def national_gva(self) -> Series:
+        """Return Series of National GVA"""
+        return self.io_table.loc[self.national_gva_row_name, self.sectors]
+
+    @property
+    def national_net_subsidies(self) -> Series:
+        """Return Series of National GVA"""
+        return self.io_table.loc[self.national_net_subsidies_row_name, self.sectors]
+
+    @property
+    def national_X_m(self) -> Series:
+        return X_m(
+            base_io_table=self.base_io_table,
+            gva=self.national_gva,
+            net_subsidies=self.national_net_subsidies,
+        ).astype('float64')
 
     @property
     def region_names(self) -> list[str]:
@@ -182,7 +205,7 @@ class MissingIOTable(Exception):
     pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     """Manage Inter Region input output model runs.
@@ -431,19 +454,19 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def X_i_m(self) -> DataFrame:
-        """Return the total production of sector 𝑚 in region 𝑖and cache results.
+        """Return the total production of sector $m$ in region $i$ and cache results.
 
         $X_i^m = X_*^m * Q_i^m/Q_*^m$
         """
         return X_i_m(
-            total_sales=self.io_table[self.sectors].loc["Total Sales"],
+            total_production=self.io_table[self.sectors].loc["Total Sales"],
             employment=self.employment_table,
             national_employment=self.national_employment,
         ).astype("float64")
 
     @cached_property
     def M_i_m(self) -> DataFrame:
-        """Return the imports of sector 𝑚 in region 𝑖and cache results.
+        """Return the imports of sector $m$ in region $i$ and cache results.
 
         $M_i^m = M_*^m * Q_i^m/Q_*^m$
         """
@@ -455,7 +478,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def F_i_m(self) -> DataFrame:
-        """Return the final demand of sector 𝑚 in region 𝑖and cache results.
+        """Return the final demand of sector $m$ in region $i$ and cache results.
 
         $F_i^m = F_*^m * Q_i^m/Q_*^m$
         """
@@ -469,7 +492,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def E_i_m(self) -> DataFrame:
-        """Return the exports of sector 𝑚 in region 𝑖and cache results.
+        """Return the exports of sector $m$ in region $i$ and cache results.
 
         $E_i^m = E_*^m * Q_i^m/Q_*^m$
         """
@@ -493,7 +516,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def x_i_mn_summed(self) -> DataFrame:
-        """Return sum of all total demands for good 𝑚 in region 𝑖.
+        """Return sum of all total demands for good $m$ in region $i$.
 
         Equation 1:
         $x_i^{mn} = a_i^{mn}X_i^n$
