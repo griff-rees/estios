@@ -5,7 +5,7 @@ import pytest
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from estios.calc import calc_ratio, calc_region_distances, X_m
+from estios.calc import X_m, calc_ratio, calc_region_distances
 
 
 def test_3_city_distances(three_cities_io) -> None:
@@ -29,12 +29,12 @@ def test_3_city_distances(three_cities_io) -> None:
 
 
 def test_X_national(three_cities_io, correct_uk_ons_X_m_national) -> None:
-    """Test projecting """
+    """Test projecting"""
     national_X_m: Series = X_m(
         base_io_table=three_cities_io.base_io_table,
         gva=three_cities_io.national_gva,
         net_subsidies=three_cities_io.national_net_subsidies,
-    ).astype('float64')
+    ).astype("float64")
     assert_series_equal(national_X_m, correct_uk_ons_X_m_national)
 
 

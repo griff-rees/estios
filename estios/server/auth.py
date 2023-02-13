@@ -36,7 +36,6 @@ DB_PATH: Final[DBPathType] = "users_db.json"
 
 @dataclass
 class AuthDB:
-
     json_db_path: DBPathType = DB_PATH
     users_key: str = "users"
     # manager = LoginManager(SECRET, '/login')

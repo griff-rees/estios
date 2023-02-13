@@ -63,7 +63,6 @@ def ons_2018_years() -> list[int]:
 
 
 class TestLoadingCentreForCitiesData:
-
     SECTION_OF_COLUMNS: tuple[str, ...] = (
         "Commuting by Bicycle 2001  (%)",
         "Commuting by Bicycle 2011  (%)",

@@ -59,7 +59,6 @@ def load_contemporary_ons_population(
 
 @dataclass
 class PrimaryUrbanArea(Region):
-
     local_authorities: RegionsManager = RegionsManager()
 
     def __str__(self) -> str:

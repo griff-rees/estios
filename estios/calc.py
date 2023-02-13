@@ -52,7 +52,7 @@ def X_m(
     $X*_m = O*_m + G*_m + S*_m$
 
     $O*_m$: national output of sector $m$ at base prince
-    $G*_m$: national Gross Value added of sector $m$ 
+    $G*_m$: national Gross Value added of sector $m$
     $S*_m$: national net subsidies of sector $m$
     """
     return base_io_table.sum() + gva + net_subsidies

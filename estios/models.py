@@ -34,6 +34,7 @@ from .calc import (
     F_i_m,
     M_i_m,
     X_i_m,
+    X_m,
     calc_region_distances,
     generate_e_m_dataframe,
     import_export_convergence,
@@ -41,16 +42,15 @@ from .calc import (
     regional_io_projection,
     technical_coefficients,
     x_i_mn_summed,
-    X_m,
 )
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
+    GROSS_VALUE_ADDED_INDEX_NAME,
     IMPORTS_COLUMN_NAME,
     IO_TABLE_SCALING,
-    GROSS_VALUE_ADDED_INDEX_NAME,
-    UK_EXPORT_COLUMN_NAMES,
     NET_SUBSIDIES_COLUMN_NAME,
     TOTAL_PRODUCTION_INDEX_NAME,
+    UK_EXPORT_COLUMN_NAMES,
     InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
@@ -152,24 +152,6 @@ class InterRegionInputOutputBaseClass:
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
 
     @property
-    def national_gva(self) -> Series:
-        """Return Series of National GVA"""
-        return self.io_table.loc[self.national_gva_row_name, self.sectors]
-
-    @property
-    def national_net_subsidies(self) -> Series:
-        """Return Series of National GVA"""
-        return self.io_table.loc[self.national_net_subsidies_row_name, self.sectors]
-
-    @property
-    def national_X_m(self) -> Series:
-        return X_m(
-            base_io_table=self.base_io_table,
-            gva=self.national_gva,
-            net_subsidies=self.national_net_subsidies,
-        ).astype('float64')
-
-    @property
     def region_names(self) -> list[str]:
         """Return the region names."""
         if isinstance(self.regions, dict):
@@ -232,6 +214,24 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     _region_load_func: Callable[
         ..., GeoDataFrame
     ] = load_and_join_centre_for_cities_data
+
+    @property
+    def national_gva(self) -> Series:
+        """Return Series of National GVA"""
+        return self.io_table.loc[self.national_gva_row_name, self.sectors]
+
+    @property
+    def national_net_subsidies(self) -> Series:
+        """Return Series of National GVA"""
+        return self.io_table.loc[self.national_net_subsidies_row_name, self.sectors]
+
+    @property
+    def national_X_m(self) -> Series:
+        return X_m(
+            base_io_table=self.base_io_table,
+            gva=self.national_gva,
+            net_subsidies=self.national_net_subsidies,
+        ).astype("float64")
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run.

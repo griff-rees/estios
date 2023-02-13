@@ -148,7 +148,6 @@ class AgeProjectionsNotSet(Exception):
 
 @dataclass
 class PopulationProjection:
-
     years: list[int] = field(default_factory=list)
     regions: Sequence[str] = field(default_factory=list)
     age_projections: Optional[DataFrame] = None

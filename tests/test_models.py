@@ -66,14 +66,11 @@ class TestInputOutputModel:
         )
         # CORRECT_X_m_national.index.name = "Area"
         assert_series_equal(
-            CORRECT_national_employment,
-            three_cities_results.national_employment
+            CORRECT_national_employment, three_cities_results.national_employment
         )
         assert_series_equal(
-            correct_uk_ons_X_m_national,
-            three_cities_results.national_X_m
+            correct_uk_ons_X_m_national, three_cities_results.national_X_m
         )
-
 
     def test_3_city_singly_constrained(self, three_cities_results) -> None:
         CORRECT_Q_i_m = [

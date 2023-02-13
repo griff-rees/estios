@@ -128,11 +128,12 @@ def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
 def pop_recent() -> DataFrame:
     return load_contemporary_ons_population()
 
+
 @pytest.fixture
 def correct_uk_ons_X_m_national(three_cities_io) -> Series:
     return Series(
         [
-             272997328683.096,
+            272997328683.096,
             5564510362211.610,
             2953222552470.090,
             6052276697689.360,

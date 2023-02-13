@@ -19,7 +19,6 @@ LA_CODES_COLUMN: Final[str] = "la_codes"
 
 @dataclass
 class Region:
-
     name: str
     code: str | None
     geography_type: str | None
@@ -116,7 +115,6 @@ def sum_for_regions_by_la_code(
 
 @dataclass
 class SpatialInteractionBaseClass:
-
     # beta: float
     distances: GeoDataFrame
     employment: DataFrame
@@ -170,7 +168,6 @@ class SpatialInteractionBaseClass:
 
 @dataclass
 class AttractionConstrained(SpatialInteractionBaseClass):
-
     beta: float = 0.0002
     constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
 
@@ -210,7 +207,6 @@ class AttractionConstrained(SpatialInteractionBaseClass):
 
 @dataclass
 class DoublyConstrained(SpatialInteractionBaseClass):
-
     beta: float = 0.0002
     constrained_column_name: str = "B_j^m * Q_i^m * exp(-β c_{ij})"
 

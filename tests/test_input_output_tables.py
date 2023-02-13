@@ -8,7 +8,6 @@ from pandas import DataFrame
 from estios.input_output_tables import (
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
-    InputOutputCPATable,
     InputOutputTable,
     load_employment_by_region_and_sector_csv,
     load_io_table_csv,
@@ -36,7 +35,7 @@ class TestLoadingONSIOTableData:
         io_2017: DataFrame = load_io_table_excel()
         assert "Taxes less subsidies on production" in io_2017.index
 
-    def ons_cpa_io_table_export(self, test_ons_io_table) -> None:
+    def ons_cpa_io_table_export(self, ons_cpa_io_table) -> None:
         """Test loading and managing an ONS Input Output excel file."""
         assert ons_cpa_io_table.sectors.tail().index[0] == "CPA_R93"
         assert len(ons_cpa_io_table.sectors) == 105
@@ -53,7 +52,7 @@ class TestLoadingONSIOTableData:
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
-    def ons_cpa_io_table_aggregation(self, test_ons_io_table) -> None:
+    def ons_cpa_io_table_aggregation(self, ons_cpa_io_table) -> None:
         """Test loading and manaing an ONS Input Output excel file."""
         FIN_REAL_IO: float = 29562.858422906436
         aggregated_io_table: DataFrame = ons_cpa_io_table.get_aggregated_io_table()
@@ -131,7 +130,6 @@ THREE_CITY_REGIONS: dict[str, str] = {
 
 
 class TestLoadingEmploymentData:
-
     DATE_1997: str = "1997-03-01"
     DATE_2021: str = "2021-06-01"
     GREATER_MANCHESTER: str = "combauth:Greater Manchester"

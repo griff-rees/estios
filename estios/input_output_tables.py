@@ -45,7 +45,9 @@ INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's pri
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 GROSS_CAPITAL_FORMATION_COLUMN_NAME: Final[str] = "Gross fixed capital formation"
 INVENTORY_CHANGE_COLUMN_NAME: Final[str] = "changes in inventories"
-ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: Final[str] = "Acquisitions less disposals of valuables"
+ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: Final[
+    str
+] = "Acquisitions less disposals of valuables"
 
 UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
     "columns": {
@@ -56,8 +58,8 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
         "Exports outside EU": "P61RW",
         "Exports of services": "P62",
         GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
-        INVENTORY_CHANGE_COLUMN_NAME:	"P52",
-        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME:	"P53",
+        INVENTORY_CHANGE_COLUMN_NAME: "P52",
+        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
         TOTAL_OUTPUT_COLUMN_NAME: "TD",
     },
     "rows": {
