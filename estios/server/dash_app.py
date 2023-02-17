@@ -163,7 +163,7 @@ def get_dash_app(
     font_config: FontConfig = FontConfig(),
     **kwargs,
 ) -> Dash:
-    if input_output_ts.is_calculated:
+    if not input_output_ts.is_calculated:
         logger.warning(
             "Running all InputOutput models due to no provided cached results"
         )
