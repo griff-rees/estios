@@ -3,15 +3,18 @@
 
 from collections import Counter, OrderedDict
 from datetime import date, datetime
+from functools import wraps
 from logging import getLogger
 from typing import (
     Any,
+    Callable,
     Final,
     Generator,
     Hashable,
     Iterable,
     Optional,
     Sequence,
+    Type,
     TypeAlias,
     Union,
 )
@@ -308,6 +311,76 @@ def sum_by_rows_cols(
         * Check if the index parameter should be a str or should use iloc.
     """
     return df.loc[rows][columns].sum()
+
+
+def ordered_iter_overlaps(
+    iter_a: Iterable, iter_b: Iterable
+) -> Generator[Any, None, None]:
+    return (x for x, y in zip(iter_a, iter_b) if x == y)
+
+
+def filter_df_by_strs_or_sequences(
+    rows: str | Sequence[str], columns: str | Sequence[str], df: DataFrame
+) -> Sequence:
+    if isinstance(rows, str):
+        rows = [rows]
+    if isinstance(columns, str):
+        columns = [columns]
+    return df.loc[rows, columns]
+
+
+def ensure_type(
+    var: Any,
+    types_to_ensure: Type,
+    type_ensurer: Callable[[Any], Type],
+) -> Any:
+    """Wrap var in type_ensured if var is a str."""
+    if not isinstance(var, types_to_ensure):
+        return type_ensurer(var)
+    else:
+        return var
+
+
+def ensure_series(
+    var: str | Sequence[Any] | Series | DataFrame,
+) -> Series:
+    return ensure_type(var, Series, Series)
+
+
+def wrap_as_series(
+    *args: str | Sequence[str] | dict[str, Any],
+):
+    """Ensure any str vars passed to *args are wrapped in lists."""
+
+    def callable_wrapper(func: Callable):
+        @wraps(func)
+        def ensure_str_wrapped_in_list(*func_args, **kwargs) -> Series:
+            args_list = list(func_args)
+            for i, arg in enumerate(args):
+                if arg in kwargs:
+                    kwargs[arg] = ensure_series(kwargs[arg])  # type: ignore
+                else:
+                    args_list[i] = ensure_series(args[i])
+            return func(*args_list, **kwargs)
+
+        return ensure_str_wrapped_in_list
+
+    return callable_wrapper
+
+
+def ensure_dtype(series_or_df: Series | DataFrame, dtype: str) -> Series | DataFrame:
+    return series_or_df.astype(dtype)
+
+
+def dtype_wrapper(final_type: str):
+    def callable_wrapper(func: Callable):
+        @wraps(func)
+        def ensure_dtype_wrapper(*args, **kwargs) -> Series | DataFrame:
+            return func(*args, **kwargs).astype(final_type)
+
+        return ensure_dtype_wrapper
+
+    return callable_wrapper
 
 
 # def y_ij_m_to_networkx(y_ij_m_results: Series,

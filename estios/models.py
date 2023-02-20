@@ -17,6 +17,7 @@ from typing import (
     Iterator,
     Optional,
     Type,
+    TypeAlias,
     Union,
     overload,
 )
@@ -30,13 +31,16 @@ from .calc import (
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
     DISTANCE_UNIT_DIVIDE,
     INITIAL_P,
-    E_i_m,
-    F_i_m,
-    M_i_m,
-    X_i_m,
+    E_i_m_scaled,
+    F_i_m_scaled,
+    I_m,
+    M_i_m_scaled,
+    S_m,
+    X_i_m_scaled,
     X_m,
     calc_region_distances,
     generate_e_m_dataframe,
+    gross_value_added,
     import_export_convergence,
     region_and_sector_convergence,
     regional_io_projection,
@@ -98,6 +102,7 @@ DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
 }
 
 NamesListType = Union[list[str], Collection[str]]
+DateType: TypeAlias = date
 
 
 @dataclass(kw_only=True)
@@ -125,7 +130,7 @@ class InterRegionInputOutputBaseClass:
     )
     P_initial_export_proportion: float = INITIAL_P
 
-    date: Optional[date] = None
+    date: Optional[DateType] = None
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     final_demand_column_names: list[str] = field(
         default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
@@ -143,6 +148,9 @@ class InterRegionInputOutputBaseClass:
     national_working_population: Optional[float] = None
     national_gva_row_name: str = GROSS_VALUE_ADDED_INDEX_NAME
     national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
+    national_gov_investment_column_names: tuple[
+        str, ...
+    ] = ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
     regional_populations: Optional[Series] = None
     regional_working_populations: Optional[Series] = None
     regional_employment: Optional[DataFrame] = None
@@ -214,24 +222,6 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     _region_load_func: Callable[
         ..., GeoDataFrame
     ] = load_and_join_centre_for_cities_data
-
-    @property
-    def national_gva(self) -> Series:
-        """Return Series of National GVA"""
-        return self.io_table.loc[self.national_gva_row_name, self.sectors]
-
-    @property
-    def national_net_subsidies(self) -> Series:
-        """Return Series of National GVA"""
-        return self.io_table.loc[self.national_net_subsidies_row_name, self.sectors]
-
-    @property
-    def national_X_m(self) -> Series:
-        return X_m(
-            base_io_table=self.base_io_table,
-            gva=self.national_gva,
-            net_subsidies=self.national_net_subsidies,
-        ).astype("float64")
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run.
@@ -312,7 +302,10 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def year(self) -> int:
         """Return the year of the date attribute."""
         if self.date:
-            return self.date.year
+            if isinstance(self.date, DateType):
+                return self.date.year
+            elif isinstance(self.date, int):
+                return self.date
         else:
             logger.warning(
                 f"Date not set, falling back to employment_date: {self.employment_date}."
@@ -419,7 +412,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def base_io_table(self) -> DataFrame:
-        return self.io_table[self.sectors].loc[self.sectors]
+        return self.io_table.loc[self.sectors, self.sectors]
 
     @cached_property
     def technical_coefficients(self) -> DataFrame:
@@ -453,24 +446,12 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             )
 
     @cached_property
-    def X_i_m(self) -> DataFrame:
-        """Return the total production of sector $m$ in region $i$ and cache results.
-
-        $X_i^m = X_*^m * Q_i^m/Q_*^m$
-        """
-        return X_i_m(
-            total_production=self.io_table[self.sectors].loc["Total Sales"],
-            employment=self.employment_table,
-            national_employment=self.national_employment,
-        ).astype("float64")
-
-    @cached_property
     def M_i_m(self) -> DataFrame:
         """Return the imports of sector $m$ in region $i$ and cache results.
 
         $M_i^m = M_*^m * Q_i^m/Q_*^m$
         """
-        return M_i_m(
+        return M_i_m_scaled(
             imports=self.io_table[self.sectors].loc["Imports"],
             employment=self.employment_table,
             national_employment=self.national_employment,
@@ -482,7 +463,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         $F_i^m = F_*^m * Q_i^m/Q_*^m$
         """
-        return F_i_m(
+        return F_i_m_scaled(
             final_demand=self.io_table.loc[
                 self.sectors, self.final_demand_column_names
             ].sum(axis=1),
@@ -496,7 +477,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         $E_i^m = E_*^m * Q_i^m/Q_*^m$
         """
-        return E_i_m(
+        return E_i_m_scaled(
             exports=self.io_table.loc[self.sectors, self.export_column_names].sum(
                 axis=1
             ),
@@ -513,6 +494,54 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             self.regions,
             unit_divide_conversion=self.distance_unit_factor,
         )
+
+    @property
+    def S_m_national(self) -> Series:
+        return S_m(
+            full_io_table=self.io_table,
+            subsidy_row_names=self.national_net_subsidies_row_name,
+            sector_column_names=self.sector_names,
+        )
+
+    @property
+    def GVA_m_national(self) -> Series:
+        return gross_value_added(
+            full_io_table=self.io_table,
+            gva_row_names=self.national_gva_row_name,
+            sector_column_names=self.sector_names,
+        )
+
+    @property
+    def I_m_national(self) -> Series:
+        return I_m(
+            full_io_table=self.io_table,
+            investment_column_names=self.national_gov_investment_column_names,
+            sector_row_names=self.sector_names,
+        )
+
+    @property
+    def X_m_national(self) -> Series:
+        """Return national $X_m$: aggregate input of $m$ + $G_i$ + $S_i$."""
+        return X_m(
+            full_io_table=self.io_table,
+            gva=self.GVA_m_national,
+            net_subsidies=self.S_m_national,
+        )
+
+    @cached_property
+    def X_i_m(self) -> DataFrame:
+        """Return the total production of sector $m$ in region $i$ and cache results.
+
+        $X_i^m = X_*^m * Q_i^m/Q_*^m$
+
+        Todo:
+            * At least check the "Total Sale" column specified.
+        """
+        return X_i_m_scaled(
+            total_production=self.io_table[self.sectors].loc["Total Sales"],
+            employment=self.employment_table,
+            national_employment=self.national_employment,
+        ).astype("float64")
 
     @cached_property
     def x_i_mn_summed(self) -> DataFrame:

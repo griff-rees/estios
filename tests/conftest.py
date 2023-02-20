@@ -146,3 +146,80 @@ def correct_uk_ons_X_m_national(three_cities_io) -> Series:
         ],
         index=three_cities_io.sectors,
     )
+
+
+@pytest.fixture
+def correct_uk_ons_I_m_national(three_cities_io) -> Series:
+    return Series(
+        [
+            11829310350.839594,
+            234754157531.46796,
+            1623614765544.0493,
+            125750040000.00002,
+            394630091779.0043,
+            0.0,
+            86780010000.0,
+            415841120000.0001,
+            11130020000.0,
+            -4360010000.0,
+        ],
+        index=three_cities_io.sectors,
+    )
+
+
+@pytest.fixture
+def correct_uk_ons_S_m_national(three_cities_io) -> Series:
+    return Series(
+        [
+            5219879538.987354,
+            48726630179.360085,
+            65923156176.74704,
+            109917023800.91006,
+            5657846676.360364,
+            126155859356.99503,
+            15693516329.211025,
+            21591371070.04223,
+            173752907187.63373,
+            21733979683.75351,
+        ],
+        index=three_cities_io.sectors,
+    )
+
+
+@pytest.fixture
+def correct_uk_gva_2017(three_cities_io) -> Series:
+    return Series(
+        [
+            107415864611.57884,
+            2440789852881.2056,
+            1202628202044.299,
+            3390433769651.8784,
+            1131618902061.9211,
+            1162302626594.8616,
+            2597532933265.886,
+            2551229010509.971,
+            3229760696230.9946,
+            626388142147.4033,
+        ],
+        index=three_cities_io.sectors,
+    )
+
+
+@pytest.fixture
+def correct_uk_national_employment_2017(three_cities_io) -> Series:
+    return Series(
+        [
+            422000,
+            3129000,
+            2330000,
+            9036000,
+            1459000,
+            1114000,
+            589000,
+            6039000,
+            8756000,
+            1989000,
+        ],
+        dtype="int64",
+        index=three_cities_io.sectors,
+    )

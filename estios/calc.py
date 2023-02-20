@@ -1,15 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from functools import wraps
 from logging import getLogger
-from typing import Callable, Final, Iterable, Optional, Union
+from typing import Callable, Final, Iterable, Optional, Sequence, Union
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
 from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
 from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
-from .utils import CITY_COLUMN, OTHER_CITY_COLUMN, generate_i_m_index, generate_ij_index
+from .utils import (
+    CITY_COLUMN,
+    OTHER_CITY_COLUMN,
+    dtype_wrapper,
+    generate_i_m_index,
+    generate_ij_index,
+    ordered_iter_overlaps,
+    wrap_as_series,
+)
 
 logger = getLogger(__name__)
 
@@ -42,23 +51,7 @@ def technical_coefficients(
     return (io_matrix / final_output).astype("float64")
 
 
-def X_m(
-    base_io_table: DataFrame,
-    gva: Series,
-    net_subsidies: Series,
-) -> Series:
-    """Total national production of all sectors $m$.
-
-    $X*_m = O*_m + G*_m + S*_m$
-
-    $O*_m$: national output of sector $m$ at base prince
-    $G*_m$: national Gross Value added of sector $m$
-    $S*_m$: national net subsidies of sector $m$
-    """
-    return base_io_table.sum() + gva + net_subsidies
-
-
-def X_i_m(
+def X_i_m_scaled(
     total_production: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the total production of sector $m$ in region $i$ and cache results.
@@ -68,7 +61,7 @@ def X_i_m(
     return total_production * employment / national_employment
 
 
-def M_i_m(
+def M_i_m_scaled(
     imports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
     """Return the imports of sector $m$ in region $i$ and cache results.
@@ -78,27 +71,138 @@ def M_i_m(
     return imports * employment / national_employment
 
 
-def F_i_m(
+def F_i_m_scaled(
     final_demand: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the final demand of sector 𝑚 in region 𝑖and cache results.
+    """Return the final demand of sector $m$ in region $i$ and cache results.
 
     $F_i^m = F_*^m * Q_i^m/Q_*^m$
     """
     return final_demand * employment / national_employment
 
 
-def E_i_m(
+def E_i_m_scaled(
     exports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the final demand of sector 𝑚 in region 𝑖and cache results.
+    """Return the final demand of sector $m$ in region $i$ and cache results.
 
     $E_i^m = E_*^m * Q_i^m/Q_*^m$
     """
     return exports * employment / national_employment
 
 
-def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
+class InputOutputBaseException(Exception):
+    ...
+
+
+def infer_sector_names(
+    io_table_var: str = "full_io_table", sector_var: str = "sector_names"
+):
+    """If `sector_names` parameter is null, infer from `full_io_table`.
+
+    Raises:
+        AssertionError: If `sector_names` is `None` and `columns` and
+            `index` are not equal.
+    """
+
+    def wrap_callable(func: Callable):
+        @wraps(func)
+        def wrapper_for_sector_names_calc(*args, **kwargs) -> Series:
+            if sector_var not in kwargs and not len(args) > 2:
+                io_table: DataFrame = (
+                    kwargs[io_table_var] if io_table_var in kwargs else args[0]
+                )
+                if io_table.columns.equals(io_table.index):
+                    logger.info(f"Inferring sectors from square {io_table_var}.")
+                    kwargs[sector_var] = io_table.index
+                elif set(io_table.index) & set(io_table.columns):
+                    logger.warning(
+                        f"Inferring sectors from overlap columns and rows in {io_table_var}."
+                    )
+                    kwargs[sector_var] = list(
+                        ordered_iter_overlaps(io_table.columns, io_table.index)
+                    )
+                    if not sector_var:
+                        raise InputOutputBaseException(
+                            f"No overlapping `column and index labels. Try specifying `{sector_var}`."
+                        )
+                else:
+                    raise InputOutputBaseException(
+                        f"`{sector_var}` not specified and ordered overlap of column and index labels."
+                    )
+            return func(*args, **kwargs)
+
+        return wrapper_for_sector_names_calc
+
+    return wrap_callable
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_names")
+@wrap_as_series("gva", "net_subsidies")
+def X_m(
+    full_io_table: DataFrame,
+    gva: Series,
+    net_subsidies: Series,
+    sector_names: Sequence[str] | None = None,
+) -> Series:
+    """Total national production of all sectors $m$.
+
+    $X*_m = O*_m + G*_m + S*_m$
+
+    $O*_m$: national output of sector $m$ at base prince
+    $G*_m$: national Gross Value added of sector $m$
+    $S*_m$: national net subsidies of sector $m$
+    """
+    return (
+        full_io_table.loc[sector_names, sector_names].sum()
+        + gva[sector_names]
+        + net_subsidies[sector_names]
+    )
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_column_names")
+@wrap_as_series(
+    "gva_row_names",
+)
+def gross_value_added(
+    full_io_table: DataFrame,
+    gva_row_names: Sequence[str] | str,
+    sector_column_names: Sequence[str],
+) -> Series:
+    """Aggregate Gross Value Added (GVA) summing `full_io_table` `gva_row_names`."""
+    return full_io_table.loc[gva_row_names, sector_column_names].sum("index")
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_column_names")
+@wrap_as_series("subsidy_row_names")
+def S_m(
+    full_io_table: DataFrame,
+    subsidy_row_names: Sequence[str],
+    sector_column_names: Sequence[str],
+) -> Series:
+    """Aggregate full_io_table rows for a passed set of investment sector columns."""
+    return full_io_table.loc[subsidy_row_names, sector_column_names].sum("index")
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_row_names")
+@wrap_as_series("investment_column_names")
+def I_m(
+    full_io_table: DataFrame,
+    investment_column_names: Sequence[str],
+    sector_row_names: Sequence[str],
+) -> Series:
+    """Aggregate full_io_table columns for a given set of investment sector column names."""
+    return full_io_table.loc[sector_row_names, investment_column_names].sum("columns")
+
+
+def x_i_mn_summed(
+    X_i_m: DataFrame,
+    technical_coefficients: DataFrame,
+) -> DataFrame:
     """Return sum of all total demands for good m in region i.
 
     Equation 1:
@@ -106,6 +210,9 @@ def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFr
 
     Equation 2:
         $X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{{a_i^{mn}X_i^n}}$
+
+    Todo:
+        * Determine if adding gva here would be helpful
     """
     return X_i_m.apply(
         lambda row: (row * technical_coefficients.T).sum(),

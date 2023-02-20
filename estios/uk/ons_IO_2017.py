@@ -11,6 +11,12 @@ from typing import Callable, Final, Union
 #  https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/supplyandusetables/datasets/ukinputoutputanalyticaltablesdetailed/2017/nasu1719pr.xlsx
 
 # Input-Ouput Table excel data file and configuration
+# UK_GOV_INVESTMENT_COLUMN_NAMES: Final[tuple[str, ...]] = ('P51G', 'P52', 'P53')
+UK_GOV_INVESTMENT_COLUMN_NAMES: Final[tuple[str, ...]] = (
+    "Gross fixed capital formation",
+    "changes in inventories",
+    "Acquisitions less disposals of valuables",
+)
 
 EXCEL_FILE_NAME: Final[PathLike] = Path("nasu1719pr.xlsx")
 FIRST_CODE_ROW: Final[int] = 1

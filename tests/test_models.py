@@ -47,30 +47,27 @@ class TestInputOutputModel:
     def test_3_city_singly_constrained_national_table(
         self,
         three_cities_results,
+        correct_uk_national_employment_2017,
         correct_uk_ons_X_m_national,
+        correct_uk_ons_I_m_national,
+        correct_uk_ons_S_m_national,
+        correct_uk_gva_2017,
     ) -> None:
-        CORRECT_national_employment = Series(
-            {
-                "Agriculture": 422000,
-                "Production": 3129000,
-                "Construction": 2330000,
-                "Distribution, transport, hotels and restaurants": 9036000,
-                "Information and communication": 1459000,
-                "Financial and insurance": 1114000,
-                "Real estate": 589000,
-                "Professional and support activities": 6039000,
-                "Government, health & education": 8756000,
-                "Other services": 1989000,
-            },
-            dtype="int64",
-        )
         # CORRECT_X_m_national.index.name = "Area"
         assert_series_equal(
-            CORRECT_national_employment, three_cities_results.national_employment
+            correct_uk_national_employment_2017,
+            three_cities_results.national_employment,
         )
         assert_series_equal(
-            correct_uk_ons_X_m_national, three_cities_results.national_X_m
+            correct_uk_ons_X_m_national, three_cities_results.X_m_national
         )
+        assert_series_equal(
+            correct_uk_ons_I_m_national, three_cities_results.I_m_national
+        )
+        assert_series_equal(
+            correct_uk_ons_S_m_national, three_cities_results.S_m_national
+        )
+        assert_series_equal(correct_uk_gva_2017, three_cities_results.GVA_m_national)
 
     def test_3_city_singly_constrained(self, three_cities_results) -> None:
         CORRECT_Q_i_m = [
