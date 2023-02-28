@@ -1,19 +1,19 @@
 # Economic Spatial Temporal Input-Output Systems: ESTIOS
 
-This package combines classic work on Input-Output economics[^leontif] on trade between different sectors with a flexibility of region types (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)), transport costs[^wilson] and changes over time.
+This package combines classic work on Input-Output economics[^leontif] to estimate trade between different different geographic regions (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)) and economic sectors, incorporating transport costs[^wilson] and extending to model changes over time.
 
-To begin we infer UK city Input-Output tables from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
+To begin we infer UK city trade from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
 
-This is a proof of concept and much more work is needed to reach the level of detail we would like. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/estios/issues/new)) are welcome.
+This is a proof of concept and much more work is needed. Suggestions and contributions (preferably GitHub [issues](https://github.com/griff-rees/estios/issues/new)) are welcome.
 
 ## Basic installation
 
-We use [geopandas](https://geopandas.org/en/stable/) and it will be necessary to install some system pacakges to manage this. [`GDAL`](https://gdal.org/) is often the main source of difficulty. Via `debian` `linux` distros you should be able to simply install the library without modificaitons. On `macOS` via [`homebrew`](https://formulae.brew.sh/formula/gdal) you can install that with
+We use [geopandas](https://geopandas.org/en/stable/) and it will be necessary to install some system pacakges to manage this. [`GDAL`](https://gdal.org/) is often the main source of difficulty. Via `debian` `linux` distributions you should be able to simply install the library without modificaitons. On `macOS` via [`homebrew`](https://formulae.brew.sh/formula/gdal) you can install that with
 
 ```console
 $ brew install gdal
 ```
-See [`fiona`](https://fiona.readthedocs.io/en/latest/README.html#installation) and [geopandas documentation](https://geopandas.org/en/stable/getting_started/install.html#installing-with-pip) for more information, and feel free to raise a ticket.
+See [`fiona`](https://fiona.readthedocs.io/en/latest/README.html#installation) and [geopandas documentation](https://geopandas.org/en/stable/getting_started/install.html#installing-with-pip) for more information.
 
 We use `pyproject.toml` with `poetry` to manage [dependencies](https://python-poetry.org/docs/dependency-specification/).
 
@@ -45,6 +45,27 @@ INFO:     Uvicorn running on http://127.0.0.1:8090 (Press CTRL+C to quit)
 is printed in the terminal.
 
 > *Note:* Without `--no-auth` a login dropdown will appear prior to the visualisation. This provides a very thin layer of security to ease testing prior to a public release. Usernames and passwords are managed in a `json` file (by default `user_db.json`). Documentation on that (and much more) to come.
+
+# Copyright
+
+## Software
+
+Copyright 2022 The Alan Turing Institute, British Library Board, Queen Mary University of London, University of Exeter, University of East Anglia and University of Cambridge.
+
+See [LICENSE](LICENSE) for more details.
+
+## Data
+
+This repo contains and uses data from the UK Office of National Statistics under the [Open Governance License](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/) and the [Organisation for Economic Co-operation and Development (OECD)](https://www.oecd.org/termsandconditions/)
+
+# Funding and Acknowledgements
+
+This software has been developed as part of two UK Research and Innovation (UKRI) Strategic Priorities Funded projects:
+
+- [AI for Science and Governance (ASG)](https://www.turing.ac.uk/research/asg), specifically Wave 1 of ASG under the Engineering and Physical Sciences Research Council (EPSRC), specifically the *Digital Twins: Urban Analytics* theme. Grant reference: EP/W006022/1 
+- [Living with Machines](https://livingwithmachines.ac.uk), funded under the Arts and Humanities Research Council (AHRC), with The Alan Turing Institute, the British Library and the Universities of Cambridge, East Anglia, Exeter, and Queen Mary University of London. Grant reference: AH/S01179X/1
+
+We are greatful for the extensive advice and support from colleagues across both projects.
 
 [^leontif]: Leontief, Wassily. Input-Output Economics. Oxford, UNITED STATES: Oxford University Press, Incorporated, 1986. http://ebookcentral.proquest.com/lib/manchester/detail.action?docID=4701165.
 
