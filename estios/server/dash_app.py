@@ -22,7 +22,7 @@ from starlette.middleware.wsgi import WSGIMiddleware
 
 from ..models import InterRegionInputOutputTimeSeries
 from ..temporal import date_io_time_series
-from ..uk.employment import (
+from ..uk.ons_employment_2017 import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
     CONFIG_2015_TO_2017_QUARTERLY,

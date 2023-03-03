@@ -4,25 +4,40 @@
 
 import pytest
 from pandas import DataFrame
+from pandas.testing import assert_frame_equal
+from pymrio import MRIOMetaData
 
-from estios.input_output_tables import (
+from estios.input_output_tables import (  # load_io_table_csv,; load_io_table_excel,
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
+    InputOutputCPATable,
     InputOutputTable,
+    InputOutputTableOECD,
+    _pymrio_download_wrapper,
+)
+from estios.sources import DOI_URL_PREFIX, AutoDownloadPermissionError
+from estios.uk import io_table_1841
+from estios.uk.input_output_tables import InputOutputTableUK1841, InputOutputTableUK2017
+from estios.uk.ons_employment_2017 import (
+    CITY_SECTOR_REGION_PREFIX,
     load_employment_by_region_and_sector_csv,
-    load_io_table_csv,
-    load_io_table_excel,
     load_region_employment_excel,
 )
-from estios.sources import DOI_URL_PREFIX
-from estios.uk import io_table_1841
-from estios.uk.employment import CITY_SECTOR_REGION_PREFIX
 from estios.utils import aggregate_rows, filter_by_region_name_and_type
+
+# from pymrio import IOSystem, download_oecd, parse_oecd, MRIOMetaData
 
 
 @pytest.fixture
-def test_csv_io_table() -> InputOutputTable:
-    return InputOutputTable()
+def ons_io_2017_table() -> InputOutputCPATable | InputOutputTableUK2017:
+    # return InputOutputUK2017.load_from_file()
+    return InputOutputTableUK2017()
+
+
+@pytest.fixture
+def io_1841_table() -> InputOutputTable:
+    # return InputOutputUK1841.load_from_file()
+    return InputOutputTableUK1841()
 
 
 FINANCIAL_AGG: str = "Financial and insurance"
@@ -30,32 +45,42 @@ REAL_EST_AGG: str = "Real estate"
 
 
 class TestLoadingONSIOTableData:
-    def test_load_ons_io_table(self) -> None:
-        """Test loading a UK 2017 economic input-outpute table."""
-        io_2017: DataFrame = load_io_table_excel()
-        assert "Taxes less subsidies on production" in io_2017.index
 
-    def ons_cpa_io_table_export(self, ons_cpa_io_table) -> None:
-        """Test loading and managing an ONS Input Output excel file."""
-        assert ons_cpa_io_table.sectors.tail().index[0] == "CPA_R93"
-        assert len(ons_cpa_io_table.sectors) == 105
+    """Test loading and manipulating an InputOutputCPATable from ONS data."""
+
+    def test_repr(self, ons_io_2017_table) -> None:
+        """Test correct repr format."""
+        assert repr(ons_io_2017_table) == "InputOutputTableUK2017(sectors_count=105)"
+
+    def test_load_ons_io_2017_table(self, ons_io_2017_table) -> None:
+        """Test loading a UK 2017 economic input-outpute table."""
+        # io_2017: DataFrame = load_io_table_excel()
         assert (
-            ons_cpa_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+            "Taxes less subsidies on production"
+            in ons_io_2017_table.full_io_table.index
+        )
+
+    def ons_io_2017_table_export(self, ons_io_2017_table) -> None:
+        """Test loading and managing an ONS Input Output excel file."""
+        assert ons_io_2017_table.sectors.tail().index[0] == "CPA_R93"
+        assert len(ons_io_2017_table.sectors) == 105
+        assert (
+            ons_io_2017_table.code_io_table.loc["CPA_A02", "CPA_C101"]
             == 1.512743278316663e-06
         )
 
-    def test_aggregated_sectors_dict(self, ons_cpa_io_table) -> None:
+    def test_aggregated_sectors_dict(self, ons_io_2017_table) -> None:
         """Test creating a dictionay to aggregate sectors."""
         TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
         sectors_aggregated: AggregatedSectorDictType = (
-            ons_cpa_io_table._aggregated_sectors_dict
+            ons_io_2017_table._aggregated_sectors_dict
         )
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
-    def ons_cpa_io_table_aggregation(self, ons_cpa_io_table) -> None:
+    def test_ons_io_2017_table_aggregation(self, ons_io_2017_table) -> None:
         """Test loading and manaing an ONS Input Output excel file."""
         FIN_REAL_IO: float = 29562.858422906436
-        aggregated_io_table: DataFrame = ons_cpa_io_table.get_aggregated_io_table()
+        aggregated_io_table: DataFrame = ons_io_2017_table.get_aggregated_io_table()
         assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
     @pytest.mark.xfail(reason="requires an external data file")
@@ -63,34 +88,101 @@ class TestLoadingONSIOTableData:
         """Test loading 2015 IO table data."""
         io_2015: DataFrame = load_io_table_excel("data/2015detailedioatsbb18(1).xls")
 
+    # def ons_cpa_io_table_export(self, ons_io_2017_table) -> None:
+    #     """Test loading and managing an ONS Input Output excel file."""
+    #     assert ons_io_2017_table.sectors.tail().index[0] == "CPA_R93"
+    #     assert len(ons_io_2017_table.sectors) == 105
+    #     assert (
+    #         ons_io_2017_table.code_io_table.loc["CPA_A02", "CPA_C101"]
+    #         == 1.512743278316663e-06
+    #     )
+
+    # def test_aggregated_sectors_dict(self, ons_io_2017_table) -> None:
+    #     """Test creating a dictionay to aggregate sectors."""
+    #     TEST_SECTORS: list[str] = ["CPA_K64", "CPA_K65.1-2 & K65.3", "CPA_K66"]
+    #     sectors_aggregated: AggregatedSectorDictType = (
+    #         ons_io_2017_table._aggregated_sectors_dict
+    #     )
+    #     assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
+
+    # def ons_io_2017_table_aggregation(self, ons_io_2017_table) -> None:
+    #     """Test loading and manaing an ONS Input Output excel file."""
+    #     FIN_REAL_IO: float = 29562.858422906436
+    #     aggregated_io_table: DataFrame = ons_io_2017_table.get_aggregated_io_table()
+
 
 class TestLoadingCSVIOTable:
-    def test_load_cvs_io_table(self) -> None:
-        """Test loading a csv UK 1849 economic input-outpute table"""
-        io_2014: DataFrame = load_io_table_csv()
-        assert "Value added" in io_2014.index
-        assert "Total" in io_2014.index
-        assert "Total" in io_2014.columns
 
-    def test_csv_io_table_meta_data(self, test_csv_io_table) -> None:
-        """Test loading meta data for io table source.
+    """Test loading a csv for an InputOutputTable.
 
-        Table from An input-output table for 1841 by
-        SARA HORRELL, JANE HUMPHRIES, MARTIN WEALE
-        in The Economic History Review, August 1994 see:
-        https://doi.org/10.1111/j.1468-0289.1994.tb01390.x
-        """
-        assert test_csv_io_table.meta_data.name == io_table_1841.NAME
-        assert test_csv_io_table.meta_data.year == io_table_1841.YEAR
-        assert test_csv_io_table.meta_data.region == io_table_1841.REGION
-        assert test_csv_io_table.meta_data.authors == io_table_1841.AUTHORS
-        assert test_csv_io_table.meta_data.doi == io_table_1841.DOI
-        assert test_csv_io_table.meta_data.url == DOI_URL_PREFIX + io_table_1841.DOI
+    Table from An input-output table for 1841 by
+    SARA HORRELL, JANE HUMPHRIES, MARTIN WEALE
+    in The Economic History Review, August 1994 see:
+    https://doi.org/10.1111/j.1468-0289.1994.tb01390.x
+    """
+
+    empty_column: str = "Unnamed: 21"
 
     # def test_csv_io_table_export(self, test_csv_io_table) -> None:
     #     """Test loading and managing a csv Input Output file."""
     #     assert test_csv_io_table.sectors.tail().index[0] == "CPA_R93"
     #     assert len(ons_cpa_io_table.sectors) == 105
+
+    def test_load_cvs_io_table(self, io_1841_table) -> None:
+        """Test default `load_io_table_csv()`."""
+        assert self.empty_column in io_1841_table.raw_io_table.columns
+        assert set(io_table_1841.HISTORIC_UK_SECTORS).issubset(
+            io_1841_table.raw_io_table.columns
+        )
+        assert set(io_table_1841.HISTORIC_UK_SECTORS).issubset(
+            io_1841_table.raw_io_table.index
+        )
+        assert "Value added" in io_1841_table.full_io_table.index
+        assert "Total" in io_1841_table.full_io_table.index
+        assert self.empty_column not in io_1841_table.full_io_table.columns
+        assert set(io_table_1841.HISTORIC_UK_SECTORS).issubset(
+            io_1841_table.full_io_table.columns
+        )
+        assert set(io_table_1841.HISTORIC_UK_SECTORS).issubset(
+            io_1841_table.full_io_table.index
+        )
+        assert io_1841_table.all_sectors == io_table_1841.HISTORIC_UK_SECTORS
+        assert io_1841_table.all_regions == ("UK",)
+
+    def test_1841_io_table_meta_data(self, io_1841_table) -> None:
+        """Test loading meta data."""
+        assert io_1841_table._raw_io_table_meta_data.name == io_table_1841.NAME
+        assert io_1841_table._raw_io_table_meta_data.year == io_table_1841.YEAR
+        assert io_1841_table._raw_io_table_meta_data.region == io_table_1841.REGION
+        assert io_1841_table._raw_io_table_meta_data.authors == io_table_1841.AUTHORS
+        assert io_1841_table._raw_io_table_meta_data.doi == io_table_1841.DOI
+        assert (
+            io_1841_table._raw_io_table_meta_data.url
+            == DOI_URL_PREFIX + io_table_1841.DOI
+        )
+
+    def test_pymrio_csv(self, io_1841_table) -> None:
+        """Test generated pyrmio table.
+
+        Todo:
+            * Fix the index name difference between `pymrio_table.Y`
+              and `_pymrio_Z`
+        """
+        assert_frame_equal(io_1841_table.pymrio_table.Z, io_1841_table.pymrio_table._Z)
+        assert_frame_equal(io_1841_table.pymrio_table.Y, io_1841_table.pymrio_table._Y)
+        assert_frame_equal(
+            io_1841_table.pymrio_table.Y_by_region("UK"),
+            io_1841_table.core_final_demand,
+        )
+        assert_frame_equal(
+            io_1841_table.pymrio_table.Z_by_region("UK"),
+            io_1841_table.core_io_table,
+        )
+
+    # def io_1841_table_export(self, io_1841_table) -> None:
+    #     """Test loading and managing a 1841 Input Output file."""
+    #     assert io_1841_table.sectors.tail().index[0] == "CPA_R93"
+    #     assert len(ons_io_2017_table.sectors) == 105
     #     assert (
     #         ons_cpa_io_table.code_io_table.loc["CPA_A02", "CPA_C101"]
     #         == 1.512743278316663e-06
@@ -106,6 +198,8 @@ class TestLoadingCSVIOTable:
 
     # def test_ons_cvs_table_aggregation(self, ons_cpa_io_table) -> None:
     #     """Test loading and manaing an csv Input Output excel file."""
+    # def test_ons_cvs_table_aggregation(self, _ons_io_2017_table) -> None:
+    #     """Test loading and manaing an 1841 Input Output excel file."""
     #     FIN_REAL_IO: float = 29562.858422906436
     #     aggregated_io_table: DataFrame = ons_cpa_io_table.get_aggregated_io_table()
     #     assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
@@ -158,3 +252,23 @@ class TestLoadingEmploymentData:
         )
         for city in THREE_CITY_REGIONS:
             assert city in filtered_aggregate_city.index
+
+
+@pytest.mark.remote_data
+class TestInputOutputOECD:
+    @pytest.mark.slow("Very slow by default.")
+    def test_oecd_pymrio_wrapper_default(self) -> None:
+        meta_data: MRIOMetaData = _pymrio_download_wrapper()
+        assert meta_data.name == "OECD-ICIO"
+        assert meta_data.version == "v2021"
+
+    @pytest.mark.xfail
+    def test_oecd_pymrio_wrapper_2018(self) -> None:
+        meta_data: MRIOMetaData = _pymrio_download_wrapper(version="v2018")
+        assert meta_data.name == "OECD-ICIO"
+        assert meta_data.version == "v2018"
+        # test_example: InputOutputTable = InputOutputTableOECD()
+
+    def test_autoload_permission_error(self) -> None:
+        with pytest.raises(AutoDownloadPermissionError):
+            InputOutputTableOECD()

@@ -39,7 +39,7 @@ ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME: Final[PathLike] = Path(
 )
 NAME: Final[str] = "ONS England Standard Population Projections"
 
-WORKING_AGE_MINIMUM: Final[int] = 16
+WORKING_AGE_MINIMUM: Final[int] = 15
 NATIONAL_RETIREMENT_AGE: Final[int] = 64
 
 FIRST_YEAR: Final[int] = 2018

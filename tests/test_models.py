@@ -9,7 +9,7 @@ from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from estios import __version__
-from estios.models import InterRegionInputOutput
+from estios.uk.models import InterRegionInputOutputUK2017
 
 
 def test_version() -> None:
@@ -22,11 +22,11 @@ class TestInputOutputModel:
     """Test constructing and running a 3 city InterRegionInputOutput model."""
 
     def test_default_construction(self) -> None:
-        io_model = InterRegionInputOutput()
+        io_model = InterRegionInputOutputUK2017()
         assert str(io_model) == "Input output model of 2017: 10 sectors, 10 regions"
 
     def test_3_city_construction(self, three_cities) -> None:
-        io_model = InterRegionInputOutput(regions=three_cities)
+        io_model = InterRegionInputOutputUK2017(regions=three_cities)
         assert str(io_model) == "Input output model of 2017: 10 sectors, 3 regions"
 
     def test_3_city_distances(self, three_cities_io) -> None:
@@ -294,7 +294,7 @@ class TestInputOutputModel:
 
     def test_not_implemented_raw_io(self) -> None:
         """Test raising null error for raw InputOutput attribute."""
-        test_io = InterRegionInputOutput(_raw_region_data=["a", "list"])
+        test_io = InterRegionInputOutputUK2017(_raw_region_data=["a", "list"])
         with pytest.raises(NotImplementedError):
             test_region_data: DataFrame = test_io.region_data
 

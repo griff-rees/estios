@@ -5,7 +5,7 @@ import pytest
 
 from estios.models import InterRegionInputOutputTimeSeries
 from estios.temporal import annual_io_time_series, date_io_time_series
-from estios.uk.employment import EMPLOYMENT_QUARTER_DEC_2017
+from estios.uk.ons_employment_2017 import EMPLOYMENT_QUARTER_DEC_2017
 from estios.uk.ons_population_projections import FIRST_YEAR, LAST_YEAR
 from estios.uk.scenarios import (
     baseline_england_annual_population_projection_config,

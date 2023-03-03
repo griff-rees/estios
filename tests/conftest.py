@@ -1,25 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Generator
+from typing import Generator, Sequence
 
 import pytest
+from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
 
 from estios.input_output_tables import InputOutputCPATable
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
 from estios.temporal import annual_io_time_series
-from estios.uk.employment import generate_employment_quarterly_dates
+from estios.uk.input_output_tables import InputOutputTableUK2017
+from estios.uk.models import InterRegionInputOutputUK2017
+from estios.uk.ons_employment_2017 import generate_employment_quarterly_dates
 from estios.uk.ons_population_projections import (
     ONS_ENGLAND_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
     ONSPopulationProjection,
 )
 from estios.uk.ons_uk_population_history import ONS_UK_POPULATION_HISTORY_META_DATA
-from estios.uk.regions import get_all_centre_for_cities_dict
-from estios.uk.utils import load_contemporary_ons_population
-from estios.utils import THREE_UK_CITY_REGIONS
+from estios.uk.regions import (
+    get_all_centre_for_cities_dict,
+    load_and_join_centre_for_cities_data,
+)
+from estios.uk.utils import THREE_UK_CITY_REGIONS, load_contemporary_ons_population
+from estios.utils import SECTOR_10_CODE_DICT
 
 
 @pytest.fixture
@@ -28,18 +34,33 @@ def three_cities() -> dict[str, str]:
 
 
 @pytest.fixture
-def three_city_names(three_cities) -> list[str]:
-    return three_cities.keys()
+def three_city_names(three_cities) -> tuple[str, ...]:
+    return tuple(three_cities.keys())
 
 
 @pytest.fixture
-def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutput:
-    return InterRegionInputOutput(regions=three_cities)
+def ten_sector_aggregation_dict() -> dict[str, Sequence[str]]:
+    return SECTOR_10_CODE_DICT
+
+
+@pytest.fixture
+def ten_sector_aggregation_names() -> tuple[str, ...]:
+    return tuple(SECTOR_10_CODE_DICT.keys())
+
+
+@pytest.fixture
+def region_geo_data() -> GeoDataFrame:
+    return load_and_join_centre_for_cities_data()
+
+
+@pytest.fixture
+def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK2017:
+    return InterRegionInputOutputUK2017(regions=three_cities)
 
 
 @pytest.fixture
 def three_cities_results(
-    three_cities_io: InterRegionInputOutput,
+    three_cities_io: InterRegionInputOutputUK2017,
 ) -> InterRegionInputOutput:
     three_cities_io.import_export_convergence()
     return three_cities_io
@@ -61,7 +82,7 @@ def all_cities() -> dict[str, str]:
 
 @pytest.fixture
 def all_cities_io(all_cities: dict[str, str]) -> InterRegionInputOutput:
-    return InterRegionInputOutput(regions=all_cities)
+    return InterRegionInputOutputUK2017(regions=all_cities)
 
 
 @pytest.fixture
@@ -75,8 +96,8 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 
 @pytest.fixture
-def ons_cpa_io_table() -> InputOutputCPATable:
-    return InputOutputCPATable()
+def ons_cpa_io_table() -> InputOutputCPATable | InputOutputTableUK2017:
+    return InputOutputTableUK2017()
 
 
 @pytest.fixture
@@ -114,7 +135,7 @@ def ons_york_leeds_bristol_projection(
     return ONSPopulationProjection(regions=york_leeds_bristol, meta_data=pop_projection)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
     """Extract ONS population history to test and remove when concluded."""
     pop_history: MetaData = ONS_UK_POPULATION_HISTORY_META_DATA

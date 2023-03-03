@@ -41,4 +41,8 @@ INFO:     Uvicorn running on http://127.0.0.1:8090 (Press CTRL+C to quit)
 
 is printed in the terminal.
 
+::: mkdocs-typer
+    :module: estios.cli
+    :command: app
+
 [^mapbox]: The `MAPBOX access token not found in local .env file` warning indicates you aren't using a registered [Mapbox token](https://docs.mapbox.com/help/getting-started/access-tokens/). This shouldn't prevent you from running locally, but you may need one if you wish to run this publicly. The easiest solution is to add a `.env` file with `MAPBOX=THE-TOKEN` in the directory you run in. More details forthcoming.

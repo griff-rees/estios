@@ -40,7 +40,7 @@ from typing import Any, Optional, Protocol, Type
 from .models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from .sources import DEFAULT_ANNUAL_MONTH_DAY, MonthDay
 from .uk import ons_IO_2017
-from .uk.employment import EMPLOYMENT_QUARTER_DEC_2017
+from .uk.ons_employment_2017 import EMPLOYMENT_QUARTER_DEC_2017
 from .uk.ons_population_projections import ONS_PROJECTION_YEARS
 from .utils import AnnualConfigType, DateConfigType
 

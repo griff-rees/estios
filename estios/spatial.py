@@ -3,7 +3,6 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
-from datetime import date
 from typing import Any, Callable, Final, Generator, Sequence
 
 from geopandas import GeoDataFrame
@@ -12,7 +11,9 @@ from pandas import DataFrame, MultiIndex, Series
 
 from .calc import CITY_POPULATION_COLUMN_NAME, DISTANCE_COLUMN
 from .sources import MetaData
-from .utils import UK_NATIONAL_COLUMN_NAME, generate_ij_m_index
+from .utils import DateType, generate_ij_m_index
+
+# from .uk.utils import UK_NATIONAL_COLUMN_NAME
 
 LA_CODES_COLUMN: Final[str] = "la_codes"
 
@@ -23,7 +24,7 @@ class Region:
     code: str | None
     geography_type: str | None
     alternate_names: dict[str, str] = field(default_factory=dict)
-    date: date | int | None = None
+    date: DateType | int | None = None
     flags: dict[str, bool | str | int] = field(default_factory=dict)
 
     def __str__(self) -> str:
@@ -118,10 +119,10 @@ class SpatialInteractionBaseClass:
     # beta: float
     distances: GeoDataFrame
     employment: DataFrame
+    national_column_name: str
     employment_column_name: str = CITY_POPULATION_COLUMN_NAME
     distance_column_name: str = DISTANCE_COLUMN
     national_term: bool = True
-    national_column_name: str = UK_NATIONAL_COLUMN_NAME
 
     _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
 
@@ -133,7 +134,11 @@ class SpatialInteractionBaseClass:
     @property
     def ij_m_index(self) -> MultiIndex:
         """Return region x other region x sector MultiIndex."""
-        return self._gen_ij_m_func(self.employment.index, self.employment.columns)
+        return self._gen_ij_m_func(
+            self.employment.index,
+            self.employment.columns,
+            national_column_name=self.national_column_name,
+        )
 
     def _func_by_index(self, func):
         return [

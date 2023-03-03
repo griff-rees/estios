@@ -17,7 +17,6 @@ from typing import (
     Iterator,
     Optional,
     Type,
-    TypeAlias,
     Union,
     overload,
 )
@@ -47,42 +46,39 @@ from .calc import (
     technical_coefficients,
     x_i_mn_summed,
 )
-from .input_output_tables import (
+from .input_output_tables import (  # GROSS_VALUE_ADDED_INDEX_NAME,; UK_EXPORT_COLUMN_NAMES,; TOTAL_PRODUCTION_ROW_NAME,; aggregate_io_table,
     FINAL_DEMAND_COLUMN_NAMES,
-    GROSS_VALUE_ADDED_INDEX_NAME,
-    IMPORTS_COLUMN_NAME,
-    IO_TABLE_SCALING,
+    GROSS_VALUE_ADDED_ROW_NAME,
+    IMPORTS_ROW_NAME,
     NET_SUBSIDIES_COLUMN_NAME,
-    TOTAL_PRODUCTION_INDEX_NAME,
-    UK_EXPORT_COLUMN_NAMES,
+    TOTAL_PRODUCTION_ROW_NAME,
+    TOTAL_SALES_ROW_NAME,
     InputOutputCPATable,
     InputOutputTable,
-    load_employment_by_region_and_sector_csv,
-    load_region_employment_excel,
+)
+from .sources import (
+    MetaFileOrDataFrameType,
+    ModelDataSourcesHandler,
+    pandas_from_path_or_package,
 )
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
 from .uk import ons_IO_2017
-from .uk.employment import (
-    CITY_SECTOR_REGION_PREFIX,
-    EMPLOYMENT_QUARTER_DEC_2017,
-    UK_JOBS_BY_SECTOR_SCALING,
-    UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
+from .uk.ons_employment_2017 import (  # CITY_SECTOR_REGION_PREFIX,; EMPLOYMENT_QUARTER_DEC_2017,; UK_JOBS_BY_SECTOR_SCALING,; UK_JOBS_BY_SECTOR_XLS_FILE_NAME,; NOMIS_2017_SECTOR_EMPLOYMENT_METADATA,; load_employment_by_region_and_sector_csv,
+    load_region_employment_excel,
 )
-from .uk.regions import (
-    CENTRE_FOR_CITIES_CSV_FILE_NAME,
-    CITIES_TOWNS_GEOJSON_FILE_NAME,
-    UK_CITY_REGIONS,
-    load_and_join_centre_for_cities_data,
-)
+from .uk.regions import UK_CITY_REGIONS, load_and_join_centre_for_cities_data
 from .utils import (
     SECTOR_10_CODE_DICT,
     AggregatedSectorDictType,
-    DateConfigType,
+    DateType,
     RegionConfigType,
+    RegionNamesListType,
     SectorConfigType,
+    SectorNamesListType,
     aggregate_rows,
     collect_dupes,
     column_to_series,
+    filter_attrs_by_substring,
     filter_by_region_name_and_type,
     generate_ij_index,
     generate_ij_m_index,
@@ -95,18 +91,25 @@ logger = getLogger(__name__)
 
 filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
-DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
-    EMPLOYMENT_QUARTER_DEC_2017: {
-        "io_table_file_path": ons_IO_2017.EXCEL_FILE_NAME,
-    }
-}
+# DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
+#     EMPLOYMENT_QUARTER_DEC_2017: {
+#         "io_table_file_path": ons_IO_2017.EXCEL_FILE_NAME,
+#     }
+# }
 
+# <<<<<<< Updated upstream
 NamesListType = Union[list[str], Collection[str]]
-DateType: TypeAlias = date
+# DateType: TypeAlias = date
+
+
+# @dataclass(kw_only=True)
+# class InterRegionInputOutputBaseClass:
+# =======
 
 
 @dataclass(kw_only=True)
-class InterRegionInputOutputBaseClass:
+class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
+    # >>>>>>> Stashed changes
 
     """Bass attributes for InputOutput Model and TimeSeries.
 
@@ -115,10 +118,13 @@ class InterRegionInputOutputBaseClass:
         * Refactor raw_sectors vs sector_aggregation
         * Move column_name attributes to InputOutputTable class
         * Consider moving sector names etc to InputOutputTable class
+        * Check if io_table_scale is duplicated with input_output_table config
     """
 
+    raw_io_table: MetaFileOrDataFrameType | InputOutputTable
     max_import_export_model_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
-    raw_io_table: Optional[InputOutputTable] = None
+    employment_by_sector_and_region: MetaFileOrDataFrameType | None = None
+    # io_table_meta_data: MetaData | None = None
     raw_regions: dict[str, str] = field(default_factory=dict)
     regions: dict[str, str] | list[str] = field(
         default_factory=lambda: deepcopy(UK_CITY_REGIONS)
@@ -136,17 +142,20 @@ class InterRegionInputOutputBaseClass:
         default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
     )
     export_column_names: list[str] = field(
-        default_factory=lambda: UK_EXPORT_COLUMN_NAMES
+        # default_factory=lambda: UK_EXPORT_COLUMN_NAMES
+        default_factory=list
     )
-    imports_column_name: str = IMPORTS_COLUMN_NAME
-    total_production_index_name: str = TOTAL_PRODUCTION_INDEX_NAME
+    # imports_column_name: str = IMPORTS_COLUMN_NAME
+    total_production_index_name: str = TOTAL_PRODUCTION_ROW_NAME
+    imports_column_name: str = IMPORTS_ROW_NAME
+    # total_production_column_name: str = TOTAL_PRODUCTION_ROW_NAME
     raw_national_employment: Optional[DataFrame | Series] = None
     national_employment: Optional[Series] = None
-    national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
-    io_table_scale: float = IO_TABLE_SCALING
+    national_employment_scale: float = 1.0
+    io_table_scale: float = 1.0
     national_population: Optional[float] = None
     national_working_population: Optional[float] = None
-    national_gva_row_name: str = GROSS_VALUE_ADDED_INDEX_NAME
+    national_gva_row_name: str = GROSS_VALUE_ADDED_ROW_NAME
     national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
     national_gov_investment_column_names: tuple[
         str, ...
@@ -155,9 +164,56 @@ class InterRegionInputOutputBaseClass:
     regional_working_populations: Optional[Series] = None
     regional_employment: Optional[DataFrame] = None
     regional_employment_scale: float = 1.0
+    _io_table_cls: Type[InputOutputTable] = InputOutputTable
     _spatial_model_cls: Type[SpatialInteractionBaseClass] = AttractionConstrained
     _exogenous_i_m_func: Callable[..., Series] = region_and_sector_convergence
     _import_export_convergence: Callable[..., DataFrame] = import_export_convergence
+
+    def _process_raw_io_table(self) -> InputOutputTable:
+        if not isinstance(self.raw_io_table, self._io_table_cls):
+            logger.info(
+                f"{self} `raw_io_table` attribute needs conversion from type "
+                f"{type(self.raw_io_table)}. Will try instantiating a {self._io_table_cls} ."
+            )
+            for attr_name, _ in filter_attrs_by_substring(self, "_raw_io_table"):
+                logger.debug(f"Removing {attr_name} from {self}.")
+                delattr(self, attr_name)
+            processed_io_table = self._io_table_cls(
+                raw_io_table=self.raw_io_table,
+                sector_names=self.sector_names,
+                date=self.date,
+                io_scaling_factor=self.io_table_scale,
+                sector_aggregation_dict=self.sector_aggregation,
+            )
+            assert type(processed_io_table) == self._io_table_cls
+            for attr_name, attr_value in filter_attrs_by_substring(
+                self, "_raw_io_table"
+            ):
+                setattr(self, attr_name, attr_value)
+            self.raw_io_table = processed_io_table
+        return self.raw_io_table
+
+    def __post_init__(self):
+        self._set_all_meta_file_or_data_fields()
+        # _ = self._process_raw_io_table()
+
+        #     self.raw_io_table =
+        #     self._get_meta_file_or_data_field('raw_io_table', parser=InputOutputTable)
+        #     assert False
+        # if isinstance(self.raw_io_table, InputOutputTable):
+        #     if self.sector_aggregation:
+        #         return self.raw_io_table.get_aggregated_io_table() * self.io_table_scale
+        #     elif isinstance(self.raw_io_table, InputOutputCPATable):
+        #         return self.raw_io_table.code_io_table * self.io_table_scale
+        #     else:
+        #         return self.raw_io_table.base_io_table * self.io_table_scale
+        # elif isinstance(self.raw_io_table, DataFrame):
+        #     if self.sector_aggregation:
+        #         return aggregate_io_table(self.sector_aggregation, self.raw_io_table, [], [])
+        #     else:
+        #         return self.raw_io_table * self.io_table_scale
+        # else:
+        #     raise TypeError(f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Try running `self._set_all_meta_file_or_data_fields()`.")
 
     @property
     def region_names(self) -> list[str]:
@@ -190,15 +246,36 @@ class InterRegionInputOutputBaseClass:
         else:
             return self.sectors
 
+    @cached_property
+    def technical_coefficients(self) -> DataFrame:
+        """Return the technical coefficients derived from `self.io_table`.
+
+        Todo:
+            * Refactor to avoid `self.raw_io_table` vs `self._raw_io_table` ambiguity.
+        """
+        # if not self.raw_io_table:
+        #     if hasattr(self, '_raw_io_table'):
+        #         return self._raw_io_table.technical_coefficients
+        # elif self.raw_io_table:
+        # return self.raw_io_table.technical_coefficients
+        return technical_coefficients(
+            self.io_table, self.final_demand_column_names, self.sectors
+        )
+
 
 class MissingIOTable(Exception):
     pass
 
 
-@dataclass(kw_only=True)
+# @dataclass(kw_only=True)
+@dataclass(kw_only=True, repr=False)
 class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     """Manage Inter Region input output model runs.
+
+    Note:
+        * `kw_only` ensures the order of parameters is not pbroblematic with inheritance
+        * `repr` determines if a new `repr` method is auto-generated (or not)
 
     Todo:
         * Abstract path for employment data to ease setting directly.
@@ -206,22 +283,26 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         * Remove regional attributes and regional spatial path to ease copying
     """
 
-    io_table_file_path: PathLike = ons_IO_2017.EXCEL_FILE_NAME
-    region_sector_employment_path: Optional[
+    # io_table_file_path: PathLike = ons_IO_2017.EXCEL_FILE_NAME
+    # region_sector_employment: MetaFileOrDataFrameType | None  = None
+    national_employment_path: Optional[
         PathLike
-    ] = ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
-    national_employment_path: Optional[PathLike] = UK_JOBS_BY_SECTOR_XLS_FILE_NAME
-    employment_date: Optional[date] = EMPLOYMENT_QUARTER_DEC_2017
+    ] = None  # UK_JOBS_BY_SECTOR_XLS_FILE_NAME
+    employment_date: Optional[DateType] = None  # EMPLOYMENT_QUARTER_DEC_2017
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
-    region_attributes_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME
-    region_spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME
-    region_type_prefix: str = CITY_SECTOR_REGION_PREFIX
+    region_attributes_path: PathLike | None = None  # CENTRE_FOR_CITIES_CSV_FILE_NAME
+    region_spatial_path: PathLike | None = None  # CITIES_TOWNS_GEOJSON_FILE_NAME
+    region_type_prefix: str | None = None  # CITY_SECTOR_REGION_PREFIX
+    total_sales_row_name: str = TOTAL_SALES_ROW_NAME
+    imports_column_name: str = IMPORTS_ROW_NAME
+    national_column_name: str = "UK"  # To be replaced in future
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
-    _employment_by_sector_and_region: Optional[DataFrame] = None
+    # _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
     _region_load_func: Callable[
         ..., GeoDataFrame
     ] = load_and_join_centre_for_cities_data
+    _load_path_or_package_func: Callable[..., DataFrame] = pandas_from_path_or_package
 
     def __post_init__(self) -> None:
         """Initialise model based on path attributes in preparation for run.
@@ -229,14 +310,21 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         Todo:
             * Refactor _raw_io_table and raw_io_table components.
         """
-        if self.raw_io_table is not None:
-            self._raw_io_table: InputOutputTable = self.raw_io_table
-        elif self.io_table_file_path:
-            self._raw_io_table = self._io_table_cls(
-                path=self.io_table_file_path, **self.io_table_kwargs
-            )
-        else:
-            raise MissingIOTable(f"Input-Ouput Table needed to run the model.")
+        # if self.raw_io_table is not None:
+        #     self._raw_io_table: InputOutputTable = self.raw_io_table
+        # elif self.io_table_file_path:
+        #     if not self.date and not self.employment_date:
+        #         raise NotImplemented(f"Date required for input-output-table.")
+        #     else:
+        #         assert self.date or self.employment_date
+        #         self._raw_io_table = self._io_table_cls.load_from_file(
+        #             path=self.io_table_file_path,
+        #             meta_data=self.io_table_meta_data,
+        #             year=self.date.year if self.date else self.employment_date.year,
+        #             **self.io_table_kwargs
+        #         )
+        # else:
+        #     raise MissingIOTable(f"Input-Ouput Table needed to run the model.")
         if not self._raw_region_data and self.region_attributes_path:
             self._raw_region_data: GeoDataFrame = self._region_load_func(
                 region_path=self.region_attributes_path,
@@ -245,20 +333,25 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         self._set_national_employment()
         # if not self.national_employment and self.national_employment_path:
         #     self.national_empoyment = self._set_national_employment()
-        if (
-            not self._employment_by_sector_and_region
-            and self.region_sector_employment_path
-        ):
-            self._employment_by_sector_and_region: DataFrame = (
-                load_employment_by_region_and_sector_csv(
-                    path=self.region_sector_employment_path
-                )
-            )
+        # if (
+        #    not self._employment_by_sector_and_region
+        #    and self.region_sector_employment_path
+        # ):
+        #    self._employment_by_sector_and_region: DataFrame = (
+        #        # load_employment_by_region_and_sector_csv(
+        #        #     path=self.region_sector_employment_path,
+        #        # )
+        #        pandas_from_path_or_package(
+        #            path=self.region_sector_employment_path,
+        #            default_file=ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
+        #        )
+        #    )
         if not self.date:
             self.date = self.employment_date
             logger.warning(
                 f"Set {self} date to employment_date {self.employment_date}."
             )
+        super().__post_init__()
 
     def __repr__(self) -> str:
         return (
@@ -398,26 +491,46 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             * Fix use of _raw_io_table
             * Check scaling approach
         """
+        if not isinstance(self.raw_io_table, InputOutputTable):
+            logger.warning(
+                f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Will try running `self._get_meta_file_or_data_fields()`."
+            )
+            self._process_raw_io_table()
+            # self._get_meta_file_or_data_field('raw_io_table', parser=InputOutputTable)
+        assert isinstance(self.raw_io_table, InputOutputTable)
         if self.sector_aggregation:
-            return self._raw_io_table.get_aggregated_io_table() * self.io_table_scale
-        elif isinstance(self._raw_io_table, InputOutputCPATable):
-            return self._raw_io_table.code_io_table * self.io_table_scale
-        elif self._raw_io_table.base_io_table is not None:
-            return self._raw_io_table.base_io_table * self.io_table_scale
+            return self.raw_io_table.get_aggregated_io_table()  # * self.io_table_scale
+        # elif isinstance(self.raw_io_table, InputOutputCPATable):
+        #     return self.raw_io_table.code_io_table # * self.io_table_scale
         else:
-            raise ValueError("No valid io table set for {self}")
-            # raise NotImplementedError(
-            #     "Currently io_table requires an aggregation dictionary."
-            # )
+            return self.raw_io_table.base_io_table  # * self.io_table_scale
+        # if isinstance(self.raw_io_table, InputOutputTable):
+        #     assert False
+        #     if self.sector_aggregation:
+        #         return self.raw_io_table.get_aggregated_io_table() * self.io_table_scale
+        #     elif isinstance(self.raw_io_table, InputOutputCPATable):
+        #         return self.raw_io_table.code_io_table * self.io_table_scale
+        #     else:
+        #         return self.raw_io_table.base_io_table * self.io_table_scale
+        # elif isinstance(self.raw_io_table, DataFrame):
+        #     if self.sector_aggregation:
+        #         return aggregate_io_table(self.sector_aggregation, self.raw_io_table, [], [])
+        #     else:
+        #         return self.raw_io_table * self.io_table_scale
+        # else:
+        #     raise TypeError(f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Try running `self._set_all_meta_file_or_data_fields()`.")
+
+        # elif self.raw_io_table.base_io_table is not None:
+        #     return self.raw_io_table.base_io_table * self.io_table_scale
+        # else:
+        #     raise ValueError("No valid io table set for {self}")
+        # raise NotImplementedError(
+        #     "Currently io_table requires an aggregation dictionary."
+        #
 
     @cached_property
     def base_io_table(self) -> DataFrame:
         return self.io_table.loc[self.sectors, self.sectors]
-
-    @cached_property
-    def technical_coefficients(self) -> DataFrame:
-        """Return the technical coefficients derived from self.io_table."""
-        return technical_coefficients(self.io_table, self.sectors)
 
     @cached_property
     def employment_table(self) -> DataFrame:
@@ -430,20 +543,32 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         if self.regional_employment is not None:
             return self.regional_employment
         elif self.sector_aggregation:
-            self._employment_by_sector_and_region_aggregated = aggregate_rows(
-                self._employment_by_sector_and_region, True
+            self.employment_by_sector_and_region_aggregated = aggregate_rows(
+                self.employment_by_sector_and_region, True
             )
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_region_aggregated,
+                self.employment_by_sector_and_region_aggregated,
                 self.region_names,
                 region_type_prefix=self.region_type_prefix,
             )
         else:
             return filter_by_region_name_and_type(
-                self._employment_by_sector_and_region,
+                self.employment_by_sector_and_region,
                 self.region_names,
                 region_type_prefix=self.region_type_prefix,
             )
+
+    @cached_property
+    def X_i_m(self) -> DataFrame:
+        """Return the total production of sector $m$ in region $i$ and cache results.
+
+        $X_i^m = X_*^m * Q_i^m/Q_*^m$
+        """
+        return X_i_m_scaled(
+            total_production=self.io_table[self.sectors].loc[self.total_sales_row_name],
+            employment=self.employment_table,
+            national_employment=self.national_employment,
+        ).astype("float64")
 
     @cached_property
     def M_i_m(self) -> DataFrame:
@@ -452,7 +577,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         $M_i^m = M_*^m * Q_i^m/Q_*^m$
         """
         return M_i_m_scaled(
-            imports=self.io_table[self.sectors].loc["Imports"],
+            imports=self.io_table[self.sectors].loc[self.imports_column_name],
             employment=self.employment_table,
             national_employment=self.national_employment,
         ).astype("float64")
@@ -487,11 +612,16 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def distances(self) -> GeoDataFrame:
-        """Return a GeoDataFrame of all distances between regions."""
+        """Return a GeoDataFrame of all distances between regions.
+
+        Todo:
+            * Replace this with calc_transport_table
+        """
         return calc_region_distances(
             self.region_data,
             self.regions,
             self.regions,
+            national_column_name=self.national_column_name,
             unit_divide_conversion=self.distance_unit_factor,
         )
 
@@ -560,7 +690,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @cached_property
     def spatial_interaction(self) -> SpatialInteractionBaseClass:
-        return self._spatial_model_cls(self.distances, self.employment_table)
+        return self._spatial_model_cls(
+            self.distances, self.employment_table, self.national_column_name
+        )
 
     @cached_property
     def _initial_e_m(self) -> DataFrame:
@@ -659,8 +791,12 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
             logger.warning(f"Duplicate(s) of {dupe_dict_formatted}")
 
     @property
-    def dupe_date_counts(self) -> dict[date, int]:
-        """Return any duplicate date entries."""
+    def dupe_date_counts(self) -> dict[DateType, int]:
+        """Return any duplicate date entries.
+
+        Todo:
+            * Consider making hashable to avoid this.
+        """
         return collect_dupes(self.dates)
 
     def __repr__(self) -> str:
@@ -715,7 +851,7 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
         return self._core_model.regions if self._core_model else []
 
     @property
-    def sector_names(self) -> NamesListType:
+    def sector_names(self) -> SectorNamesListType:
         if isinstance(self.sectors, dict):
             return list(self.sectors.keys())
         else:
@@ -739,7 +875,7 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
     #         return []
 
     @property
-    def region_names(self) -> NamesListType:
+    def region_names(self) -> RegionNamesListType:
         """Return the region names."""
         if isinstance(self.regions, dict):
             return list(self.regions.keys())
@@ -797,7 +933,7 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
         return [date.year for date in self.dates]
 
     @property
-    def dates(self) -> list[date]:
+    def dates(self) -> list[DateType]:
         return [model.date for model in self if model.date]
 
     def calc_models(self) -> None:
@@ -807,14 +943,14 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
     def _return_iter_attr(
         self,
         attr_name: str,
-    ) -> OrderedDict[date, DataFrame]:
+    ) -> OrderedDict[DateType, DataFrame]:
         """Wrappy to manage retuing Generator dict attributes over time series."""
         return tuples_to_ordered_dict(iter_attr_by_key(self, attr_name))
 
     @property
-    def national_employment_ts(self) -> OrderedDict[date, DataFrame]:
+    def national_employment_ts(self) -> OrderedDict[DateType, DataFrame]:
         return self._return_iter_attr("national_employment")
 
     @property
-    def regional_employment_ts(self) -> OrderedDict[date, DataFrame]:
+    def regional_employment_ts(self) -> OrderedDict[DateType, DataFrame]:
         return self._return_iter_attr("regional_employment")

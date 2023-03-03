@@ -8,8 +8,7 @@ from typing import Callable, Final, Iterable, Optional, Sequence, Union
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
-from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
-from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
+from .uk.regions import UK_EPSG_GEO_CODE
 from .utils import (
     CITY_COLUMN,
     OTHER_CITY_COLUMN,
@@ -42,10 +41,15 @@ DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
 def technical_coefficients(
     io_table: DataFrame,
-    sectors: Iterable[str] = SECTOR_10_CODE_DICT.keys(),
-    final_output_column: str = TOTAL_OUTPUT_COLUMN_NAME,
+    final_output_column: str,
+    sectors: Iterable[str],
 ) -> DataFrame:
-    """Calculate technical coefficients from IO matrix and a final output column."""
+    """Calculate technical coefficients from IO matrix and a final output column.
+
+    Todo:
+        * Assess whether sectors filtering potentially leads to errors
+        * Constrain parameters if necessary
+    """
     io_matrix: DataFrame = io_table.loc[sectors, sectors]
     final_output: Series = io_table.loc[sectors][final_output_column]
     return (io_matrix / final_output).astype("float64")
@@ -54,7 +58,7 @@ def technical_coefficients(
 def X_i_m_scaled(
     total_production: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the total production of sector $m$ in region $i$ and cache results.
+    """Estimate total production of sector $m$ in region $i$.
 
     $X_i^m = X_*^m * Q_i^m/Q_*^m$
     """
@@ -64,7 +68,7 @@ def X_i_m_scaled(
 def M_i_m_scaled(
     imports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the imports of sector $m$ in region $i$ and cache results.
+    """Estimate imports of sector $m$ in region $i$.
 
     $M_i^m = M_*^m * Q_i^m/Q_*^m$
     """
@@ -74,7 +78,7 @@ def M_i_m_scaled(
 def F_i_m_scaled(
     final_demand: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the final demand of sector $m$ in region $i$ and cache results.
+    """Estimate the final demand of sector $m$ in region $i$.
 
     $F_i^m = F_*^m * Q_i^m/Q_*^m$
     """
@@ -84,7 +88,7 @@ def F_i_m_scaled(
 def E_i_m_scaled(
     exports: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the final demand of sector $m$ in region $i$ and cache results.
+    """Estimate exports of sector $m$ in region $i$.
 
     $E_i^m = E_*^m * Q_i^m/Q_*^m$
     """
@@ -199,11 +203,8 @@ def I_m(
     return full_io_table.loc[sector_row_names, investment_column_names].sum("columns")
 
 
-def x_i_mn_summed(
-    X_i_m: DataFrame,
-    technical_coefficients: DataFrame,
-) -> DataFrame:
-    """Return sum of all total demands for good m in region i.
+def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
+    """Return sum of all total demands for good $m$ in region $i$.
 
     Equation 1:
         $x_i^{mn} = a_i^{mn}X_i^n$
@@ -222,10 +223,10 @@ def x_i_mn_summed(
 
 def generate_e_m_dataframe(
     E_i_m: DataFrame,
-    initial_p: float = INITIAL_P,
+    sector_names: Iterable[str],
+    region_names: Iterable[str],
     national_E: Optional[Series] = None,
-    region_names: Iterable[str] = UK_CITY_REGIONS,
-    sector_names: Iterable[str] = SECTOR_10_CODE_DICT,
+    initial_p: float = INITIAL_P,
     e_i_m_column_name: str = LATEX_e_i_m,
     initial_e_column_prefix: str = INITIAL_E_COLUMN_PREFIX,
 ) -> DataFrame:
@@ -244,8 +245,9 @@ def generate_e_m_dataframe(
 
 def calc_region_distances(
     regions_df: GeoDataFrame,
-    regions: Iterable[str] = UK_CITY_REGIONS,
+    regions: Iterable[str],
     other_regions: Optional[Iterable[str]] = None,
+    national_column_name: Optional[str] = None,
     distance_CRS: str = UK_EPSG_GEO_CODE,
     origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
     destination_region_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
@@ -258,13 +260,19 @@ def calc_region_distances(
     and destination region as row.name[].
 
     Todo:
-        * This should be refactored for calc_centroid_table
+        * This should be refactored for calc_transport_table
+        * national_column_name should be imported
     """
     if not other_regions:
         other_regions = regions
+    if not national_column_name:
+        national_column_name = "UK"
     projected_regions_df = regions_df.to_crs(distance_CRS)
     region_distances: GeoDataFrame = GeoDataFrame(
-        index=generate_ij_index(regions, other_regions), columns=[final_distance_column]
+        index=generate_ij_index(
+            regions, other_regions, national_column_name=national_column_name
+        ),
+        columns=[final_distance_column],
     )
     region_distances[origin_region_column] = region_distances.apply(
         lambda row: projected_regions_df["geometry"][row.name[0]], axis=1
@@ -298,7 +306,7 @@ def calc_region_distances(
 def centroid_distance_table(
     region_df: GeoDataFrame,
 ) -> DataFrame:
-    """Return a table of region_df centroid distances divided by."""
+    """Return a table of centroid distances between all regions."""
     return region_df.centroid.apply(
         lambda origin_region: region_df.centroid.distance(origin_region)
     )
@@ -540,7 +548,7 @@ def import_export_convergence(
     m_i_m_symbol: str = LATEX_m_i_m,
     y_ij_m_symbol: str = LATEX_y_ij_m,
 ) -> tuple[DataFrame, DataFrame]:
-    """Iterate i times of step 2 (eq 14, 15 18) of the spatial interaction model."""
+    """Iterate $i$ times of step 2 (eq 14, 15 18) of the spatial interaction model."""
     model_e_m: DataFrame = e_m_regions.copy()
     model_y_ij_m: DataFrame = y_ij_m.copy()
 
@@ -647,38 +655,12 @@ def calc_ratio(
         return a * d / b
 
 
-# def calc_ratio_df(
-#     a_df: DataFrame,
-#     b: Union[float, Series],
-#     d: Union[float, Series],
-# ) -> DataFrame:
-#     """Apply calc_ratio to dataframe a_df.
-#
-#     Examples:
-#         This works for both floats
-#
-#         >>> a_df = DataFrame({
-#             "x": (3, 7, 9),
-#             "y": (6, 14, 18),
-#
-#         })
-#         >>> b = Series([2, 8, 10]); d = Series([5, 7, 9])
-#         >>> calc_ratio_df(1, 5, 10)
-#         2.0
-#
-#         and pandas Series
-#
-#         >>> a = Series([1, 4, 5]); b = Series([2, 8, 10]); d = Series([5, 7, 9])
-#         >>> calc_ratio(a, b, d)
-#         0    2.5
-#         1    3.5
-#         2    4.5
-#         dtype: float64
-#     """
-#     return a_df.apply((lambda column: calc_ratio(column, b, d)))
-
-# def diagonalise(series: Series) -> DataFrame:
-#     return DataFrame(diag(series),index=series.index,columns=series.index)
+# def gdp_per_sector(
+#     io_table: DataFrame,
+#     intermediate_demand_row_name: str = INTERMEDIATE_COLUMN_NAME,
+#     gross_value_added_row_name: str = GROSS_VALUE_ADDED_COLUMN_NAME
+# ) -> Series:
+#     return io_table
 
 
 def regional_io_projection(
@@ -692,3 +674,15 @@ def regional_io_projection(
     logger.warning("Using regional_io_projection, this needs testing!")
     # return technical_coefficients * diagonalise(regional_output)
     return technical_coefficients * regional_output
+
+
+# def calc_full_io_table(
+#     base_io_table: DataFrame,
+#     dog_leg_columns: dict[str, str] | None = None,
+#     dog_leg_rows: dict[str, str] | None = None,
+# ) -> DataFrame:
+#     if not dog_leg_columns:
+#         dog_leg_columns = {}
+#     if not dog_leg_rows:
+#         dog_leg_rows = {}
+#     raise NotImplementedError

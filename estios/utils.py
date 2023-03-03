@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 
 from collections import Counter, OrderedDict
+from dataclasses import Field, field, fields
 from datetime import date, datetime
 from functools import wraps
+from itertools import zip_longest
 from logging import getLogger
 from typing import (
     Any,
     Callable,
+    Collection,
     Final,
     Generator,
     Hashable,
@@ -27,28 +30,36 @@ from pandas import DataFrame, MultiIndex, Series
 
 logger = getLogger(__name__)
 
-RegionConfigType = Union[Sequence[str], dict[str, str], dict[str, Sequence[str]]]
-SectorConfigType: TypeAlias = RegionConfigType
+DateType: TypeAlias = date
+YearType: TypeAlias = int
+RegionName: TypeAlias = str
+SectorName: TypeAlias = str
+
+RegionNamesListType = Union[list[RegionName], Collection[RegionName]]
+SectorNamesListType = Union[list[SectorName], Collection[SectorName]]
+
+RegionConfigType = Union[
+    Sequence[RegionName], dict[RegionName, str], dict[RegionName, Sequence[str]]
+]
+SectorConfigType = Union[
+    Sequence[SectorName], dict[SectorName, str], dict[SectorName, Sequence[str]]
+]
 AggregatedSectorDictType = dict[str, Sequence[str]]
 AnnualConfigType = Union[Sequence[int], dict[int, dict], OrderedDict[int, dict]]
 InputOutputConfigType = dict[str, Any]
-DateConfigType = Union[Sequence[date], dict[date, dict], OrderedDict[date, dict]]
+DateConfigType = Union[
+    Sequence[date], dict[DateType, dict], OrderedDict[DateType, dict]
+]
 
-logger.warning(f"`InputOutputConfigType` and `DateConfigType` refactor  needed")
+logger.warning(f"`InputOutputConfigType` and `DateConfigType` refactor needed")
+
+REGION_COLUMN_NAME: Final[str] = "Region"
 
 CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
-SECTOR_COLUMN: Final[str] = "Sector"
-
-UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
+SECTOR_COLUMN_NAME: Final[str] = "Sector"
 
 FINAL_Y_IJ_M_COLUMN_NAME: Final[str] = "y_ij_m"
-
-THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
-    "Leeds": "Yorkshire and the Humber",
-    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
-    "Manchester": "North West",  # MANCHESTER & SALFORD
-}
 
 # high-level SNA/ISIC aggregation A*10/11
 # See https://ec.europa.eu/eurostat/documents/1965800/1978839/NACEREV.2INTRODUCTORYGUIDELINESEN.pdf/f48c8a50-feb1-4227-8fe0-935b58a0a332
@@ -79,23 +90,28 @@ def invert_dict(d: dict) -> dict:
 
 
 def generate_i_m_index(
-    i_column: Iterable[str] = THREE_UK_CITY_REGIONS,
-    m_column: Iterable[str] = SECTOR_10_CODE_DICT,
+    i_column: Iterable[str],
+    m_column: Iterable[str],
+    national_column_name: str | None = None,
     include_national: bool = False,
-    national_name: str = UK_NATIONAL_COLUMN_NAME,
     i_column_name: str = CITY_COLUMN,
-    m_column_name: str = SECTOR_COLUMN,
+    m_column_name: str = SECTOR_COLUMN_NAME,
 ) -> MultiIndex:
-    """Return an IM index, conditionally adding `national_name` as a region."""
+    """Return an IM index, conditionally adding `national_column_name` as a region.
+
+    Todo:
+        * This should be refactored along with calc_region_distances.
+    """
     if include_national:
-        i_column = list(i_column) + [national_name]
+        assert national_column_name
+        i_column = list(i_column) + [national_column_name]
     index_tuples: list = [(i, m) for i in i_column for m in m_column]
     return MultiIndex.from_tuples(index_tuples, names=(i_column_name, m_column_name))
 
 
 def generate_ij_index(
-    regions: Iterable[str] = THREE_UK_CITY_REGIONS,
-    other_regions: Iterable[str] = THREE_UK_CITY_REGIONS,
+    regions: Iterable[str],
+    other_regions: Iterable[str],
     m_column_name: str = OTHER_CITY_COLUMN,
     **kwargs,
 ) -> MultiIndex:
@@ -106,21 +122,22 @@ def generate_ij_index(
 
 
 def generate_ij_m_index(
-    regions: Iterable[str] = THREE_UK_CITY_REGIONS,
-    sectors: Iterable[str] = SECTOR_10_CODE_DICT,
+    regions: Iterable[str],
+    sectors: Iterable[str],
+    national_column_name: str,
     include_national: bool = False,
-    national_name: str = UK_NATIONAL_COLUMN_NAME,
     region_name: str = CITY_COLUMN,
     alter_prefix: str = "Other_",
 ) -> MultiIndex:
-    """Return an IJM index, conditionally adding `national_name` as a region."""
+    """Return an IJM index, conditionally adding `national_column_name` as a region."""
     if include_national:
-        regions = list(regions) + [national_name]
+        regions = list(regions) + [national_column_name]
     index_tuples: list[tuple[str, str, str]] = [
         (i, j, m) for i in regions for j in regions for m in sectors if i != j
     ]
     return MultiIndex.from_tuples(
-        index_tuples, names=(region_name, alter_prefix + region_name, SECTOR_COLUMN)
+        index_tuples,
+        names=(region_name, alter_prefix + region_name, SECTOR_COLUMN_NAME),
     )
 
 
@@ -129,7 +146,7 @@ def filter_y_ij_m_by_city_sector(
     city: str,
     sector: str,
     city_column_name: str = CITY_COLUMN,
-    sector_column_name: str = SECTOR_COLUMN,
+    sector_column_name: str = SECTOR_COLUMN_NAME,
     column_index: Union[str, int] = -1,  # Default is last column/iteration
     final_column_name: str = FINAL_Y_IJ_M_COLUMN_NAME,
 ) -> Series:
@@ -285,7 +302,7 @@ def iter_attr_by_key(
     val_attr_name: str,
     key_attr_name: str = "date",
     iter_attr_name: str = "dates",
-) -> Generator[tuple[date, Any], None, None]:
+) -> Generator[tuple[DateType, Any], None, None]:
     """Wrappy to manage retuing Generator dict attributes over time series."""
     if not hasattr(iter_instance, iter_attr_name):
         raise AttributeError(f"{iter_instance} must have a {iter_attr_name} attribute.")
@@ -300,6 +317,10 @@ def iter_attr_by_key(
 
 def tuples_to_ordered_dict(tuple_iter: Iterable[tuple[Hashable, Any]]) -> OrderedDict:
     return OrderedDict([(key, val) for key, val in tuple_iter])
+
+
+def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
+    return indexable[key] if key in indexable else {}
 
 
 def sum_by_rows_cols(
@@ -381,6 +402,73 @@ def dtype_wrapper(final_type: str):
         return ensure_dtype_wrapper
 
     return callable_wrapper
+
+
+def df_column_to_single_value(
+    df: DataFrame,
+    results_column_name: str,
+) -> float:
+    """Apply query_str to df and extract the first elements"""
+    return df[results_column_name].values[0]
+
+
+def filter_fields_by_type(cls: Any, field_type: Type) -> tuple[Field, ...]:
+    """Return tuple of cls attributes of field_type."""
+    return tuple(field for field in fields(cls) if field.type == field_type)
+
+
+def field_names(field_sequence: Sequence[Field]) -> tuple[str, ...]:
+    """Return the names of passed sequence of Field objects."""
+    return tuple(field.name for field in field_sequence)
+
+
+# def filter_attrs_by_prefix(cls: Any, prefix: str) -> dict[str, Any]:
+#     return {name: value for name, value in vars(cls).items() if name.startswith(prefix)}
+
+
+def filter_attrs_by_substring(
+    cls: Any, substring: str
+) -> Generator[tuple[str, Any], None, None]:
+    for attr_name, attr in vars(cls).items():
+        if substring in attr_name:
+            yield attr_name, attr
+
+
+def match_ordered_iters(x: Iterable, y: Iterable, skip: Sequence) -> tuple:
+    """From two iterables return a tuple of order marched values."""
+    return tuple(
+        x_value
+        for x_value, y_value in zip_longest(x, y)
+        if x_value == y_value and x_value not in skip and y_value not in skip
+    )
+
+
+def match_df_cols_rows(df: DataFrame, skip: Sequence) -> tuple[str]:
+    """From a DataFarme, return a tuple of marched column and row names."""
+    return match_ordered_iters(df.columns, df.index, skip)
+
+
+def gen_region_attr_multi_index(
+    regions: Sequence[str],
+    attrs: Sequence[str],
+    names: tuple[str, str] = (REGION_COLUMN_NAME, SECTOR_COLUMN_NAME),
+) -> MultiIndex:
+    """Generated a nested MultiIndex of regions and attrs, including index naming."""
+    return MultiIndex.from_product([regions, attrs], names=names)
+
+
+def df_to_trimmed_multi_index(
+    df: DataFrame,
+    columns: MultiIndex,
+    index: MultiIndex,
+    multi_index_level: int = 1,
+) -> DataFrame:
+    trimmed_df: DataFrame = df.loc[
+        index.get_level_values(multi_index_level),
+        columns.get_level_values(multi_index_level),
+    ]
+    trimmed_df.columns = columns
+    return trimmed_df.set_index(index)
 
 
 # def y_ij_m_to_networkx(y_ij_m_results: Series,

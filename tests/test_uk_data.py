@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Final
+from logging import INFO
+from typing import Final, Sequence
 
 import pytest
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
 from pandas.testing import assert_series_equal
 
+from estios.uk.gdp_projections import (
+    OECD_GDP_LONG_TERM_FORCASTS,
+    get_uk_gdp_ts_as_series,
+)
 from estios.uk.ons_population_projections import (
     FIRST_YEAR,
     LAST_YEAR,
@@ -31,14 +36,15 @@ from estios.uk.regions import (
     load_centre_for_cities_csv,
     load_centre_for_cities_gis,
 )
+from estios.uk.sector_codes import get_uk_io_codes
 
 YORK_WORK_POP_2038_TO_2043: Final[Series] = Series(
     {
-        "2039": 135791.297,
-        "2040": 135645.789,
-        "2041": 135647.204,
-        "2042": 135679.399,
-        "2043": 135692.09,
+        "2039": 137670.789,
+        "2040": 137520.358,
+        "2041": 137517.412,
+        "2042": 137545.814,
+        "2043": 137555.029,
     },
     name="York",
 )
@@ -130,9 +136,7 @@ class TestONSEnglandPopulationProjection:
         assert ons_2018_projection.last_trade_year == LAST_YEAR
         assert ons_2018_projection.years == ons_2018_years
 
-    def test_loading_year_gap_warning(
-        self, ons_2018_projection, ons_2018_years, caplog
-    ) -> None:
+    def test_loading_year_gap(self, ons_2018_projection, ons_2018_years) -> None:
         test_year: int = LAST_YEAR - 2
         dropped_2043_projection: DataFrame = ons_2018_projection.age_projections.drop(
             columns=str(test_year)
@@ -239,7 +243,93 @@ class TestONSWholeUKPopulationProjection:
 
 class TestONSWorkingPopulation2017:
 
-    """Test extracting regional working population for 2017."""
+    """Test extracting regional working population for 2017.
+
+    Todo:
+        * Expand this in refactoring to remove:
+            ons_population_projections.PopulationProjections
+    """
 
     def test_2017(self, caplog) -> None:
         pass
+
+
+@pytest.mark.remote_data
+class TestGDPProjections:
+
+    """Test extracting OECD UK GDP projections calculated via PPP to pounds."""
+
+    CORRECT_2021_CONV_RATE: Series = Series(
+        {2017: 1987401.5049337712, 2020: 1840171.1632555155, 2025: 2190735.5306760003}
+    )
+    CORRECT_2010_CONV_RATE: Series = Series(
+        {2017: 2014484.3620965388, 2020: 1865247.6727810295, 2025: 2220589.275534}
+    )
+    CONV_RATE_2021: float = 0.692802
+    CONV_RATE_2010: float = 0.702243
+
+    def gen_rate_logs(
+        self,
+        to_years: Sequence[int] = CORRECT_2021_CONV_RATE.index,
+        from_years: Sequence[int] | int = 2021,
+        rates: Sequence[float] | float = CONV_RATE_2021,
+    ) -> list[str]:
+        if isinstance(from_years, int):
+            from_years = [from_years] * len(to_years)
+        if isinstance(rates, float):
+            rates = [rates] * len(to_years)
+        assert len(to_years) == len(from_years) == len(rates)
+        return [
+            self.get_rate_log(from_year, to_year, rate)
+            for from_year, to_year, rate in zip(from_years, to_years, rates)
+        ]
+
+    def get_rate_log(self, from_year: int, to_year: int, rate: float) -> str:
+        return f"Using {rate} converter rate from {from_year} for {to_year}"
+
+    def test_ppp_default_converter(self, caplog) -> None:
+        """Test using OECD PPP converter from dollars to pounds per year."""
+        caplog.set_level(INFO)
+        gdp_ts: Series = get_uk_gdp_ts_as_series()
+        assert_series_equal(gdp_ts, self.CORRECT_2021_CONV_RATE)
+        assert caplog.messages == self.gen_rate_logs()
+
+    @pytest.mark.xfail
+    def test_ppp_converter_vary_by_year(self, caplog) -> None:
+        """Test using OECD PPP converter for all dates provided."""
+        caplog.set_level(INFO)
+        gdp_ts: Series = get_uk_gdp_ts_as_series(
+            years=OECD_GDP_LONG_TERM_FORCASTS.dates, use_constant_rate=False
+        )
+        assert_series_equal(
+            gdp_ts[self.CORRECT_2021_CONV_RATE.index], self.CORRECT_2021_CONV_RATE
+        )
+        assert (gdp_ts.index.values == OECD_GDP_LONG_TERM_FORCASTS.dates).all()
+        for log in self.gen_rate_logs():
+            assert log in caplog.messages
+        assert len(caplog.messages) == 2060 - 1990
+
+    def test_ppp_converter_to_2017(self, caplog, three_cities_io) -> None:
+        """Test with constant 2010 dollars to pounds rate."""
+        caplog.set_level(INFO)
+        # gdp_ts: Series = get_uk_gdp_ts_as_series(years=OECD_GDP_LONG_TERM_FORCASTS.dates)
+        gdp_ts: Series = get_uk_gdp_ts_as_series(
+            years=OECD_GDP_LONG_TERM_FORCASTS.dates,
+            approximation_year=2010,
+            use_constant_rate=True,
+        )
+        assert_series_equal(
+            gdp_ts[self.CORRECT_2010_CONV_RATE.index], self.CORRECT_2010_CONV_RATE
+        )
+        assert (gdp_ts.index.values == OECD_GDP_LONG_TERM_FORCASTS.dates).all()
+        for log in self.gen_rate_logs(rates=self.CONV_RATE_2010, from_years=2010):
+            assert log in caplog.messages
+        assert len(caplog.messages) == 2060 - 1989
+
+
+def test_uk_io_codes() -> None:
+    input_codes, output_codes = get_uk_io_codes()
+    assert input_codes["CPA_S96"] == "Other personal services"
+    assert output_codes["CPA_S96"] == "Other personal services"
+    assert input_codes["GVA"] == "Gross value added"
+    assert output_codes["P62"] == "Exports of services"

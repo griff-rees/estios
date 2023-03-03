@@ -11,6 +11,7 @@ from pandas import DataFrame
 
 from ..sources import MetaData
 from ..spatial import GenericRegionsManager, Region, RegionsManager
+from ..utils import filled_or_empty_dict
 from .centre_for_cities_puas import (
     CENTRE_FOR_CITIES_2022_CITY_PUAS,
     CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
@@ -19,6 +20,8 @@ from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
 logger = getLogger(__name__)
 
+
+UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
 
 RegionInfoTypes = str | bool | int
 RegionInfoMapper = dict[str, dict[str, RegionInfoTypes]]
@@ -42,6 +45,13 @@ NO_CONTEMPORARY_KEY: Final[str] = f"no {CONTMEPORARY_KEY}"
 YEAR_CHANGED_KEY: Final[str] = "year changed"
 PUA_GEOGRAPHY_TYPE: Final[str] = "Public Urban Area"
 LAD_GEOGRAPHY_TYPE: Final[str] = "Local Authority District"
+
+
+THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
+}
 
 
 def load_contemporary_ons_population(
@@ -466,10 +476,6 @@ def generate_base_regions(
             alternate_names=alt_names,
         )
     return regions_manager
-
-
-def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
-    return indexable[key] if key in indexable else {}
 
     # last_working_age_dict = {
     #     region: ons_2017_pop_df.loc[uk_regions[region].la_codes,
