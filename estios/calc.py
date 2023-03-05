@@ -41,7 +41,7 @@ DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
 def technical_coefficients(
     io_table: DataFrame,
-    final_output_column: str,
+    final_output_column: str | Sequence[str],
     sectors: Iterable[str],
 ) -> DataFrame:
     """Calculate technical coefficients from IO matrix and a final output column.
@@ -51,7 +51,9 @@ def technical_coefficients(
         * Constrain parameters if necessary
     """
     io_matrix: DataFrame = io_table.loc[sectors, sectors]
-    final_output: Series = io_table.loc[sectors][final_output_column]
+    final_output: Series | DataFrame = io_table.loc[sectors, final_output_column]
+    if not isinstance(final_output, Series):
+        final_output = final_output.sum(axis="columns")
     return (io_matrix / final_output).astype("float64")
 
 

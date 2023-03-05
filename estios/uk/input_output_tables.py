@@ -5,10 +5,13 @@ from typing import Any, Callable, Final, Sequence
 from pandas import DataFrame, Series
 
 from ..input_output_tables import (
+    ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME,
     CPA_COLUMN_NAME,
     CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME,
     CPA_TAXES_NET_SUBSIDIES_ROW_NAME,
     CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE,
+    GROSS_CAPITAL_FORMATION_COLUMN_NAME,
+    INVENTORY_CHANGE_COLUMN_NAME,
     IO_TABLE_DEFAULT_COLUMNS_NAME,
     IO_TABLE_DEFAULT_INDEX_NAME,
     DogLegType,
@@ -86,6 +89,9 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
         "Exports to EU": UK_EXPORTS_TO_EU_COLUMN_CODE,
         "Exports outside EU": UK_EXPORTS_OUTSIDE_EU_CODE,
         "Exports of services": UK_EXPORTS_OF_SERVICES_CODE,
+        GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
+        INVENTORY_CHANGE_COLUMN_NAME: "P52",
+        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
         TOTAL_OUTPUT_COLUMN_NAME: "TD",
     },
     "rows": {
@@ -98,6 +104,30 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
         TOTAL_SALES_ROW_NAME: "P1",
     },
 }
+
+# UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
+#     "columns": {
+#         "Household Purchase": "P3 S14",
+#         "Government Purchase": "P3 S13",
+#         "Non-profit Purchase": "P3 S15",
+#         "Exports to EU": "P61EU",
+#         "Exports outside EU": "P61RW",
+#         "Exports of services": "P62",
+#         GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
+#         INVENTORY_CHANGE_COLUMN_NAME: "P52",
+#         ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
+#         TOTAL_OUTPUT_COLUMN_NAME: "TD",
+#     },
+#     "rows": {
+#         TOTAL_PRODUCTION_ROW_NAME: "_T",
+#         "Imports": "Imports",
+#         NET_SUBSIDIES_COLUMN_NAME: NET_SUBSIDIES_COLUMN_NAME,
+#         "Intermediate Demand purchase price": INTERMEDIATE_COLUMN_NAME,
+#         "Employee Compensation": "D1",
+#         GROSS_VALUE_ADDED_ROW_NAME: "GVA",
+#         "Total Sales": "P1",
+#     },
+# }
 
 logger.warning(
     f"Currently set default UK_2017_IO_TABLE_SCALING to: {ons_IO_2017.ONS_2017_IO_TABLE_SCALING}"
@@ -116,7 +146,7 @@ def fix_empty_col_and_na_values(
     df[sector_names] = df[sector_names].fillna(0.0)
     df.loc[sector_names] = df.loc[sector_names].fillna(0.0)
     df.index = df.index.rename(sector_col_name)
-    return df
+    return df, df.index, df.columns
 
 
 @dataclass(repr=False)

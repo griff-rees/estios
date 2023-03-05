@@ -46,7 +46,7 @@ SectorConfigType = Union[
 ]
 AggregatedSectorDictType = dict[str, Sequence[str]]
 AnnualConfigType = Union[Sequence[int], dict[int, dict], OrderedDict[int, dict]]
-InputOutputConfigType = dict[str, Any]
+InputOutputConfigType = OrderedDict[DateType, Any]
 DateConfigType = Union[
     Sequence[date], dict[DateType, dict], OrderedDict[DateType, dict]
 ]
@@ -185,7 +185,7 @@ def log_x_or_return_zero(x: float) -> Optional[float]:
     if x < 0:
         logger.error(f"Cannot log {x} < 0")
         return None
-    return log(x) if x > 0 else 0.0
+    return log(x) if log(x) > 0 else 0.0
 
 
 def enforce_start_str(string: str, prefix: str, on: bool) -> str:
@@ -412,7 +412,7 @@ def df_column_to_single_value(
     return df[results_column_name].values[0]
 
 
-def filter_fields_by_type(cls: Any, field_type: Type) -> tuple[Field, ...]:
+def filter_fields_by_type(cls: Any, field_type: Type | TypeAlias) -> tuple[Field, ...]:
     """Return tuple of cls attributes of field_type."""
     return tuple(field for field in fields(cls) if field.type == field_type)
 
@@ -434,7 +434,7 @@ def filter_attrs_by_substring(
             yield attr_name, attr
 
 
-def match_ordered_iters(x: Iterable, y: Iterable, skip: Sequence) -> tuple:
+def match_ordered_iters(x: Iterable, y: Iterable, skip: Sequence = []) -> tuple:
     """From two iterables return a tuple of order marched values."""
     return tuple(
         x_value
@@ -443,7 +443,7 @@ def match_ordered_iters(x: Iterable, y: Iterable, skip: Sequence) -> tuple:
     )
 
 
-def match_df_cols_rows(df: DataFrame, skip: Sequence) -> tuple[str]:
+def match_df_cols_rows(df: DataFrame, skip: Sequence = []) -> tuple[str, ...]:
     """From a DataFarme, return a tuple of marched column and row names."""
     return match_ordered_iters(df.columns, df.index, skip)
 

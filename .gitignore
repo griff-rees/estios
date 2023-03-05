@@ -1,3 +1,7 @@
+# Local cache of remote sources
+estios/data*
+estios/uk/data*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -122,6 +126,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+/docs/estios
 
 # mypy
 .mypy_cache/

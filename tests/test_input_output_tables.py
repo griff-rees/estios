@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from pathlib import Path
 
 import pytest
 from pandas import DataFrame
 from pandas.testing import assert_frame_equal
 from pymrio import MRIOMetaData
 
-from estios.input_output_tables import (  # load_io_table_csv,; load_io_table_excel,
+from estios.input_output_tables import (
+    ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME,
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
     InputOutputCPATable,
@@ -15,7 +17,11 @@ from estios.input_output_tables import (  # load_io_table_csv,; load_io_table_ex
     InputOutputTableOECD,
     _pymrio_download_wrapper,
 )
-from estios.sources import DOI_URL_PREFIX, AutoDownloadPermissionError
+from estios.sources import (
+    DOI_URL_PREFIX,
+    AutoDownloadPermissionError,
+    pandas_from_path_or_package,
+)
 from estios.uk import io_table_1841
 from estios.uk.input_output_tables import InputOutputTableUK1841, InputOutputTableUK2017
 from estios.uk.ons_employment_2017 import (
@@ -25,18 +31,14 @@ from estios.uk.ons_employment_2017 import (
 )
 from estios.utils import aggregate_rows, filter_by_region_name_and_type
 
-# from pymrio import IOSystem, download_oecd, parse_oecd, MRIOMetaData
-
 
 @pytest.fixture
 def ons_io_2017_table() -> InputOutputCPATable | InputOutputTableUK2017:
-    # return InputOutputUK2017.load_from_file()
     return InputOutputTableUK2017()
 
 
 @pytest.fixture
 def io_1841_table() -> InputOutputTable:
-    # return InputOutputUK1841.load_from_file()
     return InputOutputTableUK1841()
 
 
@@ -53,11 +55,24 @@ class TestLoadingONSIOTableData:
         assert repr(ons_io_2017_table) == "InputOutputTableUK2017(sectors_count=105)"
 
     def test_load_ons_io_2017_table(self, ons_io_2017_table) -> None:
-        """Test loading a UK 2017 economic input-outpute table."""
-        # io_2017: DataFrame = load_io_table_excel()
+        """Test loading a UK 2017 economic input-outpute table.
+
+        Todo:
+            * Expand to more comprehensive test
+        """
+        assert len(ons_io_2017_table.all_input_row_labels) == len(
+            ons_io_2017_table.all_input_rows
+        )
+        assert len(ons_io_2017_table.all_output_column_labels) == len(
+            ons_io_2017_table.all_output_columns
+        )
         assert (
             "Taxes less subsidies on production"
-            in ons_io_2017_table.full_io_table.index
+            in ons_io_2017_table.all_input_row_labels
+        )
+        assert (
+            ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME
+            in ons_io_2017_table.all_output_column_labels
         )
 
     def ons_io_2017_table_export(self, ons_io_2017_table) -> None:
@@ -78,15 +93,23 @@ class TestLoadingONSIOTableData:
         assert sectors_aggregated[FINANCIAL_AGG] == TEST_SECTORS
 
     def test_ons_io_2017_table_aggregation(self, ons_io_2017_table) -> None:
-        """Test loading and manaing an ONS Input Output excel file."""
-        FIN_REAL_IO: float = 29562.858422906436
+        """Test loading and manaing an ONS Input Output excel file.
+
+        Todo:
+            * Expand test to incoprate pre-scaling
+        """
+        FIN_REAL_IO: float = 295628584229.06436
         aggregated_io_table: DataFrame = ons_io_2017_table.get_aggregated_io_table()
         assert aggregated_io_table.loc[FINANCIAL_AGG, REAL_EST_AGG] == FIN_REAL_IO
 
     @pytest.mark.xfail(reason="requires an external data file")
-    def test_ons_io_2015(self) -> None:
+    def test_ons_io_2015(self, tmp_path_factory) -> None:
         """Test loading 2015 IO table data."""
-        io_2015: DataFrame = load_io_table_excel("data/2015detailedioatsbb18(1).xls")
+        io_2015: DataFrame = pandas_from_path_or_package(
+            url_or_path="https://www.ons.gov.uk/file?uri=/economy/nationalaccounts/supplyandusetables/datasets/ukinputoutputanalyticaltablesdetailed/2015detailed/2015detailedioatsbb18.xls",
+            local_path=Path(tmp_path_factory.mktemp("test-ons-2015") / "test_2015.xls"),
+        )
+        assert io_2015.year == 2015
 
     # def ons_cpa_io_table_export(self, ons_io_2017_table) -> None:
     #     """Test loading and managing an ONS Input Output excel file."""

@@ -10,7 +10,6 @@ from pandas import DataFrame, Series
 from estios.input_output_tables import InputOutputCPATable
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
-from estios.temporal import annual_io_time_series
 from estios.uk.input_output_tables import InputOutputTableUK2017
 from estios.uk.models import InterRegionInputOutputUK2017
 from estios.uk.ons_employment_2017 import generate_employment_quarterly_dates
@@ -24,6 +23,7 @@ from estios.uk.regions import (
     get_all_centre_for_cities_dict,
     load_and_join_centre_for_cities_data,
 )
+from estios.uk.scenarios import annual_io_time_series_ons_2017
 from estios.uk.utils import THREE_UK_CITY_REGIONS, load_contemporary_ons_population
 from estios.utils import SECTOR_10_CODE_DICT
 
@@ -87,12 +87,16 @@ def all_cities_io(all_cities: dict[str, str]) -> InterRegionInputOutput:
 
 @pytest.fixture
 def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
-    return annual_io_time_series(years=ONS_PROJECTION_YEARS, regions=three_cities)
+    return annual_io_time_series_ons_2017(
+        annual_config=ONS_PROJECTION_YEARS, regions=three_cities
+    )
 
 
 @pytest.fixture
 def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
-    return annual_io_time_series(years=range(2018, 2021), regions=three_cities)
+    return annual_io_time_series_ons_2017(
+        annual_config=range(2018, 2021), regions=three_cities
+    )
 
 
 @pytest.fixture

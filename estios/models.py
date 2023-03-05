@@ -46,7 +46,7 @@ from .calc import (
     technical_coefficients,
     x_i_mn_summed,
 )
-from .input_output_tables import (  # GROSS_VALUE_ADDED_INDEX_NAME,; UK_EXPORT_COLUMN_NAMES,; TOTAL_PRODUCTION_ROW_NAME,; aggregate_io_table,
+from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
     GROSS_VALUE_ADDED_ROW_NAME,
     IMPORTS_ROW_NAME,
@@ -63,9 +63,7 @@ from .sources import (
 )
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
 from .uk import ons_IO_2017
-from .uk.ons_employment_2017 import (  # CITY_SECTOR_REGION_PREFIX,; EMPLOYMENT_QUARTER_DEC_2017,; UK_JOBS_BY_SECTOR_SCALING,; UK_JOBS_BY_SECTOR_XLS_FILE_NAME,; NOMIS_2017_SECTOR_EMPLOYMENT_METADATA,; load_employment_by_region_and_sector_csv,
-    load_region_employment_excel,
-)
+from .uk.ons_employment_2017 import load_region_employment_excel
 from .uk.regions import UK_CITY_REGIONS, load_and_join_centre_for_cities_data
 from .utils import (
     SECTOR_10_CODE_DICT,
@@ -91,25 +89,12 @@ logger = getLogger(__name__)
 
 filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
-# DEFAULT_TIME_SERIES_CONFIG: DateConfigType = {
-#     EMPLOYMENT_QUARTER_DEC_2017: {
-#         "io_table_file_path": ons_IO_2017.EXCEL_FILE_NAME,
-#     }
-# }
 
-# <<<<<<< Updated upstream
 NamesListType = Union[list[str], Collection[str]]
-# DateType: TypeAlias = date
-
-
-# @dataclass(kw_only=True)
-# class InterRegionInputOutputBaseClass:
-# =======
 
 
 @dataclass(kw_only=True)
 class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
-    # >>>>>>> Stashed changes
 
     """Bass attributes for InputOutput Model and TimeSeries.
 
@@ -152,6 +137,7 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     raw_national_employment: Optional[DataFrame | Series] = None
     national_employment: Optional[Series] = None
     national_employment_scale: float = 1.0
+    national_column_name: str = ""  # To be replaced in future
     io_table_scale: float = 1.0
     national_population: Optional[float] = None
     national_working_population: Optional[float] = None
@@ -193,27 +179,37 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
             self.raw_io_table = processed_io_table
         return self.raw_io_table
 
+    def __repr__(self) -> str:
+        """Return a str indicated class type and number of sectors.
+
+        Todo:
+            * Apply __repr__ format coherence across classes
+        """
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"nation={self.national_column_name}, "
+        repr += f"date={self.date}, "
+        repr += f"sectors={self.sectors_count}, "
+        repr += f"regions={self.regions_count})"
+        return repr
+
+    def __str__(self) -> str:
+        return (
+            f"{self.national_column_name} {self.date} Input-Output model: "
+            f"{len(self.sectors)} sectors, {len(self.regions)} regions"
+        )
+
+    @property
+    def sectors_count(self) -> int:
+        """Return the number of sectors."""
+        return len(self.sectors)
+
+    @property
+    def regions_count(self) -> int:
+        """Return the number of sectors."""
+        return len(self.regions)
+
     def __post_init__(self):
         self._set_all_meta_file_or_data_fields()
-        # _ = self._process_raw_io_table()
-
-        #     self.raw_io_table =
-        #     self._get_meta_file_or_data_field('raw_io_table', parser=InputOutputTable)
-        #     assert False
-        # if isinstance(self.raw_io_table, InputOutputTable):
-        #     if self.sector_aggregation:
-        #         return self.raw_io_table.get_aggregated_io_table() * self.io_table_scale
-        #     elif isinstance(self.raw_io_table, InputOutputCPATable):
-        #         return self.raw_io_table.code_io_table * self.io_table_scale
-        #     else:
-        #         return self.raw_io_table.base_io_table * self.io_table_scale
-        # elif isinstance(self.raw_io_table, DataFrame):
-        #     if self.sector_aggregation:
-        #         return aggregate_io_table(self.sector_aggregation, self.raw_io_table, [], [])
-        #     else:
-        #         return self.raw_io_table * self.io_table_scale
-        # else:
-        #     raise TypeError(f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Try running `self._set_all_meta_file_or_data_fields()`.")
 
     @property
     def region_names(self) -> list[str]:
@@ -245,22 +241,6 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
             return list(self.sectors.keys())
         else:
             return self.sectors
-
-    @cached_property
-    def technical_coefficients(self) -> DataFrame:
-        """Return the technical coefficients derived from `self.io_table`.
-
-        Todo:
-            * Refactor to avoid `self.raw_io_table` vs `self._raw_io_table` ambiguity.
-        """
-        # if not self.raw_io_table:
-        #     if hasattr(self, '_raw_io_table'):
-        #         return self._raw_io_table.technical_coefficients
-        # elif self.raw_io_table:
-        # return self.raw_io_table.technical_coefficients
-        return technical_coefficients(
-            self.io_table, self.final_demand_column_names, self.sectors
-        )
 
 
 class MissingIOTable(Exception):
@@ -310,54 +290,18 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         Todo:
             * Refactor _raw_io_table and raw_io_table components.
         """
-        # if self.raw_io_table is not None:
-        #     self._raw_io_table: InputOutputTable = self.raw_io_table
-        # elif self.io_table_file_path:
-        #     if not self.date and not self.employment_date:
-        #         raise NotImplemented(f"Date required for input-output-table.")
-        #     else:
-        #         assert self.date or self.employment_date
-        #         self._raw_io_table = self._io_table_cls.load_from_file(
-        #             path=self.io_table_file_path,
-        #             meta_data=self.io_table_meta_data,
-        #             year=self.date.year if self.date else self.employment_date.year,
-        #             **self.io_table_kwargs
-        #         )
-        # else:
-        #     raise MissingIOTable(f"Input-Ouput Table needed to run the model.")
         if not self._raw_region_data and self.region_attributes_path:
             self._raw_region_data: GeoDataFrame = self._region_load_func(
                 region_path=self.region_attributes_path,
                 spatial_path=self.region_spatial_path,
             )
         self._set_national_employment()
-        # if not self.national_employment and self.national_employment_path:
-        #     self.national_empoyment = self._set_national_employment()
-        # if (
-        #    not self._employment_by_sector_and_region
-        #    and self.region_sector_employment_path
-        # ):
-        #    self._employment_by_sector_and_region: DataFrame = (
-        #        # load_employment_by_region_and_sector_csv(
-        #        #     path=self.region_sector_employment_path,
-        #        # )
-        #        pandas_from_path_or_package(
-        #            path=self.region_sector_employment_path,
-        #            default_file=ons_IO_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
-        #        )
-        #    )
         if not self.date:
             self.date = self.employment_date
             logger.warning(
                 f"Set {self} date to employment_date {self.employment_date}."
             )
         super().__post_init__()
-
-    def __repr__(self) -> str:
-        return (
-            f"Input output model of {self.year}: "
-            f"{len(self.sectors)} sectors, {len(self.regions)} regions"
-        )
 
     @cached_property
     def region_data(self) -> GeoDataFrame:
@@ -389,7 +333,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     @property
     def _ij_m_index(self) -> MultiIndex:
         """Return self.region x self.region MultiIndex."""
-        return generate_ij_m_index(self.regions, self.sectors)
+        return generate_ij_m_index(
+            self.regions, self.sectors, self.national_column_name
+        )
 
     @property
     def year(self) -> int:
@@ -454,18 +400,6 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         )  # Should be defined or error raised
         # self.national_employment = self.national_employment*self.national_employment_scale
         if self.sector_aggregation:
-            # if self.national_employment.columns.to_list() == list(self.sector_aggregation.keys()):
-            #     logger.warning(f"sector_aggregation method called for pre-aggregated national employment on {self}")
-
-            # if
-            # self._aggregated_national_employment: DataFrame = aggregate_rows(
-            #     self.national_employment,
-            #     sector_dict=self.sector_aggregation,
-            # )
-            # self.national_employment = (
-            #     self._aggregated_national_employment.loc[str(self.employment_date)]
-            #     * self.national_employment_scale
-            # )
             logger.warning(
                 f"Aggregating national employment by {len(self.sector_aggregation)} groups"
             )
@@ -481,6 +415,22 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             )
         # elif self._national_employment is None:
         #     raise TypeError("'_national_employment' attribute cannot be None.")
+
+    @cached_property
+    def technical_coefficients(self) -> DataFrame:
+        """Return the technical coefficients derived from `self.io_table`.
+
+        Todo:
+            * Refactor to avoid `self.raw_io_table` vs `self._raw_io_table` ambiguity.
+        """
+        # if not self.raw_io_table:
+        #     if hasattr(self, '_raw_io_table'):
+        #         return self._raw_io_table.technical_coefficients
+        # elif self.raw_io_table:
+        # return self.raw_io_table.technical_coefficients
+        return technical_coefficients(
+            self.io_table, self.final_demand_column_names, self.sectors
+        )
 
     @cached_property
     def io_table(self) -> DataFrame:
@@ -504,29 +454,6 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         #     return self.raw_io_table.code_io_table # * self.io_table_scale
         else:
             return self.raw_io_table.base_io_table  # * self.io_table_scale
-        # if isinstance(self.raw_io_table, InputOutputTable):
-        #     assert False
-        #     if self.sector_aggregation:
-        #         return self.raw_io_table.get_aggregated_io_table() * self.io_table_scale
-        #     elif isinstance(self.raw_io_table, InputOutputCPATable):
-        #         return self.raw_io_table.code_io_table * self.io_table_scale
-        #     else:
-        #         return self.raw_io_table.base_io_table * self.io_table_scale
-        # elif isinstance(self.raw_io_table, DataFrame):
-        #     if self.sector_aggregation:
-        #         return aggregate_io_table(self.sector_aggregation, self.raw_io_table, [], [])
-        #     else:
-        #         return self.raw_io_table * self.io_table_scale
-        # else:
-        #     raise TypeError(f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Try running `self._set_all_meta_file_or_data_fields()`.")
-
-        # elif self.raw_io_table.base_io_table is not None:
-        #     return self.raw_io_table.base_io_table * self.io_table_scale
-        # else:
-        #     raise ValueError("No valid io table set for {self}")
-        # raise NotImplementedError(
-        #     "Currently io_table requires an aggregation dictionary."
-        #
 
     @cached_property
     def base_io_table(self) -> DataFrame:
@@ -546,12 +473,14 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             self.employment_by_sector_and_region_aggregated = aggregate_rows(
                 self.employment_by_sector_and_region, True
             )
+            assert self.region_type_prefix
             return filter_by_region_name_and_type(
                 self.employment_by_sector_and_region_aggregated,
                 self.region_names,
                 region_type_prefix=self.region_type_prefix,
             )
         else:
+            assert self.region_type_prefix
             return filter_by_region_name_and_type(
                 self.employment_by_sector_and_region,
                 self.region_names,
@@ -658,20 +587,20 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             net_subsidies=self.S_m_national,
         )
 
-    @cached_property
-    def X_i_m(self) -> DataFrame:
-        """Return the total production of sector $m$ in region $i$ and cache results.
+    # @cached_property
+    # def X_i_m(self) -> DataFrame:
+    #     """Return the total production of sector $m$ in region $i$ and cache results.
 
-        $X_i^m = X_*^m * Q_i^m/Q_*^m$
+    #     $X_i^m = X_*^m * Q_i^m/Q_*^m$
 
-        Todo:
-            * At least check the "Total Sale" column specified.
-        """
-        return X_i_m_scaled(
-            total_production=self.io_table[self.sectors].loc["Total Sales"],
-            employment=self.employment_table,
-            national_employment=self.national_employment,
-        ).astype("float64")
+    #     Todo:
+    #         * At least check the "Total Sale" column specified.
+    #     """
+    #     return X_i_m_scaled(
+    #         total_production=self.io_table[self.sectors].loc["Total Sales"],
+    #         employment=self.employment_table,
+    #         national_employment=self.national_employment,
+    #     ).astype("float64")
 
     @cached_property
     def x_i_mn_summed(self) -> DataFrame:
@@ -800,6 +729,22 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
         return collect_dupes(self.dates)
 
     def __repr__(self) -> str:
+        """Return a str indicated class type and number of sectors.
+
+        Todo:
+            * Apply __repr__ format coherence across classes
+        """
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"dates={len(self)}, "
+        if self.annual:
+            repr += f"start={self.years[0]}, end={self.years[-1]}, "
+        else:
+            repr += f"start={self.dates[0]}, end={self.dates[-1]}, "
+        repr += f"sectors={self.sectors_count}, "
+        repr += f"regions={self.regions_count})"
+        return repr
+
+    def __str__(self) -> str:
         """Summary of model state in a str."""
         summary: str = "Spatial Input-Output model"
         models_count: int = len(self)
@@ -812,18 +757,11 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
                 summary = (
                     f"{models_count} {summary} from {self.dates[0]} to {self.dates[-1]}"
                 )
-            return f"{summary}: {str(self._core_model).split(': ')[-1]}"
+            return (
+                f"{summary}: {self.sectors_count} sectors, {self.regions_count} regions"
+            )
         else:
             return f"Empty {summary} time series"
-        # prefix: str = (
-        #     f"Input output models from {self[0].date} to {self[-1].date}: "
-        #     if len(self)
-        #     else f"Empty Input-Output time series for "
-        # )
-        # return (
-        #     prefix
-        #     + f"{len(list(self.sectors))} sectors, {len(list(self.regions))} regions"
-        # )
 
     @property
     def _core_model(self) -> Optional[InterRegionInputOutput]:
@@ -858,21 +796,16 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
             return self.sectors
 
     @property
+    def sectors_count(self) -> int:
+        return len(self.sectors)
+
+    @property
+    def regions_count(self) -> int:
+        return len(self.regions)
+
+    @property
     def is_calculated(self) -> bool:
         return all(model.is_calculated for model in self)
-
-    # @property
-    # def sectors(self) -> list[str]:
-    #     if not len(self):
-    #         logger.warning(f"No InterRegionInputOutput time points.")
-    #         return []
-    #     elif self._io_model_config_index:
-    #         return self[self._io_model_config_index].sectors
-    #     else:
-    #         logger.warning(
-    #             f"_io_model_config_index of {self} not set, may need refactor."
-    #         )
-    #         return []
 
     @property
     def region_names(self) -> RegionNamesListType:

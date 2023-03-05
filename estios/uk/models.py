@@ -3,11 +3,13 @@ from os import PathLike
 from typing import Any, Optional, Type
 
 from ..input_output_tables import (  # TOTAL_PRODUCTION_ROW_NAME,; UK_EXPORT_COLUMN_NAMES,
+    GROSS_VALUE_ADDED_ROW_NAME,
+    NET_SUBSIDIES_COLUMN_NAME,
     InputOutputTable,
 )
 from ..models import InterRegionInputOutput
 from ..sources import MetaData, MetaFileOrDataFrameType
-from ..utils import DateType
+from ..utils import DateConfigType, DateType
 from . import ons_IO_2017
 from .input_output_tables import InputOutputTableUK2017
 from .ons_employment_2017 import (
@@ -50,6 +52,11 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
         NOMIS_2017_SECTOR_EMPLOYMENT_METADATA
     )
     national_column_name: str = UK_NATIONAL_COLUMN_NAME
+    national_gva_row_name: str = GROSS_VALUE_ADDED_ROW_NAME
+    national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
+    national_gov_investment_column_names: tuple[
+        str, ...
+    ] = ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
     _io_table_cls: Type[InputOutputTable] = InputOutputTableUK2017
 
 
@@ -66,3 +73,13 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
 #     _region_load_func: Callable[
 #         ..., GeoDataFrame
 #     ] = load_and_join_centre_for_cities_data
+
+# class ONSUKContemporaryTimeSeries(InterRegionInputOutputTimeSeries):
+#    _input_output_model_cls = InterRegionInputOutputUK2017
+
+ONS_2017_DEFAULT_CONFIG: DateConfigType = {
+    EMPLOYMENT_QUARTER_DEC_2017: {
+        "raw_io_table": ons_IO_2017.ONS_IO_TABLE_2017_METADATA,
+        # "io_table_file_path": ons_IO_2017.ONS_IO_TABLE_2017_METADATA,
+    },
+}

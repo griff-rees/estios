@@ -4,7 +4,7 @@
 from collections import OrderedDict
 from datetime import date
 from logging import getLogger
-from typing import Final, Sequence
+from typing import Final, Sequence, Type
 
 from pandas import DataFrame, Series
 
@@ -12,9 +12,10 @@ from ..calc import calc_ratio
 from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from ..sources import MetaData, MonthDay
 from ..spatial import sum_for_regions_by_attr, sum_for_regions_by_la_code
-from ..temporal import annual_io_time_series
-from ..utils import AnnualConfigType  # sum_by_rows_cols,
+from ..temporal import annual_io_time_series, date_io_time_series
+from ..utils import AnnualConfigType, DateConfigType  # sum_by_rows_cols,
 from .gdp_projections import get_uk_gdp_ts_as_series
+from .models import InterRegionInputOutputUK2017
 from .ons_employment_2017 import EMPLOYMENT_QUARTER_JUN_2017
 from .ons_population_estimates import (
     ONS_2017_ALL_AGES_COLUMN_NAME,
@@ -61,6 +62,26 @@ REGION_CODES: dict[str, str] = {
 # gdp_in_dollars: float = oecd_query_to_float(gdp_df, year=2017)
 # assert False
 TWO_YEARS: tuple[int, int] = (2020, 2025)
+
+
+def annual_io_time_series_ons_2017(
+    annual_config: AnnualConfigType, **kwargs
+) -> InterRegionInputOutputTimeSeries:
+    return annual_io_time_series(
+        annual_config=annual_config,
+        input_output_model_cls=InterRegionInputOutputUK2017,
+        **kwargs,
+    )
+
+
+def date_io_time_series_ons_2017(
+    date_conf: DateConfigType, **kwargs
+) -> InterRegionInputOutputTimeSeries:
+    return date_io_time_series(
+        date_conf=date_conf,
+        input_output_model_cls=InterRegionInputOutputUK2017,
+        **kwargs,
+    )
 
 
 def baseline_england_annual_population_projection_config(
@@ -121,7 +142,7 @@ def baseline_england_annual_population_projection_config(
     if not first_io_time and not date_check:
         # national_poulation source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/bulletins/annualmidyearpopulationestimates/mid2017
         # working population source: https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/lf2o/lms
-        first_io_time = InterRegionInputOutput(
+        first_io_time = InterRegionInputOutputUK2017(
             regions=regions,
             employment_date=EMPLOYMENT_QUARTER_JUN_2017,
         )
@@ -239,12 +260,15 @@ def baseline_england_annual_projection(
     # regions: dict | list[str] = THREE_UK_CITY_REGIONS,
     ons_population_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA,
     years: Sequence[int] | None = TWO_YEARS,
+    input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutputUK2017,
 ) -> InterRegionInputOutputTimeSeries:
     time_series_config, first_io = baseline_england_annual_population_projection_config(
         first_io_time, date_check, regions, ons_population_projection, years=years
     )
     io_time_series: InterRegionInputOutputTimeSeries = annual_io_time_series(
-        time_series_config, default_month_day=DEFAULT_MIDYEAR_MONTH_DAY
+        time_series_config,
+        default_month_day=DEFAULT_MIDYEAR_MONTH_DAY,
+        input_output_model_cls=input_output_model_cls,
     )
     io_time_series.insert(0, first_io)
     return io_time_series

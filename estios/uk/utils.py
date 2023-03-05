@@ -3,7 +3,6 @@
 
 from collections import UserDict
 from dataclasses import dataclass
-from datetime import date
 from logging import getLogger
 from typing import Final, NamedTuple, Type
 
@@ -11,7 +10,7 @@ from pandas import DataFrame
 
 from ..sources import MetaData
 from ..spatial import GenericRegionsManager, Region, RegionsManager
-from ..utils import filled_or_empty_dict
+from ..utils import DateType, filled_or_empty_dict
 from .centre_for_cities_puas import (
     CENTRE_FOR_CITIES_2022_CITY_PUAS,
     CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
@@ -455,7 +454,7 @@ def generate_uk_puas(
 def generate_base_regions(
     ons_region_df: DataFrame | None = None,
     ons_region_meta_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
-    regions_date: date | None = None,
+    regions_date: DateType | int | None = None,
     alternate_names: RegionInfoMapper = REGION_ALTERNATE_NAMES,
 ) -> GenericRegionsManager:
     if not ons_region_df:

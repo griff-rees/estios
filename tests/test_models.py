@@ -23,11 +23,23 @@ class TestInputOutputModel:
 
     def test_default_construction(self) -> None:
         io_model = InterRegionInputOutputUK2017()
-        assert str(io_model) == "Input output model of 2017: 10 sectors, 10 regions"
+        assert (
+            str(io_model) == "UK 2017-12-01 Input-Output model: 10 sectors, 10 regions"
+        )
+        assert (
+            repr(io_model)
+            == "InterRegionInputOutputUK2017(nation=UK, date=2017-12-01, sectors=10, regions=10)"
+        )
 
     def test_3_city_construction(self, three_cities) -> None:
         io_model = InterRegionInputOutputUK2017(regions=three_cities)
-        assert str(io_model) == "Input output model of 2017: 10 sectors, 3 regions"
+        assert (
+            str(io_model) == "UK 2017-12-01 Input-Output model: 10 sectors, 3 regions"
+        )
+        assert (
+            repr(io_model)
+            == "InterRegionInputOutputUK2017(nation=UK, date=2017-12-01, sectors=10, regions=3)"
+        )
 
     def test_3_city_distances(self, three_cities_io) -> None:
         CORRECT_DISTANCES = Series(
@@ -345,7 +357,12 @@ class TestInputOutputModelAllCities:
 
     def test_all_city_construction(self, all_cities_io) -> None:
         assert (
-            str(all_cities_io) == "Input output model of 2017: 10 sectors, 48 regions"
+            str(all_cities_io)
+            == "UK 2017-12-01 Input-Output model: 10 sectors, 48 regions"
+        )
+        assert (
+            repr(all_cities_io)
+            == "InterRegionInputOutputUK2017(nation=UK, date=2017-12-01, sectors=10, regions=48)"
         )
 
     def test_all_city_distances(self, all_cities_io) -> None:

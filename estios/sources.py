@@ -11,7 +11,19 @@ from os.path import abspath
 from pathlib import Path
 from pkgutil import get_data
 from pprint import pformat
-from typing import IO, Any, Callable, Collection, Final, Optional, Protocol, Type, Union
+from typing import (
+    IO,
+    Any,
+    Callable,
+    Collection,
+    Final,
+    Optional,
+    Protocol,
+    Type,
+    TypeAlias,
+    Union,
+    get_args,
+)
 from urllib.error import URLError
 from urllib.parse import ParseResult, parse_qs, urlparse
 from urllib.request import Request, urlopen
@@ -23,9 +35,11 @@ from .utils import filter_fields_by_type
 
 logger = getLogger(__name__)
 
-FilePathType = Union[str, IO, PathLike]
-FolderPathType = Union[str, PathLike]
-SupportedAttrDataTypes = DataFrame | Series | dict | list | tuple
+StablePathType: TypeAlias = str | PathLike[Any]
+FilePathType: TypeAlias = StablePathType | IO
+SupportedAttrDataTypes: TypeAlias = DataFrame | Series | dict | list | tuple
+FileOrURLType: TypeAlias = FilePathType | Request
+
 
 UK_DATA_PATH: Final[Path] = Path("uk/data")
 DOI_URL_PREFIX: Final[str] = "https://doi.org/"
@@ -82,10 +96,11 @@ class MonthDay:
 DEFAULT_ANNUAL_MONTH_DAY: Final[MonthDay] = MonthDay()
 
 
-def extract_file_name_from_url(url: str | Request) -> str:
+def extract_file_name_from_url(url: FileOrURLType) -> str:
     """Extract file name from end of a URL and raise warnings for edge cases."""
     if isinstance(url, Request):
         url = url.full_url
+    assert isinstance(url, str)
     parsed: ParseResult = urlparse(url)
     if parsed.query:
         logger.debug(f"Querying and parsing potential file paths from url: {url}")
@@ -115,20 +130,42 @@ class DataSaveReadCallable(Protocol):
 
     def __call__(
         self,
-        url_or_path: str | Request,
-        local_path: Optional[FilePathType] = None,
+        url_or_path: FileOrURLType,
+        local_path: FilePathType | None = None,
         # zip_file_path: Optional[FilePathType] = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> None | Request:
         ...
+
+    # @overload
+    # def __call__(
+    #     self,
+    #     url_or_path: FileOrURLType,
+    #     local_path: PathLike | None,
+    #     zip_file_path: PathLike,
+    #     **kwargs: Any,
+    # ) -> None:
+    #    ...
+
+    # @overload
+    # def __call__(
+    #     self,
+    #     url_or_path: FileOrURLType,
+    #     local_path: FilePathType,
+    #     reader: Optional[Callable] = None,
+    #     extension_to_func_mapper: dict[str, Callable] = EXTENSION_PANDAS_READ_MAPPER,
+    #     **kwargs: Any,
+    # ) -> Any | None:
+    #     ...
 
 
 def _download_and_save_file(
-    url_or_path: str | Request,
+    url_or_path: FileOrURLType,
     local_path: Optional[FilePathType] = None,
     # zip_file_path: Optional[PathLike] = None,
     **kwargs: Any,
 ) -> None:
+    assert isinstance(url_or_path, str | Request)
     if not local_path:
         local_path = extract_file_name_from_url(url_or_path)
     # assert zip_file_path is None  # Prevent passing to urlopen
@@ -136,11 +173,11 @@ def _download_and_save_file(
         urlopen(url_or_path, **kwargs) as response,
         open(str(local_path), "wb") as out_file,
     ):
-        return shutil.copyfileobj(response, out_file)
+        shutil.copyfileobj(response, out_file)
 
 
 def _download_unzip_and_save_file(
-    url_or_path: str | Request,
+    url_or_path: FileOrURLType,
     local_path: Optional[PathLike],
     zip_file_path: PathLike,
     **kwargs: Any,
@@ -149,21 +186,22 @@ def _download_unzip_and_save_file(
         raise ValueError(
             f"'local_path' needed to specify what to extract from a zip resource"
         )
-    if isinstance(url_or_path, str):
+    if isinstance(url_or_path, get_args(FilePathType)):
         raise NotImplementedError(
             f"No implementation yet for unzipping local files like {url_or_path}"
         )
+    assert isinstance(url_or_path, Request)
     with ZipFile(BytesIO(urlopen(url_or_path, **kwargs).head())) as zip_files:
         logger.info(f"Extracting '{zip_file_path}' to save to '{local_path}' ...")
         with (
             zip_files.open(str(zip_file_path)) as zip_file,
             open(local_path, "wb") as out_file,
         ):
-            return shutil.copyfileobj(zip_file, out_file)
+            shutil.copyfileobj(zip_file, out_file)
 
 
 def download_and_save_file(
-    url_or_path: str,
+    url_or_path: FileOrURLType,
     local_path: Optional[FilePathType] = None,
     zip_file_path: Optional[PathLike] = None,
     get_and_save_func: DataSaveReadCallable = _download_and_save_file,
@@ -187,6 +225,7 @@ def download_and_save_file(
         )
         local_path = extract_file_name_from_url(url_or_path)
     logger.info(f"Downloading {url_or_path} to save to {local_path} ...")
+    assert isinstance(url_or_path, str)
     request = Request(url_or_path, headers=headers, **kwargs)
     logger.debug(f"Preparing to read using user-agent {user_agent}")
     if zip_file_path:
@@ -208,7 +247,7 @@ def download_and_save_file(
                     "defaulting to excel sheet "
                     f"to load: {local_path}"
                 )
-        return get_and_save_func(request, local_path, **kwargs)
+        get_and_save_func(request, local_path, **kwargs)
     except URLError:
         logger.error(
             f"URLError: likely no internet connection, fail downloading {url_or_path}"
@@ -300,7 +339,7 @@ class MetaData:
     _save_kwargs: dict[str, Any] = field(default_factory=dict)
     _package_data: bool = False
     _package_path: Optional[FilePathType] = Path("uk/data")
-    _reader_func: Optional[DataSaveReadCallable] = None
+    _reader_func: DataSaveReadCallable | Callable | None = None
     _reader_kwargs: dict[str, Any] = field(default_factory=dict)
     # _reader_func_override: bool = False
     _post_read_func: Optional[Callable] = None
@@ -361,6 +400,8 @@ class MetaData:
                 logger.info(f"Downloading data for {self}")
                 self.save_local()
             if self.is_local:
+                assert self._reader_func
+                assert self.absolute_save_path
                 if self._post_read_func:
                     return self._post_read_func(
                         self._reader_func(
@@ -451,7 +492,7 @@ class MetaData:
             self._save_func(
                 self.url, local_path=self.absolute_save_path, **self._save_kwargs
             )
-        self.date_time_obtained == datetime.now()
+        self.date_time_obtained = datetime.now()
 
     @property
     def is_local(self) -> bool:
@@ -476,7 +517,7 @@ class MetaData:
 
 
 def download_and_extract_zip_file(
-    url: str,
+    url: FileOrURLType,
     local_path: Optional[PathLike] = None,
     zip_file_path: Optional[PathLike] = None,
     user_agent: str = CURL_USER_AGENT,
@@ -491,6 +532,7 @@ def download_and_extract_zip_file(
         )
         local_path = zip_file_path
     logger.debug(f"Preparing to read using user-agent {user_agent}")
+    assert isinstance(url, str)
     zip_request = Request(url, headers={"User-Agent": user_agent})
     with ZipFile(BytesIO(urlopen(zip_request).read())) as zip_files:
         logger.info(f"Extracting '{zip_file_path}' to save to '{local_path}' ...")
@@ -502,7 +544,7 @@ def download_and_extract_zip_file(
 
 
 def read_package_data(
-    file_name: FilePathType, folder: FolderPathType = UK_DATA_PATH
+    file_name: FilePathType, folder: StablePathType = UK_DATA_PATH
 ) -> BytesIO:
     if isinstance(file_name, IO):
         raise NotImplementedError(f"Currently no means of reading {file_name} types.")
@@ -517,7 +559,7 @@ def read_package_data(
 def path_or_package_data(
     path: FilePathType,
     default_file: FilePathType,
-    folder: FolderPathType = UK_DATA_PATH,
+    folder: StablePathType = UK_DATA_PATH,
 ) -> Union[FilePathType, BytesIO]:
     if path is default_file:
         logger.info(f"Loading from package data {default_file}.")
@@ -527,25 +569,30 @@ def path_or_package_data(
 
 
 def pandas_from_path_or_package(
-    path: FilePathType,
-    default_file: FilePathType,
+    url_or_path: FileOrURLType,
+    local_path: FilePathType,
     reader: Optional[Callable] = None,
     extension_to_func_mapper: dict[str, Callable] = EXTENSION_PANDAS_READ_MAPPER,
     **kwargs,
 ) -> Optional[DataFrame]:
     """Import a data file as a DataFrame, managing if package_data used."""
-    if isinstance(path, str) or isinstance(path, PathLike) and Path(path).is_absolute():
-        path = path_or_package_data(path, default_file)
+    if (
+        isinstance(url_or_path, str)
+        or isinstance(url_or_path, PathLike)
+        and Path(url_or_path).is_absolute()
+    ):
+        url_or_path = path_or_package_data(url_or_path, local_path)
     if not reader:
-        if isinstance(path, IO):
-            logger.error(f"No reader provided for {path}")
+        if isinstance(url_or_path, IO):
+            logger.error(f"No reader provided for {url_or_path}")
             return None
         try:
-            reader = reader or extension_to_func_mapper[Path(path).suffix]
+            assert isinstance(url_or_path, str | PathLike)
+            reader = reader or extension_to_func_mapper[Path(url_or_path).suffix]
         except KeyError as error:
             logger.error(f"No reader provided or available {error}")
             return None
-    return reader(path, **kwargs)
+    return reader(url_or_path, **kwargs)
 
 
 # def pandas_from_path_or_package_csv(
@@ -616,7 +663,7 @@ class ModelDataSourcesHandler:
         [Any, Type], tuple[Field, ...]
     ] = filter_fields_by_type
 
-    def _filter_fields_by_type(self, field_type: Type) -> tuple[Field, ...]:
+    def _filter_fields_by_type(self, field_type: Type | TypeAlias) -> tuple[Field, ...]:
         return self._filter_fields_by_type_func(self, field_type)
 
     def _get_field_by_name(self, field_name) -> Field:
@@ -692,7 +739,7 @@ class ModelDataSourcesHandler:
         file_or_path: FilePathType = getattr(self, file_or_path_field.name)
         setattr(self, f"_{file_or_path_field.name}_path", file_or_path)
         data = parser(
-            path=file_or_path, default_file=file_or_path_field.default, **kwargs
+            url_or_path=file_or_path, local_path=file_or_path_field.default, **kwargs
         )
         setattr(self, file_or_path_field.name, data)
         return data
@@ -722,13 +769,13 @@ class ModelDataSourcesHandler:
         value = getattr(self, attr_field.name)
         if not parser:
             parser = self._default_data_source_parser
-        if isinstance(value, SupportedAttrDataTypes):
+        if isinstance(value, get_args(SupportedAttrDataTypes)):
             return value
         elif isinstance(value, MetaData):
             return self._set_meta_field(
                 attr_field, parser, force_default_parser, **kwargs
             )
-        elif isinstance(value, FilePathType):
+        elif isinstance(value, get_args(FilePathType)):
             return self._set_file_or_path_field(
                 attr_field, parser, force_default_parser, **kwargs
             )

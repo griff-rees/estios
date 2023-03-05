@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 from datetime import date
 from logging import getLogger
 from pathlib import Path
@@ -151,14 +152,20 @@ def generate_employment_quarterly_dates(
                 yield date(year, month, 1)
 
 
-CONFIG_2017_QUARTERLY: Final[dict[date, dict["str", date]]] = {
-    date: {"employment_date": date}
-    for date in generate_employment_quarterly_dates([2017], reverse=False)
-}
+CONFIG_2017_QUARTERLY: Final[OrderedDict[date, dict["str", date]]] = OrderedDict(
+    {
+        date: {"employment_date": date}
+        for date in generate_employment_quarterly_dates([2017], reverse=False)
+    }
+)
 EMPLOYMENT_QUARTER_DEC_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-1]
 EMPLOYMENT_QUARTER_JUN_2017: Final[date] = tuple(CONFIG_2017_QUARTERLY)[-3]
 
-CONFIG_2015_TO_2017_QUARTERLY: Final[DateConfigType] = {
-    date: {"employment_date": date}
-    for date in generate_employment_quarterly_dates([2015, 2016, 2017], reverse=False)
-}
+CONFIG_2015_TO_2017_QUARTERLY: Final[DateConfigType] = OrderedDict(
+    {
+        date: {"employment_date": date}
+        for date in generate_employment_quarterly_dates(
+            [2015, 2016, 2017], reverse=False
+        )
+    }
+)

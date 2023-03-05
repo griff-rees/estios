@@ -40,8 +40,7 @@ from .sources import (
     pandas_from_path_or_package,
     path_or_package_data,
 )
-from .uk import io_table_1841  # , ons_IO_2017
-from .uk import ons_employment_2017
+from .uk import io_table_1841, ons_employment_2017
 from .utils import (
     REGION_COLUMN_NAME,
     SECTOR_10_CODE_DICT,
@@ -120,30 +119,6 @@ CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[
     str
 ] = "Total intermediate/final use at purchaser's prices"
 
-
-UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
-    "columns": {
-        "Household Purchase": "P3 S14",
-        "Government Purchase": "P3 S13",
-        "Non-profit Purchase": "P3 S15",
-        "Exports to EU": "P61EU",
-        "Exports outside EU": "P61RW",
-        "Exports of services": "P62",
-        GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
-        INVENTORY_CHANGE_COLUMN_NAME: "P52",
-        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
-        TOTAL_OUTPUT_COLUMN_NAME: "TD",
-    },
-    "rows": {
-        TOTAL_PRODUCTION_ROW_NAME: "_T",
-        "Imports": "Imports",
-        NET_SUBSIDIES_COLUMN_NAME: NET_SUBSIDIES_COLUMN_NAME,
-        "Intermediate Demand purchase price": INTERMEDIATE_COLUMN_NAME,
-        "Employee Compensation": "D1",
-        GROSS_VALUE_ADDED_ROW_NAME: "GVA",
-        "Total Sales": "P1",
-    },
-}
 
 DEFAULT_DOG_LEG_ROWS: Final[tuple[str, ...]] = (
     INTERMEDIATE_DEMAND_BASE_PRICE_ROW_NAME,
@@ -383,37 +358,37 @@ def load_employment_by_region_and_sector_csv(
     )
 
 
-def aggregate_io_table(
-    agg_sector_dict: AggregatedSectorDictType,  # UK_SECTOR_10_CODE_DICT would suit
-    code_io_table: DataFrame,
-    dog_leg_columns: dict[str, str] = UK_DOG_LEG_CODES["columns"],
-    dog_leg_rows: dict[str, str] = UK_DOG_LEG_CODES["rows"],
-) -> DataFrame:
-    """Return an aggregated Input Output table via an aggregated mapping of sectors."""
-    # Todo: decide whether this dict copy (shallow) is worth keeping
-    aggregated_sector_io_table = DataFrame(
-        columns=list(agg_sector_dict.keys()) + list(dog_leg_columns.keys()),
-        index=list(agg_sector_dict.keys()) + list(dog_leg_rows.keys()),
-    )
-
-    for sector_column in agg_sector_dict:
-        for sector_row in agg_sector_dict:
-            sector_column_names: Sequence[str] = agg_sector_dict[sector_column]
-            sector_row_names: Sequence[str] = agg_sector_dict[sector_row]
-            aggregated_sector_io_table.loc[
-                sector_column, sector_row
-            ] = (  # Check column row order
-                code_io_table.loc[sector_column_names, sector_row_names].sum().sum()
-            )
-            for dog_leg_column, source_column_name in dog_leg_columns.items():
-                aggregated_sector_io_table.loc[
-                    sector_row, dog_leg_column
-                ] = code_io_table.loc[sector_row_names, source_column_name].sum()
-        for dog_leg_row, source_row_name in dog_leg_rows.items():
-            aggregated_sector_io_table.loc[
-                dog_leg_row, sector_column
-            ] = code_io_table.loc[source_row_name, sector_column_names].sum()
-    return aggregated_sector_io_table
+# def aggregate_io_table(
+#     agg_sector_dict: AggregatedSectorDictType,  # UK_SECTOR_10_CODE_DICT would suit
+#     code_io_table: DataFrame,
+#     dog_leg_columns: dict[str, str],
+#     dog_leg_rows: dict[str, str],
+# ) -> DataFrame:
+#     """Return an aggregated Input Output table via an aggregated mapping of sectors."""
+#     # Todo: decide whether this dict copy (shallow) is worth keeping
+#     aggregated_sector_io_table = DataFrame(
+#         columns=list(agg_sector_dict.keys()) + list(dog_leg_columns.keys()),
+#         index=list(agg_sector_dict.keys()) + list(dog_leg_rows.keys()),
+#     )
+#
+#     for sector_column in agg_sector_dict:
+#         for sector_row in agg_sector_dict:
+#             sector_column_names: Sequence[str] = agg_sector_dict[sector_column]
+#             sector_row_names: Sequence[str] = agg_sector_dict[sector_row]
+#             aggregated_sector_io_table.loc[
+#                 sector_column, sector_row
+#             ] = (  # Check column row order
+#                 code_io_table.loc[sector_column_names, sector_row_names].sum().sum()
+#             )
+#             for dog_leg_column, source_column_name in dog_leg_columns.items():
+#                 aggregated_sector_io_table.loc[
+#                     sector_row, dog_leg_column
+#                 ] = code_io_table.loc[sector_row_names, source_column_name].sum()
+#         for dog_leg_row, source_row_name in dog_leg_rows.items():
+#             aggregated_sector_io_table.loc[
+#                 dog_leg_row, sector_column
+#             ] = code_io_table.loc[source_row_name, sector_column_names].sum()
+#     return aggregated_sector_io_table
 
 
 # @dataclass
@@ -757,10 +732,10 @@ class InputOutputTable(ModelDataSourcesHandler):
     # base_io_table: Optional[DataFrame] = None
     io_scaling_factor: float = 1.0
     sector_names: list[SectorName] = field(default_factory=list)
-    all_regions: Sequence[str] | str = field(default_factory=list)
+    all_regions: Sequence[str] | str = field(default_factory=lambda: [])
 
-    all_sectors: Sequence[str] | str = field(default_factory=list)
-    all_sector_labels: Sequence[str] | str = field(default_factory=list)
+    all_sectors: Sequence[str] | str = field(default_factory=lambda: [])
+    all_sector_labels: Sequence[str] | str = field(default_factory=lambda: [])
 
     # raw_sector_codes_row: str | None = None
     # raw_sector_labels_row: str | None = None
@@ -771,10 +746,10 @@ class InputOutputTable(ModelDataSourcesHandler):
     # io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     date: DateType | YearType | None = None
 
-    all_output_columns: Sequence[str] | str = field(default_factory=list)
-    all_output_column_labels: Sequence[str] | str = field(default_factory=list)
-    all_input_rows: Sequence[str] | str = field(default_factory=list)
-    all_input_row_labels: Sequence[str] | str = field(default_factory=list)
+    all_output_columns: Sequence[str] | str = field(default_factory=lambda: [])
+    all_output_column_labels: Sequence[str] | str = field(default_factory=lambda: [])
+    all_input_rows: Sequence[str] | str = field(default_factory=lambda: [])
+    all_input_row_labels: Sequence[str] | str = field(default_factory=lambda: [])
 
     dog_leg_columns: DogLegType = field(default_factory=lambda: DEFAULT_DOG_LEG_COLUMNS)
     dog_leg_rows: DogLegType = field(default_factory=lambda: DEFAULT_DOG_LEG_ROWS)
@@ -852,7 +827,7 @@ class InputOutputTable(ModelDataSourcesHandler):
         return repr + f"sectors_count={self.all_sectors_count})"
 
     @property
-    def sectors(self) -> list[SectorName]:
+    def sectors(self) -> Sequence[SectorName]:
         """If sector_names is None, populate with sector_aggregation_dict keys, else error.
 
         Todo:
@@ -861,7 +836,14 @@ class InputOutputTable(ModelDataSourcesHandler):
               index is managed in CPA
         """
         if self.all_sector_labels:
-            return self.all_sector_labels
+            if isinstance(self.all_sector_labels, str):
+                logger.warning(
+                    f"{self} has `all_sector_labels` set to {self.all_sector_labels}. "
+                    "Check if that is a column or index name."
+                )
+                return [self.all_sector_labels]
+            else:
+                return self.all_sector_labels
         if self.sector_names is not None:
             return self.sector_names
         # elif (
@@ -1330,6 +1312,7 @@ def _pymrio_download_wrapper(
     if isinstance(local_path, MetaData):
         assert local_path.path is not None
         local_path = local_path.path
+    assert isinstance(local_path, Path)
     local_path_names: Generator[str, None, None] = (
         p.name for p in local_path.glob(glob_str)
     )
@@ -1415,7 +1398,7 @@ class InputOutputCPATable(InputOutputTable):
 
     # path: FilePathType = ons_IO_2017.EXCEL_FILE_NAME
 
-    all_sectors: Sequence[str] | str = field(default_factory=list)
+    all_sectors: Sequence[str] | str = field(default_factory=lambda: [])
     # all_sector_labels: Sequence[str] | str = field(default_factory=list)
     all_sector_labels: Sequence[str] | str = "Product"
     cpa_column_name: str = CPA_COLUMN_NAME
@@ -1442,7 +1425,7 @@ class InputOutputCPATable(InputOutputTable):
     #     default_factory=lambda: UK_DOG_LEG_CODES["rows"]
     # )
 
-    # _first_code_row: int = ons_IO_2017.FIRST_CODE_ROW
+    _first_code_row: int = 1  # from ons_IO_2017.FIRST_CODE_ROW, avoiding circular import until refactor concluded
     _io_table_code_to_labels_func: Callable[
         [DataFrame, str], DataFrame
     ] = cpa_io_table_to_codes
@@ -1462,11 +1445,10 @@ class InputOutputCPATable(InputOutputTable):
         # if not self.process_full_io_table_func and self.__class__.process_full_io_table_func:
         #     logger.debug(f"Fixing missing attribute from {type(self)}")
         #     self.process_full_io_table_func = self.__class__.process_full_io_table_func
-        assert False
         super().__post_init__()
         # self.full_io_table = arrange_cpa_io_table(self.full_io_table)
-        self.column_name_codes = self.full_io_table.iloc[:, :1]
-        self.row_name_codes = self.full_io_table.iloc[0]
+        # self.column_name_codes = self.full_io_table.iloc[:, :1]
+        # self.row_name_codes = self.full_io_table.iloc[0]
         self.code_io_table: DataFrame = self._io_table_code_to_labels_func(
             self.full_io_table, self.cpa_column_name
         )
@@ -1519,17 +1501,17 @@ class InputOutputCPATable(InputOutputTable):
                 )
         # self._get_or_raise_row()
 
-    @property
-    def intermediate_demand_base(self) -> Series:
-        # return self._get_or_raise_row(self.intertermediate_demand_base_price_row_name)
-        if not isinstance(self.code_io_table, DataFrame):
-            raise self.FullIOTableNotSet(
-                f"Intermediate Base Demand not available without `code_io_table`."
-            )
-        else:
-            return self.code_io_table.loc[
-                self.intertermediate_demand_base_price_row_name
-            ]
+    # @property
+    # def intermediate_demand_base(self) -> Series:
+    #     # return self._get_or_raise_row(self.intertermediate_demand_base_price_row_name)
+    #     if not isinstance(self.code_io_table, DataFrame):
+    #         raise self.FullIOTableNotSet(
+    #             f"Intermediate Base Demand not available without `code_io_table`."
+    #         )
+    #     else:
+    #         return self.code_io_table.loc[
+    #             self.intertermediate_demand_base_price_row_name
+    #         ]
 
     # @property
     # def _aggregated_sectors(self) -> AggregatedSectorDictType:
@@ -1585,6 +1567,7 @@ class InputOutputCPATable(InputOutputTable):
 
     def get_aggregated_io_table(self) -> DataFrame | "InputOutputCPATable":
         """Return aggregated io_table"""
+        assert self._aggregate_io_table_func
         return self._aggregate_io_table_func(
             self._aggregated_sectors_dict,
             self.code_io_table,

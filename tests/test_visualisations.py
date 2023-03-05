@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pytest
 from geopandas import GeoDataFrame
+from matplotlib.axes import Axes
 from plotly.graph_objects import Figure
 
 from estios.models import InterRegionInputOutput
@@ -32,7 +32,10 @@ def test_add_mapbox_edges(three_cities_results: InterRegionInputOutput) -> None:
 
 
 class TestGenerateColourScheme:
-    def test_default(self, three_cities):
+
+    """Test generating colour schemes for region visualisation harmony."""
+
+    def test_default(self, three_cities) -> None:
         CORRECT_COLOUR_SCHEME = {
             "Manchester": "#00CC96",
             "Leeds": "#636EFA",
@@ -41,7 +44,7 @@ class TestGenerateColourScheme:
         scheme: dict[str, str] = generate_colour_scheme(three_cities)
         assert scheme == CORRECT_COLOUR_SCHEME
 
-    def test_colour_cycles_if_more_cities_than_colours(self, three_cities):
+    def test_colour_cycles_if_more_cities_than_colours(self, three_cities) -> None:
         CORRECT_COLOUR_SCHEME = {
             "Manchester": "red",
             "Liverpool": "blue",
@@ -52,6 +55,9 @@ class TestGenerateColourScheme:
 
 
 class TestDrawEgoFlowsNetwork:
+
+    """Test using draw_ego_flows_network edges with model results."""
+
     def test_draw_default(self, three_cities_results: InterRegionInputOutput) -> None:
         fig = draw_ego_flows_network(
             three_cities_results.region_data,
@@ -82,20 +88,30 @@ class TestDrawEgoFlowsNetwork:
 
 class TestPlotIterations:
 
-    """Test plotting model iterations."""
+    """Test plotting model iterations.
 
-    def test_exports_plot(self, three_cities_io) -> None:
-        """Test plotting exports iterations and title."""
-        pass
+    Todo:
+        * Expand the import and export plot tests
+    """
 
-    def test_imports_plot(self, three_cities_io) -> None:
-        """Test plotting imports iterations and title."""
-        pass
+    # @pytest.mark.skip
+    # def test_exports_plot(self, three_cities_io) -> None:
+    #     """Test plotting exports iterations and title."""
+    #     pass
 
-    def test_flows_plot(self, three_cities_results) -> None:
+    # @pytest.mark.skip
+    # def test_imports_plot(self, three_cities_io) -> None:
+    #     """Test plotting imports iterations and title."""
+    #     pass
+
+    def test_flows_iterations_plot(self, three_cities_results) -> None:
         """Test plotting flows iterations and title."""
-        with pytest.raises(ImportError):
-            plot = plot_iterations(three_cities_results.y_ij_m_model, "flows")
+        correct_title: str = (
+            "Iterations of flows between Leeds, Liverpool and Manchester"
+        )
+        plot: Axes = plot_iterations(three_cities_results.y_ij_m_model, "flows")
+        assert plot.get_title() == correct_title
+        assert isinstance(plot, Axes)
 
 
 class TestSectorFlowsBarChart:
