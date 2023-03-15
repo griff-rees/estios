@@ -2,23 +2,35 @@
 # -*- coding: utf-8 -*-
 
 from collections import UserDict
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
 from logging import getLogger
-from typing import Final, NamedTuple, Type
+from typing import Final, NamedTuple, Type, Iterable, Sequence, Generator
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from ..sources import MetaData
-from ..spatial import GenericRegionsManager, Region, RegionsManager
+from ..spatial import (
+    GenericRegionsManager, Region, RegionsManager,
+    RegionsManagerMixin, NullCodeException, sum_for_regions_by_attr
+)
+# <<<<<<< Updated upstream
+from ..utils import DateType, filled_or_empty_dict
+# =======
+# from ..utils import filled_or_empty_dict
+# >>>>>>> Stashed changes
 from .centre_for_cities_puas import (
     CENTRE_FOR_CITIES_2022_CITY_PUAS,
     CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
 )
+from .regions import SKIP_CITIES
 from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
 logger = getLogger(__name__)
 
+
+UK_NATIONAL_COLUMN_NAME: Final[str] = "UK"
+UK_NAME: Final[str] = "United Kingdom"
+UK_NATION_NAMES: Final[tuple[str, ...]] =  ('England', "Northern Ireland", "Scotland", "United Kingdom", "Wales")
 
 RegionInfoTypes = str | bool | int
 RegionInfoMapper = dict[str, dict[str, RegionInfoTypes]]
@@ -43,6 +55,37 @@ YEAR_CHANGED_KEY: Final[str] = "year changed"
 PUA_GEOGRAPHY_TYPE: Final[str] = "Public Urban Area"
 LAD_GEOGRAPHY_TYPE: Final[str] = "Local Authority District"
 
+UNITED_KINGDOM_CONTEMPORARY_INDEX: str = "UNITED KINGDOM"
+
+
+THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
+}
+
+LA_CODES_COLUMN: Final[str] = "la_codes"
+
+
+def sum_for_regions_by_la_code(
+    df: DataFrame,
+    region_names: Sequence[str],
+    column_names: Sequence[str | int],
+    regions: GenericRegionsManager,
+    set_index_to_column: str | None = None,
+    ignore_key_errors: bool = False,
+) -> dict[str, float | Series]:
+    return {region: value for region, value in 
+            sum_for_regions_by_attr(
+        df=df,
+        region_names=region_names,
+        column_names=column_names,
+        regions=regions,
+        attr=LA_CODES_COLUMN,
+        set_index_to_column=set_index_to_column,
+                ignore_key_errors=ignore_key_errors,
+    )}
+
 
 def load_contemporary_ons_population(
     ons_region_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
@@ -59,32 +102,85 @@ def load_contemporary_ons_population(
 
 @dataclass
 class PrimaryUrbanArea(Region):
-    local_authorities: RegionsManager = RegionsManager()
+
+    """UK Primary Urban Area Region."""
+
+    local_authorities: RegionsManager = field(default_factory=lambda: RegionsManager())
+    region_name: str | None = 'UK'
 
     def __str__(self) -> str:
-        return f"PUA {self.name}"
+        return f"{self.region_name} PUA {self.name} of {self.la_codes_count} Local Authorities"
 
     @property
-    def la_codes(self) -> list[str]:
-        return list(self.local_authorities.codes)
+    def la_codes(self) -> tuple[str, ...]:
+        return tuple(self.la_codes_generator())
 
     @property
-    def la_names(self) -> list[str]:
-        return list(self.local_authorities.names)
+    def la_names(self) -> tuple[str, ...]:
+        return tuple(self.la_names_generator())
+
+    def __repr__(self) -> str:
+        """Return a str indicated `RegionsManager` type and `local_authority` metrics."""
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"name={self.name}, "
+        repr += f"la_codes_count={self.la_codes_count})"
+        return repr
+
+    def la_names_generator(self) -> Generator[str, None, None]:
+        for local_authority_name in self.local_authorities.names:
+            if not local_authority_name:  # Case of `name` == ""
+                raise ValueError(f"Invalid `local_authority_name` for {local_authority_name}")
+            yield local_authority_name
+
+    def la_codes_generator(self) -> Generator[str, None, None]:
+        for region_code in self.local_authorities.codes:
+            if isinstance(region_code, str):
+                yield region_code
+            else:
+                raise NullCodeException(f"{self} has no code set.")
+
+    @property
+    def la_names_count(self) -> int:
+        return len(self.la_names)
+
+    @property
+    def la_codes_count(self) -> int:
+        return len(self.la_codes)
 
 
-class PUASManager(UserDict[str, PrimaryUrbanArea]):
+PUA_ACRONYM_NAME: Final[str] = 'Primary Urban Area'
+PUAS_MANAGER_REGION_NAME: Final[str] = f'{UK_NATIONAL_COLUMN_NAME} {PUA_ACRONYM_NAME}'
+ 
 
-    """Custom RegionsManager for PrimaryUrbanArea classes."""
+@dataclass(repr=False)
+class PUASManager(RegionsManagerMixin, UserDict[str, PrimaryUrbanArea]):
 
-    meta_data: MetaData | None = CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA
+    """Custom RegionsManager for PrimaryUrbanArea classes.
 
-    def __init__(self, meta_data: MetaData | None = None) -> None:
+    Todo:
+        * Add local_authority dict query to return hierarchy
+    """
+
+    def __init__(self,
+            meta_data: MetaData = CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
+            region_name: str = PUAS_MANAGER_REGION_NAME
+        ) -> None:
         super().__init__()
         self.meta_data = meta_data
+        self.region_name = region_name
 
     def __str__(self) -> str:
-        return f"{len(self)} UK Primary Urban Areas"
+        return f"{len(self)} {self.region_name}s"
+
+    def __repr__(self) -> str:
+        """Return a str indicated class type and number of sectors.
+
+        Note:
+            * `codes` currently ignored to avoid 
+        """
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"count={self.names_count})"
+        return repr
 
 
 FLAG_KEYS: tuple[str, ...] = (NO_CONTEMPORARY_KEY, YEAR_CHANGED_KEY)
@@ -445,7 +541,7 @@ def generate_uk_puas(
 def generate_base_regions(
     ons_region_df: DataFrame | None = None,
     ons_region_meta_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
-    regions_date: date | None = None,
+    regions_date: DateType | int | None = None,
     alternate_names: RegionInfoMapper = REGION_ALTERNATE_NAMES,
 ) -> GenericRegionsManager:
     if not ons_region_df:
@@ -467,10 +563,20 @@ def generate_base_regions(
         )
     return regions_manager
 
+# <<<<<<< Updated upstream
+# =======
 
-def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
-    return indexable[key] if key in indexable else {}
+def get_working_cities_puas_manager(
+    puas_manager: PUASManager | GenericRegionsManager | None = None,
+    skip_regions: Iterable = SKIP_CITIES
+) -> PUASManager | GenericRegionsManager:
+    if not puas_manager:
+        puas_manager = generate_uk_puas()
+    for region in skip_regions:
+        puas_manager.pop(region, None)
+    return puas_manager
 
+    # >>>>>>> Stashed changes
     # last_working_age_dict = {
     #     region: ons_2017_pop_df.loc[uk_regions[region].la_codes,
     #                                 working_age_columns].sum()

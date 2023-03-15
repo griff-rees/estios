@@ -9,7 +9,7 @@ from typing import Final, Iterable, Optional
 from geopandas import GeoDataFrame, read_file
 from pandas import DataFrame, read_csv
 
-from ..sources import FilePathType, MetaData, path_or_package_data
+from ..sources import FilePathType, MetaData, path_or_package_data, DataLicense
 
 logger = getLogger(__name__)
 
@@ -25,13 +25,22 @@ ONS_2017_REGION_GEOJSON_FILE_NAME: Final[str] = (
     "in_the_United_Kingdom.geojson"
 )
 
+ONS_GEOGRAPHY_LICENSE_URL: Final[str] = "https://www.ons.gov.uk/methodology/geography/licences",
+
+ONSGeographyLicense: Final = DataLicense(
+    name="Open Geography License",
+    url=ONS_GEOGRAPHY_LICENSE_URL,
+    version=2023,
+)
+
+
 ONS_CITY_GEOMETRY_META_DATA: Final[MetaData] = MetaData(
     name="2017 Cities",
     year=2017,
     region="UK",
     url=ONS_2017_REGION_GEOJSON_URL,
     path=ONS_2017_REGION_GEOJSON_FILE_NAME,
-    license="https://www.ons.gov.uk/methodology/geography/licences",
+    license=ONSGeographyLicense,
     _package_data=True,
 )
 
@@ -50,7 +59,27 @@ ONS_CITY_GEOMETRY_META_DATA: Final[MetaData] = MetaData(
 #             raise ValueError("Codes required")
 
 
-UK_CITY_REGIONS: Final[dict[str, str]] = {
+EXAMPLE_UK_CITIES_LIST: Final[list[str]] = [
+    "Birmingham",  # BIRMINGHAM & SMETHWICK
+    "Bradford",
+    # "Coventry",
+    # "Bristol",
+    "Exeter",
+    "Leeds",
+    "Liverpool",  # LIVERPOOL & BIRKENHEAD
+    "Manchester",  # MANCHESTER & SALFORD
+    # Skip because of name inconsistency
+    # 'Newcastle upon Tyne':  'North East',  # NEWCASTLE & GATESHEAD'
+    "Norwich",
+    "Sheffield",
+    "Southampton",
+    "London",
+    "Plymouth",
+    "York",
+]
+
+
+TEN_UK_CITY_REGIONS: Final[dict[str, str]] = {
     "Birmingham": "West Midlands",  # BIRMINGHAM & SMETHWICK
     "Bradford": "Yorkshire and the Humber",
     "Bristol": "South West",

@@ -2,14 +2,14 @@ site_name: 'estios: Economic Spatial and Temporal Input-Output Systems'
 
 nav:
 - Home: index.md
-- 'Information':
-    - 'About': about.md
+- Installation: install.md
+- 'Use':
+    - 'Theory': theory.md
     - 'Data': data.md
     - 'Specification': spec.md
+    - 'Scenarios': scenarios.md
     - 'License': license.md
-- Theory: theory.md
-- Contemporary Scenarios: scenarios.md
-- Installation: install.md
+- 'About': about.md
 - '<tt>estios</tt>': estios/  # Must match GEN_DOC_PATH/ from docs/gen_ref_pages.py
 - Issues: https://github.com/griff-rees/estios/issues
 
@@ -21,6 +21,8 @@ watch:
 
 theme:
   name: material
+  features:
+    - content.code.copy
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -46,6 +48,7 @@ plugins:
 - search:
     min_search_length: 3
     lang: en
+- markdown-exec
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
@@ -59,20 +62,19 @@ plugins:
         options:
           separate_signature: true
           show_signature_annotations: true
-# - bibtex:
-#   bib_file: "https://api.zotero.org/groups/2921373/items?format=bibtex"
-
+  # - bibtex:
+  #     bib_file: !ENV ZOTERO_BIBTEX_URL
+  #     csl_file: https://raw.githubusercontent.com/citation-style-language/styles/master/environment-and-planning.csl
+    # cite_inline: true
 
 markdown_extensions:
-- footnotes
 - admonition
 - pymdownx.details
 - mkdocs-typer
 - abbr
 - attr_list
-- pymdownx.snippets:
-    auto_append:
-      - docs/supplementary/glossary.md
+- tables
+- footnotes
 - pymdownx.arithmatex:
     generic: true
 - pymdownx.superfences:
@@ -83,6 +85,9 @@ markdown_extensions:
           kwds:
             mode: generic
             tag: pre
+# - pymdownx.snippets:
+#     auto_append:
+#       - docs/supplementary/glossary.md
 
 extra_css:
 - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css
@@ -90,3 +95,5 @@ extra_css:
 extra_javascript:
 - javascripts/katex.js
 - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.js
+- javascripts/tablesort.js
+- https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js

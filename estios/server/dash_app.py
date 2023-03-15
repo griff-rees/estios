@@ -4,7 +4,7 @@
 from dataclasses import dataclass
 from datetime import date
 from logging import getLogger
-from typing import Final, Optional, Union
+from typing import Final, Optional, Type, Union
 
 import uvicorn
 from dash import Dash, dcc, html
@@ -20,9 +20,10 @@ from pandas import DataFrame
 from plotly.graph_objects import Figure, layout
 from starlette.middleware.wsgi import WSGIMiddleware
 
-from ..models import InterRegionInputOutputTimeSeries
+from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from ..temporal import date_io_time_series
-from ..uk.employment import (
+from ..uk.models import InterRegionInputOutputUK2017
+from ..uk.ons_employment_2017 import (
     CITY_SECTOR_AVERAGE_EARNINGS_COLUMN,
     CITY_SECTOR_EDUCATION_COLUMN,
     CONFIG_2015_TO_2017_QUARTERLY,
@@ -462,6 +463,7 @@ def get_server_dash(
     auth_db_path: DBPathType = DB_PATH,
     all_cities: bool = False,
     path_prefix: str = DEFAULT_SERVER_PATH,
+    input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutputUK2017,
     **kwargs,
 ) -> tuple[Dash, InterRegionInputOutputTimeSeries]:
     path_prefix = enforce_start_str(path_prefix, PATH_SPLIT_CHAR, True)
@@ -472,15 +474,20 @@ def get_server_dash(
             )
             config_data = CONFIG_2015_TO_2017_QUARTERLY
         if config_data == CONFIG_2015_TO_2017_QUARTERLY:
-            logger.error("Using default config_data configuration")
+            logger.info("Using default config_data configuration")
         if all_cities:
             logger.info("Using almost all UK cities (currently only England).")
             almost_all_cities: dict[str, str] = get_all_centre_for_cities_dict()
             input_output_ts = date_io_time_series(
-                dates=config_data, regions=almost_all_cities  # type: ignore
+                date_conf=config_data,
+                regions=almost_all_cities,  # type: ignore
+                input_output_model_cls=input_output_model_cls,
             )
         else:
-            input_output_ts = date_io_time_series(config_data)  # type: ignore
+            input_output_ts = date_io_time_series(
+                date_conf=config_data,
+                input_output_model_cls=input_output_model_cls,
+            )  # type: ignore
     assert input_output_ts, "No InputOuput TimeSeries to visualise"
     # server = FastAPI()
     # flask_dash_app: Flask = Flask(__name__)

@@ -3,8 +3,8 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
-from datetime import date
 from typing import Any, Callable, Final, Generator, Sequence
+from logging import getLogger
 
 from geopandas import GeoDataFrame
 from numpy import exp
@@ -12,22 +12,46 @@ from pandas import DataFrame, MultiIndex, Series
 
 from .calc import CITY_POPULATION_COLUMN_NAME, DISTANCE_COLUMN
 from .sources import MetaData
-from .utils import UK_NATIONAL_COLUMN_NAME, generate_ij_m_index
+from .utils import DateType, generate_ij_m_index
 
-LA_CODES_COLUMN: Final[str] = "la_codes"
+# from .uk.utils import UK_NATIONAL_COLUMN_NAME
+
+logger = getLogger(__name__)
 
 
-@dataclass
+@dataclass(repr=False)
 class Region:
     name: str
     code: str | None
     geography_type: str | None
     alternate_names: dict[str, str] = field(default_factory=dict)
-    date: date | int | None = None
+    date: DateType | int | None = None
     flags: dict[str, bool | str | int] = field(default_factory=dict)
 
     def __str__(self) -> str:
         return f"{self.geography_type} {self.name}"
+
+    def __repr__(self) -> str:
+        """Return a str indicated class type and number of sectors.
+
+        Todo:
+            * Apply __repr__ format coherence across classes
+        """
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"name={self.name}, "
+        repr += f"date={self.date}, "
+        repr += f"code={self.code}, "
+        
+        repr += f"geography_type={self.geography_type})"
+        return repr
+
+    @property
+    def alternate_name_types(self) -> tuple[str, ...]:
+        return tuple(self.alternate_name_types.keys())
+
+    @property
+    def alternate_names_count(self) -> int:
+        return len(self.alternate_name_types)
 
 
 RegionsManagerType = UserDict[str, Region]
@@ -37,31 +61,92 @@ class NullCodeException(Exception):
     pass
 
 
-class RegionsManager(RegionsManagerType):
+class RegionsManagerMixin:
 
-    """Class for managing and indexing Regions."""
+    """Base mixin methods for RegionsManager inheritance."""
 
     meta_data: MetaData | None
+    region_name: str | None
 
-    def __init__(self, meta_data: MetaData | None = None) -> None:
+    def __init__(self, meta_data: MetaData | None = None, region_name: str | None = None) -> None:
         super().__init__()
         self.meta_data = meta_data
+        self.region_name = region_name
 
     def __str__(self) -> str:
-        return f"{len(self)} UK region data from {self.meta_data}"
+        return f"{len(self)} {self.region_name} region data from {self.meta_data}"
 
-    @property
-    def names(self) -> Generator[str, None, None]:
+    def __repr__(self) -> str:
+        """Return a str indicated class type and number of sectors.
+
+        Todo:
+            * Apply __repr__ format coherence across classes
+        """
+        repr: str = f"{self.__class__.__name__}("
+        repr += f"count={self.names_count}, "
+        repr += f"codes_count={self.codes_count})"
+        return repr
+
+    def names_generator(self) -> Generator[str, None, None]:
         for region_name in self:
+            if not region_name:
+                raise ValueError(f"Invalid `region_name` for {self[region_name]}")
             yield region_name
 
-    @property
-    def codes(self) -> Generator[str, None, None]:
+    def codes_generator(self) -> Generator[str, None, None]:
         for region_details in self.values():
             if isinstance(region_details.code, str):
                 yield region_details.code
             else:
                 raise NullCodeException(f"{self} has no code set.")
+
+    @property
+    def names(self) -> tuple[str, ...]:
+        return tuple(self.names_generator())
+
+    @property
+    def names_count(self) -> int:
+        return len(self.names)
+
+    @property
+    def codes(self) -> tuple[str, ...]:
+        return tuple(self.codes_generator())
+
+    @property
+    def codes_count(self) -> int:
+        return len(self.codes)
+
+
+class RegionsManager(RegionsManagerMixin, RegionsManagerType):
+
+    """Class for managing and indexing Regions."""
+
+    pass
+
+    # def codes_generator(self) -> Generator[str, None, None]:
+    #     for region_name in self:
+    #         if not region_name:
+    #             raise ValueError(f"Invalid `code` self[region_namefor {self[]}")
+    #         yield region_name
+
+    # @property
+    # def valid_names_iter(self) -> Generator[str, None, None]:
+    #     """Return all names that are not empty `str`s."""
+    #     for name in self.names:
+    #         if name:  #
+    #             yield name
+
+    # @property
+    # def valid_names(self) -> tuple[str, ...]:
+    #     return tuple(self.valid_names_iter)
+
+    # @property
+    # def codes(self) -> Generator[str, None, None]:
+    #     for region_details in self.values():
+    #         if isinstance(region_details.code, str):
+    #             yield region_details.code
+    #         else:
+    #             raise NullCodeException(f"{self} has no code set.")
 
 
 GenericRegionsManager = RegionsManagerType | UserDict[str, Any]
@@ -76,8 +161,11 @@ def sum_for_regions_by_attr(
     region_names: Sequence[str],
     column_names: Sequence[str | int],
     regions: GenericRegionsManager,
-    attr: str = LA_CODES_COLUMN,
-) -> dict[str, float | Series]:
+    attr: str,
+    set_index_to_column: str | None = None,
+    ignore_key_errors: bool = False,
+    strict_set_index_to_column: bool = False
+) -> Generator[dict[str, float | Series], None, None]:
     """Sum columns for passed pua_names from df.
 
     Todo:
@@ -90,27 +178,47 @@ def sum_for_regions_by_attr(
         raise MissingAttributeColumnException(
             f"{region_names[0]} is not available for {attr} in passed regions"
         )
-    return {
-        region: df.loc[getattr(regions[region], attr), column_names]
-        .sum()
-        .sum()  # .sum()
-        for region in region_names
-    }
+    if set_index_to_column:
+        if df.index.name == set_index_to_column:
+            if set_index_to_column in df.columns:
+                assert df[set_index_to_column] == df.index
+            else:
+                if strict_set_index_to_column:
+                    raise ValueError(f"`set_index_to_column`: '{set_index_to_column}' "
+                                     f"only matches `df.index.name` and "
+                                     f"`strict_set_index_to_column` is '{strict_set_index_to_column}'.")
+                else:
+                    logger.warning(f"`set_index_to_column`: '{set_index_to_column}' "
+                                   "only matches `df.index.name`, assuming correct.")
+        else:
+            df.set_index(set_index_to_column, inplace=True)
+    for region in region_names:
+        try:
+            indexes: list[str] = list(getattr(regions[region], attr))
+            yield region, df.loc[indexes, column_names].sum().sum()  # .sum()
+        except KeyError as err:
+            if ignore_key_errors:
+                logger.error(f"Raised by {region}: {err}")
+            else:
+                raise err
+        # Below is added to manage slightly different structures from OECD data
+        # else:
+        #     indexes: list[str] = list(getattr(regions[region], attr))
+        #     try:
+        #         yield region, df.loc[indexes][column_names].sum().sum()  # .sum()
+        #     except KeyError as err:
+        #         if ignore_key_errors:
+        #             logger.error(f"Raised by {region}: {err}")
+        #         else:
+        #             raise err
 
 
-def sum_for_regions_by_la_code(
-    df: DataFrame,
-    region_names: Sequence[str],
-    column_names: Sequence[str | int],
-    regions: GenericRegionsManager,
-) -> dict[str, float | Series]:
-    return sum_for_regions_by_attr(
-        df=df,
-        region_names=region_names,
-        column_names=column_names,
-        regions=regions,
-        attr=LA_CODES_COLUMN,
-    )
+    # return {
+    #     region: df.loc[getattr(regions[region], attr), column_names]
+    #     .sum()
+    #     .sum()  # .sum()
+    #     for region in region_names
+    # }
 
 
 @dataclass
@@ -118,10 +226,10 @@ class SpatialInteractionBaseClass:
     # beta: float
     distances: GeoDataFrame
     employment: DataFrame
+    national_column_name: str
     employment_column_name: str = CITY_POPULATION_COLUMN_NAME
     distance_column_name: str = DISTANCE_COLUMN
     national_term: bool = True
-    national_column_name: str = UK_NATIONAL_COLUMN_NAME
 
     _gen_ij_m_func: Callable[..., MultiIndex] = generate_ij_m_index
 
@@ -133,7 +241,11 @@ class SpatialInteractionBaseClass:
     @property
     def ij_m_index(self) -> MultiIndex:
         """Return region x other region x sector MultiIndex."""
-        return self._gen_ij_m_func(self.employment.index, self.employment.columns)
+        return self._gen_ij_m_func(
+            self.employment.index,
+            self.employment.columns,
+            national_column_name=self.national_column_name,
+        )
 
     def _func_by_index(self, func):
         return [

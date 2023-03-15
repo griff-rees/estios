@@ -1,71 +1,77 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from itertools import product
 from logging import DEBUG
-from os import PathLike
-from pathlib import Path
+from dataclasses import dataclass, field
 
 import pytest
 from pandas import DataFrame, MultiIndex
 
 from estios.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
-from estios.sources import (
-    FilePathType,
-    download_and_save_file,
-    extract_file_name_from_url,
-)
-from estios.uk.ons_population_projections import (
-    ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME,
-    ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL,
-)
-from estios.uk.ons_uk_population_projections import ONS_UK_POPULATION_META_DATA
+from estios.uk.utils import THREE_UK_CITY_REGIONS, UK_NATIONAL_COLUMN_NAME
 from estios.utils import (  # download_and_extract_zip_file,
+    REGION_COLUMN_NAME,
     SECTOR_10_CODE_DICT,
-    THREE_UK_CITY_REGIONS,
+    SECTOR_COLUMN_NAME,
     enforce_end_str,
     enforce_start_str,
+    gen_region_attr_multi_index,
     generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,
     invert_dict,
+    match_df_cols_rows,
+    match_ordered_iters,
     name_converter,
+    get_attr_from_attr_str,
 )
 
 
-class TestMultiIndexeGenerators:
+class TestMultiIndexGenerators:
 
     """Test i_m, ij and ij_m MultiIndex generator functions."""
 
-    def test_i_m_index(self) -> None:
+    def test_i_m_index(self, three_city_names, ten_sector_aggregation_names) -> None:
         """Test correct hierarchical dimensions for an im index."""
-        default_i_m_index: MultiIndex = generate_i_m_index()
+        default_i_m_index: MultiIndex = generate_i_m_index(
+            three_city_names,
+            ten_sector_aggregation_names,
+            national_column_name=UK_NATIONAL_COLUMN_NAME,
+        )
         assert len(default_i_m_index) == len(THREE_UK_CITY_REGIONS) * len(
             SECTOR_10_CODE_DICT
         )
         assert set(default_i_m_index.get_level_values(0)) == set(THREE_UK_CITY_REGIONS)
         assert set(default_i_m_index.get_level_values(1)) == set(SECTOR_10_CODE_DICT)
 
-    def test_ij_index(self) -> None:
+    def test_ij_index(self, three_city_names) -> None:
         """Test correct hierarchical dimensions for an ij index."""
-        default_i_m_index: MultiIndex = generate_ij_index()
-        assert len(default_i_m_index) == len(THREE_UK_CITY_REGIONS) * len(
+        default_ij_index: MultiIndex = generate_ij_index(
+            three_city_names, three_city_names
+        )
+        assert len(default_ij_index) == len(THREE_UK_CITY_REGIONS) * len(
             THREE_UK_CITY_REGIONS
         )
-        assert set(default_i_m_index.get_level_values(0)) == set(THREE_UK_CITY_REGIONS)
-        assert set(default_i_m_index.get_level_values(1)) == set(THREE_UK_CITY_REGIONS)
+        assert set(default_ij_index.get_level_values(0)) == set(THREE_UK_CITY_REGIONS)
+        assert set(default_ij_index.get_level_values(1)) == set(THREE_UK_CITY_REGIONS)
 
-    def test_ij_m_index(self) -> None:
+    def test_ij_m_index(self, three_city_names, ten_sector_aggregation_names) -> None:
         """Test correct hierarchical dimensions for an ij_m index."""
-        default_i_m_index: MultiIndex = generate_ij_m_index()
-        assert len(default_i_m_index) == (
+        default_ij_m_index: MultiIndex = generate_ij_m_index(
+            three_city_names,
+            ten_sector_aggregation_names,
+            national_column_name=UK_NATIONAL_COLUMN_NAME,
+        )
+        assert len(default_ij_m_index) == (
             # Note i=j is excluded
             len(THREE_UK_CITY_REGIONS)
             * (len(THREE_UK_CITY_REGIONS) - 1)
             * len(SECTOR_10_CODE_DICT)
         )
-        assert set(default_i_m_index.get_level_values(0)) == set(THREE_UK_CITY_REGIONS)
-        assert set(default_i_m_index.get_level_values(1)) == set(THREE_UK_CITY_REGIONS)
-        assert set(default_i_m_index.get_level_values(2)) == set(SECTOR_10_CODE_DICT)
+        assert set(default_ij_m_index.get_level_values(0)) == set(THREE_UK_CITY_REGIONS)
+        assert set(default_ij_m_index.get_level_values(1)) == set(THREE_UK_CITY_REGIONS)
+        assert set(default_ij_m_index.get_level_values(2)) == set(SECTOR_10_CODE_DICT)
 
 
 class TestEnforcingStrPrefixSuffix:
@@ -107,101 +113,105 @@ def test_name_converter() -> None:
 def test_invert_dict() -> None:
     test_dict = {"cat": 4, "dog": 3}
     correct_inversion = {4: "cat", 3: "dog"}
-    assert invert_dict(test_dict)
+    assert invert_dict(test_dict) == correct_inversion
 
 
-@pytest.mark.remote_data
-class TestDownloadingDataFiles:
+class TestMatchItersColsRows:
+    test_x: tuple = ("cat", "frog", 4, 7, (3, 4))
+    test_y: list = ["cat", "cat", 4.0, 7, (3, 4)]
+    CORRECT_MATCHES: tuple = ("cat", 4, 7, (3, 4))
 
-    """Test downloading and storing datafiles, skipping if no internet connection."""
+    def test_get_matched_ordered_iters(self) -> None:
+        """Test extracting matched tuple and list values."""
+        matches: tuple = match_ordered_iters(self.test_x, self.test_y)
+        assert matches == self.CORRECT_MATCHES
 
-    jpg_url: str = "https://commons.wikimedia.org/wiki/File:Wassily_Leontief_1973.jpg"
-    input_output_example_zip: str = ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL
-    zip_file_path: PathLike = ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME
+    def test_get_matched_df_cols_rows(self) -> None:
+        """Test extracting matched rows and columns."""
+        test_df: DataFrame = DataFrame(columns=self.test_x, index=self.test_y)
+        matches: tuple[str] = match_df_cols_rows(test_df)
+        assert matches == self.CORRECT_MATCHES
 
-    def test_extract_file_name_from_url(self) -> None:
-        """Test a simple extractiong of a filename from a URL."""
-        correct_file_name: str = self.jpg_url.split("/")[-1]
-        assert extract_file_name_from_url(self.jpg_url) == correct_file_name
 
-    @pytest.mark.xfail
-    def test_download_extract_zip_custom_local_name(self, tmp_path) -> None:
-        """Test downloading and extracting remote zip file to custom local path.
+class TestPyMRIOIndexes:
+    sectors: tuple[str, ...] = ("aggriculture", "manufacturing")
 
-        Note:
-            Original example:
-                https://www.oecd.org/industry/ind/
-                input-outputtableslatesteditionaccesstodata.htm
-
-            raised http.client.IncompleteRead errors
-        """
-        # input_output_example_zip: str = "https://www.oecd.org/sti/ind/42163955.zip"
-        # local_path: PathLike = "zaf2005.xls"
-        local_file_name: str = "test_extract.csv"
-        download_and_save_file(
-            self.input_output_example_zip,
-            tmp_path / local_file_name,
-            zip_file_path=self.zip_file_path,
+    def test_gen_region_attr_multi_index(self, three_city_names) -> None:
+        index: MultiIndex = gen_region_attr_multi_index(
+            regions=three_city_names, attrs=self.sectors
         )
-        with open(tmp_path / local_file_name) as test_saved_file:
-            assert test_saved_file.name.endswith(local_file_name)
+        assert index.names[0] == REGION_COLUMN_NAME
+        assert index.names[1] == SECTOR_COLUMN_NAME
+        for region, sector in product(three_city_names, self.sectors):
+            assert (region, sector) in index
 
-    @pytest.mark.xfail
-    def test_download_extract_zip(self, tmp_path, caplog, monkeypatch) -> None:
-        """Test downloading and extracting remote zip file to same name."""
-        monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
-        with caplog.at_level(DEBUG):
-            download_and_save_file(
-                self.input_output_example_zip,
-                zip_file_path=self.zip_file_path,
-            )
-            with open(self.zip_file_path) as test_saved_file:
-                assert test_saved_file.name == str(self.zip_file_path)
-        assert caplog.records[1].message == (
-            f"'local_path' not specified, setting to '{self.zip_file_path}'"
+    def test_gen_region_attr_change_names(self, three_city_names) -> None:
+        names: tuple[str, str] = ("cat", "dog")
+        index: MultiIndex = gen_region_attr_multi_index(
+            regions=three_city_names,
+            attrs=self.sectors,
+            names=names,
         )
+        assert index.names == names
+        for region, sector in product(three_city_names, self.sectors):
+            assert (region, sector) in index
 
-    def test_download_file_with_local_path(self, tmp_path) -> None:
-        local_path: FilePathType = "leontief.jpg"
-        download_and_save_file(self.jpg_url, tmp_path / local_path)
-        with open(tmp_path / local_path) as test_saved_file:
-            assert test_saved_file.name.endswith(str(local_path))
 
-    def test_download_file_no_local_path(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
-        download_and_save_file(self.jpg_url)
-        assert (
-            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 60983
-        )  # Previous result: 60978
+@dataclass
+class ExampleTestClass:
+    a: str = 'cat'
+    b: dict = field(default_factory=lambda: {"dog": 'bark', "fish": 'swim'})
 
-    def test_extract_file_name_from_url_query_path(self, caplog) -> None:
-        assert ONS_UK_POPULATION_META_DATA.path
-        assert isinstance(ONS_UK_POPULATION_META_DATA.path, Path)
-        assert isinstance(ONS_UK_POPULATION_META_DATA.url, str)
-        assert ONS_UK_POPULATION_META_DATA.path.name == extract_file_name_from_url(
-            ONS_UK_POPULATION_META_DATA.url
-        )
+@pytest.fixture
+def example_test_class() -> ExampleTestClass:
+    return ExampleTestClass()
 
-    def test_download_query_url_file_no_local_path(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
-        assert isinstance(ONS_UK_POPULATION_META_DATA.url, str)
-        download_and_save_file(ONS_UK_POPULATION_META_DATA.url)
-        assert (
-            Path(extract_file_name_from_url(ONS_UK_POPULATION_META_DATA.url))
-            .stat()
-            .st_size
-            == 371200  # Previous result: 367616
-        )
 
-    def test_register_and_read_file(self) -> None:
-        if ONS_UK_POPULATION_META_DATA.is_local:
-            ONS_UK_POPULATION_META_DATA.delete_local()
-        assert not ONS_UK_POPULATION_META_DATA.is_local
-        ONS_UK_POPULATION_META_DATA.save_local()
-        assert ONS_UK_POPULATION_META_DATA.is_local
-        df: DataFrame = ONS_UK_POPULATION_META_DATA.read()
-        assert ONS_UK_POPULATION_META_DATA.dates
-        assert ([str(d) for d in ONS_UK_POPULATION_META_DATA.dates] == df.columns).all()
-        assert df["2018"]["All ages"][0] == 66435.55  # Previous result: 64553.909
+class TestGetAttrFromAttrStr:
 
-        ONS_UK_POPULATION_META_DATA.delete_local()
+    @pytest.fixture(autouse=True)
+    def set_caplog_level(self, caplog):
+        caplog.set_level(DEBUG)
+        self._caplog = caplog
+
+    def test_get_base_attr(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'a') == 'cat'
+        assert self._caplog.messages == [
+            f"Extracted 'a' from {example_test_class}, returning 'cat'",
+        ]
+
+    def test_get_absent_attr(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'ball') == 'ball'
+        assert self._caplog.messages == [
+            f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
+        ]
+
+    def test_get_absent_strict_attr(self, example_test_class) -> None:
+        with pytest.raises(AttributeError) as err:
+            get_attr_from_attr_str(example_test_class, 'ball', strict=True)
+
+    def test_get_base_attr_with_self(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'self.a', self_str="self") == 'cat'
+        assert self._caplog.messages == [
+            f"Extracted 'a' from {example_test_class}, returning 'cat'",
+        ]
+
+    def test_get_absent_attr_with_self(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'self.ball', self_str="self") == 'ball'
+        assert self._caplog.messages == [
+            "Dropped self, `attr_str` set to: 'ball'",
+            f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
+        ]
+
+    def test_get_base_attr_with_self(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'selfa', self_str="self") == 'selfa'
+        assert self._caplog.messages == [
+            "Keeping 'self' in `attr_str`: 'selfa'",
+            f"Attribute 'selfa' not part of {example_test_class}, returning 'selfa'",
+        ]
+
+    def test_get_base_attr_to_self(self, example_test_class) -> None:
+        assert get_attr_from_attr_str(example_test_class, 'self', self_str="self") == example_test_class
+        assert self._caplog.messages == [
+            f"`attr_str`: 'self' == `self_str`: 'self', returning {example_test_class}",
+        ]

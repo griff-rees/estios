@@ -1,9 +1,12 @@
+from copy import deepcopy
 from typing import Final, Optional
 
 from pandas import DataFrame, Series
 
 from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
+from .utils import get_working_cities_puas_manager, sum_for_regions_by_la_code
 from .ons_population_estimates import ONS_2017_ALL_AGES_COLUMN_NAME
+
 
 FIRST_YEAR: Final[int] = 2018
 LAST_YEAR: Final[int] = 2118

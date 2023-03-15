@@ -39,7 +39,7 @@ ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME: Final[PathLike] = Path(
 )
 NAME: Final[str] = "ONS England Standard Population Projections"
 
-WORKING_AGE_MINIMUM: Final[int] = 16
+WORKING_AGE_MINIMUM: Final[int] = 15
 NATIONAL_RETIREMENT_AGE: Final[int] = 64
 
 FIRST_YEAR: Final[int] = 2018
@@ -307,7 +307,9 @@ class ONSPopulationProjection(PopulationProjection):
     first_trade_year: Optional[int] = FIRST_YEAR
     last_trade_year: Optional[int] = LAST_YEAR
     # ons_path: Optional[PathLike] = ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME
-    meta_data: Optional[MetaData] = ONS_ENGLAND_POPULATION_META_DATA
+    meta_data: Optional[MetaData] = field(
+        default_factory=lambda: ONS_ENGLAND_POPULATION_META_DATA
+    )
     additional_person_filter_str: str = SEX_FILTER_STR
     # auto_download: bool = True
     _region_name_mapper: Optional[dict[str, str]] = field(

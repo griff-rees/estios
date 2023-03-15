@@ -16,9 +16,22 @@ openpyxl = "^3.0.9"
 setuptools = "^62.6.0"
 numpy = "^1.23.0"
 xlrd = "^2.0.1"
+# GDAL = {version = "3.5.3", platform = "darwin"}
+# Fiona = "1.8.21"
+# pyogrio = "^0.4.2"
+# pyogrio = "^0.4.2"
+# pyarrow = "^10.0.1"
+Fiona = "^1.8.22"
+pymrio = "^0.4.8"
+country-converter = "^0.8.0"
+poetry-dotenv-plugin = "^0.1.0"
+ukcensusapi = "^1.1.6"
 
 [tool.poetry.group.jupyter.dependencies]
 jupyterlab = "^3.2.2"
+
+[tool.poetry.group.server]
+optional = true
 
 [tool.poetry.group.server.dependencies]
 python-dotenv = {version = "^0.19.2", extras = ["cli"]}
@@ -27,6 +40,9 @@ fastapi = "^0.70.1"
 uvicorn = "^0.16.0"
 dash-auth = "^1.4.1"
 
+[tool.poetry.group.dev]
+optional = true
+
 [tool.poetry.group.dev.dependencies]
 pytest-remotedata = "^0.3.3"
 pytest = "^6.1"
@@ -34,6 +50,11 @@ pre-commit = "^2.18.1"
 pytest-cov = "^3.0.0"
 pytest-sugar = "^0.9.4"
 mypy = "^0.982"
+pytest-xdist = "^3.1.0"
+pymrio = "^0.4.8"
+
+[tool.poetry.group.docs]
+optional = true
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^8.3.9"
@@ -45,6 +66,9 @@ mkdocs-section-index = "^0.3.4"
 black = "^22.10.0"
 pymdown-extensions = "^9.6"
 mkdocs-bibtex = "^2.8.5"
+mktestdocs = "^0.2.0"
+markdown-exec = {extras = ["ansi"], version = "^1.2.0"}
+tabulate = "^0.9.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -59,7 +83,15 @@ addopts = """
 --cov-report=term:skip-covered
 --pdbcls=IPython.terminal.debugger:TerminalPdb
 --doctest-modules
+-m "not slow"
+--ignore=notebooks
 """
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "nomis: requires a nomis api key in .env to run",
+]
+remote_data_strict = true
+
 
 [tool.poetry.scripts]
 estios = "estios.cli:app"

@@ -4,6 +4,8 @@
 from datetime import date
 from typing import Final
 
+from pandas import DataFrame
+
 from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
 
 FIRST_YEAR: Final[int] = 1971
@@ -45,7 +47,7 @@ ONS_UK_POPULATION_HISTORY_META_DATA: Final[MetaData] = MetaData(
     ),
     url=URL,
     # path=ONS_UK_2018_FILE_NAME,
-    auto_download=False,
+    auto_download=True,
     license=OpenGovernmentLicense,
     _package_data=True,
     # _save_func=download_and_extract_zip_file,  # type: ignore
@@ -58,3 +60,12 @@ ONS_UK_POPULATION_HISTORY_META_DATA: Final[MetaData] = MetaData(
         # quotechar='"',
     ),
 )
+
+
+def get_uk_population_history(year: int = 2017, region_column: str = 'GBPOP'):
+    ONS_UK_POPULATION_HISTORY_META_DATA.save_local()
+    df: DataFrame = ONS_UK_POPULATION_HISTORY_META_DATA.read()
+    return df.loc[year, region_column]
+
+
+UK_NATIONAL_POPULATION_2017: int = get_uk_population_history(year=2017)

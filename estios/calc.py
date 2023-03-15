@@ -8,19 +8,25 @@ from typing import Callable, Final, Iterable, Optional, Sequence, Union
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
-from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
-from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
+from .uk.regions import UK_EPSG_GEO_CODE
 from .utils import (
     CITY_COLUMN,
     OTHER_CITY_COLUMN,
+    df_dict_to_multi_index,
     dtype_wrapper,
     generate_i_m_index,
     generate_ij_index,
     ordered_iter_overlaps,
     wrap_as_series,
+    series_dict_to_multi_index,
+    REGION_COLUMN_NAME,
+    SECTOR_COLUMN_NAME,
 )
 
 logger = getLogger(__name__)
+
+FloatOrPandasTypes = float | Series | DataFrame 
+FloatOrSeriesType = float | Series
 
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
 METRES_TO_KILOMETERS: Final[float] = 0.001
@@ -40,55 +46,35 @@ INITIAL_P: Final[float] = 0.1  # For initial e_m_iteration e calculation
 DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
 
+@dtype_wrapper("float64")
 def technical_coefficients(
     io_table: DataFrame,
-    sectors: Iterable[str] = SECTOR_10_CODE_DICT.keys(),
-    final_output_column: str = TOTAL_OUTPUT_COLUMN_NAME,
+    final_output_column: str | Sequence[str],
+    sectors: Iterable[str],
 ) -> DataFrame:
-    """Calculate technical coefficients from IO matrix and a final output column."""
+    """Calculate technical coefficients from IO matrix and a final output column.
+
+    Todo:
+        * Assess whether sectors filtering potentially leads to errors
+        * Constrain parameters if necessary
+    """
     io_matrix: DataFrame = io_table.loc[sectors, sectors]
-    final_output: Series = io_table.loc[sectors][final_output_column]
-    return (io_matrix / final_output).astype("float64")
+    final_output: Series | DataFrame = io_table.loc[sectors, final_output_column]
+    if not isinstance(final_output, Series):
+        final_output = final_output.sum(axis="columns")
+    # return (io_matrix / final_output).astype("float64")
+    return (io_matrix / final_output)
 
 
+@dtype_wrapper("float64")
 def X_i_m_scaled(
     total_production: Series, employment: DataFrame, national_employment: Series
 ) -> DataFrame:
-    """Return the total production of sector $m$ in region $i$ and cache results.
+    """Estimate total production of sector $m$ in region $i$.
 
-    $X_i^m = X_*^m * Q_i^m/Q_*^m$
+    $X_i^{(m)} = X_*^{(m)} * Q_i^{(m)}/Q_*^{(m)}$
     """
     return total_production * employment / national_employment
-
-
-def M_i_m_scaled(
-    imports: Series, employment: DataFrame, national_employment: Series
-) -> DataFrame:
-    """Return the imports of sector $m$ in region $i$ and cache results.
-
-    $M_i^m = M_*^m * Q_i^m/Q_*^m$
-    """
-    return imports * employment / national_employment
-
-
-def F_i_m_scaled(
-    final_demand: Series, employment: DataFrame, national_employment: Series
-) -> DataFrame:
-    """Return the final demand of sector $m$ in region $i$ and cache results.
-
-    $F_i^m = F_*^m * Q_i^m/Q_*^m$
-    """
-    return final_demand * employment / national_employment
-
-
-def E_i_m_scaled(
-    exports: Series, employment: DataFrame, national_employment: Series
-) -> DataFrame:
-    """Return the final demand of sector $m$ in region $i$ and cache results.
-
-    $E_i^m = E_*^m * Q_i^m/Q_*^m$
-    """
-    return exports * employment / national_employment
 
 
 class InputOutputBaseException(Exception):
@@ -135,6 +121,105 @@ def infer_sector_names(
         return wrapper_for_sector_names_calc
 
     return wrap_callable
+
+
+@dtype_wrapper("float64")
+def F_i_m_scaled(
+    final_demand: Series | DataFrame,
+    regional_populations: Series,
+    national_population: float,
+) -> DataFrame:
+    """Estimate the final demand of sector $m$ in region $i$.
+
+    $F_i^{(m)} = F_*^{(m)} * P_i/P_*$
+    """
+    return final_demand * regional_populations / national_population
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_row_names")
+# @wrap_as_series("final_demand_column_names")
+def F_i_m_scaled_by_regions(
+    final_demand: DataFrame,
+    regional_populations: Series,
+    national_population: float,
+    sector_row_names: Sequence[str] | None = None,
+    ) -> DataFrame:
+    region_dict: dict[str, DataFrame] = {
+        reg: F_i_m_scaled(
+            final_demand=final_demand.loc[sector_row_names],
+            regional_populations=reg_pop,
+            national_population=national_population,
+        )
+        for reg, reg_pop in regional_populations.items()
+    }
+    return df_dict_to_multi_index(region_dict, final_demand.columns)
+
+
+@dtype_wrapper("float64")
+def E_i_m_scaled(
+    exports: Series | DataFrame, regional_employment: DataFrame, national_employment: Series
+) -> DataFrame:
+    """Estimate exports of sector $m$ in region $i$.
+
+    $E_i^{(m)} = E_*^{(m)} * Q_i^{(m)}/Q_*^{(m)}$
+    """
+    return calc_ratio(exports, national_employment, regional_employment)
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_row_names")
+# @wrap_as_series("final_demand_column_names")
+def E_i_m_scaled_by_regions(
+    exports: DataFrame,
+    regional_employment: DataFrame,
+    national_employment: Series,
+    sector_row_names: Sequence[str] | None = None,
+    ) -> DataFrame:
+    region_dict: dict[str, DataFrame] = {
+        reg: E_i_m_scaled(
+            exports=exports.loc[sector_row_names],
+            regional_employment=reg_emp,
+            national_employment=national_employment,
+        )
+        for reg, reg_emp in regional_employment.T.items()
+    }
+    return df_dict_to_multi_index(region_dict, exports.columns)
+
+
+@dtype_wrapper("float64")
+def M_i_m_scaled(
+    imports: Series, regional_populations: Series, national_population: float
+) -> DataFrame:
+    """Estimate imports of sector $m$ in region $i$.
+
+    $M_i^{(m)} = M_*^{(m)} * P_i^{(m)}/P_*^{(m)}$
+    """
+    return imports * regional_populations / national_population
+
+
+@dtype_wrapper("float64")
+@infer_sector_names(sector_var="sector_row_names")
+# @wrap_as_series("final_demand_column_names")
+def M_i_m_scaled_by_regions(
+    imports: DataFrame | Series,
+    regional_populations: Series,
+    national_population: float,
+    sector_row_names: Sequence[str] | None = None,
+    default_region_sector_labels: tuple[str, str] = (REGION_COLUMN_NAME, SECTOR_COLUMN_NAME),
+    ) -> DataFrame | Series:
+    region_dict: dict[str, DataFrame] = {
+        reg: M_i_m_scaled(
+            imports=imports.loc[sector_row_names],
+            regional_populations=reg_pop,
+            national_population=national_population,
+        )
+        for reg, reg_pop in regional_populations.items()
+    }
+    if isinstance(imports, Series):
+        return series_dict_to_multi_index(region_dict, default_region_sector_labels)
+    else:
+        return df_dict_to_multi_index(region_dict, imports.columns)
 
 
 @dtype_wrapper("float64")
@@ -199,17 +284,14 @@ def I_m(
     return full_io_table.loc[sector_row_names, investment_column_names].sum("columns")
 
 
-def x_i_mn_summed(
-    X_i_m: DataFrame,
-    technical_coefficients: DataFrame,
-) -> DataFrame:
-    """Return sum of all total demands for good m in region i.
+def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
+    """Return sum of all total demands for good $m$ in region $i$.
 
     Equation 1:
         $x_i^{mn} = a_i^{mn}X_i^n$
 
     Equation 2:
-        $X_i^m + m_i^m + M_i^m = F_i^m + e_i^m + E_i^m + \\sum_n{{a_i^{mn}X_i^n}}$
+        $X_i^{(m)} + m_i^{(m)} + M_i^{(m)} = F_i^{(m)} + e_i^{(m)} + E_i^{(m)} + \\sum_n{{a_i^{mn}X_i^n}}$
 
     Todo:
         * Determine if adding gva here would be helpful
@@ -222,14 +304,14 @@ def x_i_mn_summed(
 
 def generate_e_m_dataframe(
     E_i_m: DataFrame,
-    initial_p: float = INITIAL_P,
+    sector_names: Iterable[str],
+    region_names: Iterable[str],
     national_E: Optional[Series] = None,
-    region_names: Iterable[str] = UK_CITY_REGIONS,
-    sector_names: Iterable[str] = SECTOR_10_CODE_DICT,
+    initial_p: float = INITIAL_P,
     e_i_m_column_name: str = LATEX_e_i_m,
     initial_e_column_prefix: str = INITIAL_E_COLUMN_PREFIX,
 ) -> DataFrame:
-    """Return an e_m dataframe with an intial e_i^m column."""
+    """Return an $e_m$ dataframe with an intial $e_i^{(m)}$ column."""
     index: MultiIndex
     if national_E:
         E_i_m = E_i_m.append(national_E)
@@ -244,8 +326,9 @@ def generate_e_m_dataframe(
 
 def calc_region_distances(
     regions_df: GeoDataFrame,
-    regions: Iterable[str] = UK_CITY_REGIONS,
+    regions: Iterable[str],
     other_regions: Optional[Iterable[str]] = None,
+    national_column_name: Optional[str] = None,
     distance_CRS: str = UK_EPSG_GEO_CODE,
     origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
     destination_region_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
@@ -258,13 +341,19 @@ def calc_region_distances(
     and destination region as row.name[].
 
     Todo:
-        * This should be refactored for calc_centroid_table
+        * This should be refactored for calc_transport_table
+        * national_column_name should be imported
     """
     if not other_regions:
         other_regions = regions
+    if not national_column_name:
+        national_column_name = "UK"
     projected_regions_df = regions_df.to_crs(distance_CRS)
     region_distances: GeoDataFrame = GeoDataFrame(
-        index=generate_ij_index(regions, other_regions), columns=[final_distance_column]
+        index=generate_ij_index(
+            regions, other_regions, national_column_name=national_column_name
+        ),
+        columns=[final_distance_column],
     )
     region_distances[origin_region_column] = region_distances.apply(
         lambda row: projected_regions_df["geometry"][row.name[0]], axis=1
@@ -285,7 +374,7 @@ def calc_region_distances(
 
 # def calc_region_distances(
 #     regions_df: GeoDataFrame,
-#     regions: Iterable[str] = UK_CITY_REGIONS,
+#     regions: Iterable[str] = TEN_UK_CITY_REGIONS,
 #     other_regions: Optional[Iterable[str]] = None,
 #     distance_CRS: str = UK_EPSG_GEO_CODE,
 #     origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
@@ -298,7 +387,7 @@ def calc_region_distances(
 def centroid_distance_table(
     region_df: GeoDataFrame,
 ) -> DataFrame:
-    """Return a table of region_df centroid distances divided by."""
+    """Return a table of centroid distances between all regions."""
     return region_df.centroid.apply(
         lambda origin_region: region_df.centroid.distance(origin_region)
     )
@@ -506,8 +595,8 @@ def region_and_sector_convergence(
 
     # Equation 14
     # (Rearranged equation 2)
-    # m_i^m = e_i^m + F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
-    # exogenous_i_m_constant = F_i^m + E_i^m + \sum_n{a_i^{mn}X_i^n} - X_i^m - M_i^m
+    # m_i^{(m)} = e_i^{(m)} + F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{mn}X_i^n} - X_i^{(m)} - M_i^{(m)}
+    # exogenous_i_m_constant = F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{mn}X_i^n} - X_i^{(m)} - M_i^{(m)}
     # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
 
     # Convergence element
@@ -520,6 +609,7 @@ def region_and_sector_convergence(
         / employment[sector.name].sum()
         # groupby within.?
     )
+    convergence_by_sector.index.names = ['Sector', 'Area']
 
     convergence_by_region: Series = convergence_by_sector.reorder_levels(
         ["Area", "Sector"]
@@ -540,7 +630,7 @@ def import_export_convergence(
     m_i_m_symbol: str = LATEX_m_i_m,
     y_ij_m_symbol: str = LATEX_y_ij_m,
 ) -> tuple[DataFrame, DataFrame]:
-    """Iterate i times of step 2 (eq 14, 15 18) of the spatial interaction model."""
+    """Iterate $i$ times of step 2 (eq 14, 15 18) of the spatial interaction model."""
     model_e_m: DataFrame = e_m_regions.copy()
     model_y_ij_m: DataFrame = y_ij_m.copy()
 
@@ -551,11 +641,11 @@ def import_export_convergence(
 
         # Equation 14 with exogenous_i_m_constant
         # Possibility I've messed up needing to sum the other employment (ie i != j)
-        # m_i^m = e_i^m + exogenous_i_m_constant - convergence_by_region
+        # m_i^{(m)} = e_i^{(m)} + exogenous_i_m_constant - convergence_by_region
         model_e_m[f"{m_i_m_symbol} {i}"] = model_e_m[e_column] + exogenous_i_m
 
         # Equation 15
-        # y_{ij}^m = B_j^m Q_i^m m_j^m \exp(-\beta c_{ij})
+        # y_{ij}^{(m)} = B_j^{(m)} Q_i^{(m)} m_j^{(m)} \exp(-\beta c_{ij})
         # Note: this groups by Other City and Sector
         model_y_ij_m[f"{y_ij_m_symbol} {i}"] = model_y_ij_m.apply(
             lambda row: row["B_j^m * Q_i^m * exp(-β c_{ij})"]
@@ -567,7 +657,7 @@ def import_export_convergence(
         logger.debug(model_y_ij_m[f"{y_ij_m_symbol} {i}"].tail())
 
         # Equation 18
-        # e_i^m = \sum_j{y_{ij}^m}
+        # e_i^{(m)} = \sum_j{y_{ij}^{(m)}}
         # Note: this section groups by City and Sector
         model_e_m[f"{e_i_m_symbol} {i}"] = (
             model_y_ij_m[f"{y_ij_m_symbol} {i}"].groupby(["City", "Sector"]).sum()
@@ -575,12 +665,12 @@ def import_export_convergence(
     return model_e_m, model_y_ij_m
 
 
-def scale_region_var_by_national(
-    national_var: Union[float, Series],
-    national_sector_var: Union[float, Series],
-    region_var: Union[float, Series],
-) -> Union[float, Series]:
-    return national_sector_var * region_var / national_var
+# def scale_region_var_by_national(
+#     national_var: Union[float, Series],
+#     national_sector_var: Union[float, Series],
+#     region_var: Union[float, Series],
+# ) -> Union[float, Series]:
+#     return national_sector_var * region_var / national_var
 
 
 # def scale_var_by_national(
@@ -590,11 +680,10 @@ def scale_region_var_by_national(
 # ) -> Union[float, Series]:
 #     return national_proportion * var / national_var
 
-
 def calc_ratio(
-    a: float | Series | DataFrame, b: float | Series, d: float | Series
-) -> float | Series | DataFrame:
-    """For ratio $a:b = c:d$, calc $c$ from $a$, $b$ and $d$.
+    a: FloatOrPandasTypes, b: FloatOrSeriesType, d: FloatOrSeriesType
+) -> FloatOrPandasTypes:
+    """Return $(a*d)/b$; mathematically: calc $c$ from ratio $a:b = c:d$.
 
     Rearrange ratio:
 
@@ -647,38 +736,12 @@ def calc_ratio(
         return a * d / b
 
 
-# def calc_ratio_df(
-#     a_df: DataFrame,
-#     b: Union[float, Series],
-#     d: Union[float, Series],
-# ) -> DataFrame:
-#     """Apply calc_ratio to dataframe a_df.
-#
-#     Examples:
-#         This works for both floats
-#
-#         >>> a_df = DataFrame({
-#             "x": (3, 7, 9),
-#             "y": (6, 14, 18),
-#
-#         })
-#         >>> b = Series([2, 8, 10]); d = Series([5, 7, 9])
-#         >>> calc_ratio_df(1, 5, 10)
-#         2.0
-#
-#         and pandas Series
-#
-#         >>> a = Series([1, 4, 5]); b = Series([2, 8, 10]); d = Series([5, 7, 9])
-#         >>> calc_ratio(a, b, d)
-#         0    2.5
-#         1    3.5
-#         2    4.5
-#         dtype: float64
-#     """
-#     return a_df.apply((lambda column: calc_ratio(column, b, d)))
-
-# def diagonalise(series: Series) -> DataFrame:
-#     return DataFrame(diag(series),index=series.index,columns=series.index)
+# def gdp_per_sector(
+#     io_table: DataFrame,
+#     intermediate_demand_row_name: str = INTERMEDIATE_COLUMN_NAME,
+#     gross_value_added_row_name: str = GROSS_VALUE_ADDED_COLUMN_NAME
+# ) -> Series:
+#     return io_table
 
 
 def regional_io_projection(
@@ -692,3 +755,15 @@ def regional_io_projection(
     logger.warning("Using regional_io_projection, this needs testing!")
     # return technical_coefficients * diagonalise(regional_output)
     return technical_coefficients * regional_output
+
+
+# def calc_full_io_table(
+#     base_io_table: DataFrame,
+#     dog_leg_columns: dict[str, str] | None = None,
+#     dog_leg_rows: dict[str, str] | None = None,
+# ) -> DataFrame:
+#     if not dog_leg_columns:
+#         dog_leg_columns = {}
+#     if not dog_leg_rows:
+#         dog_leg_rows = {}
+#     raise NotImplementedError

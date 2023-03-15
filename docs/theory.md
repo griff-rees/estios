@@ -1,8 +1,8 @@
 # The Model
 
-| Variable   | Definition              |
-| --------   | ------------------------|
-| $P_i$      | population of city $i$  |
+| Variable   | Definition               |
+| --------   | ------------------------ |
+| $P_i$      | population of city $i$   |
 | $Q_m^i$    | employment in sector $m$ in city $i$ |
 | $X_m^i$    | total production of sector $m$ in city $i$ where <br /> $m = 1, 2, 3, …, S$ and $i = 1, 2, 3, …, N$ |
 | $F_m^i$    | final demands for $m$ in $i$ |

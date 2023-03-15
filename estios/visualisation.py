@@ -65,14 +65,14 @@ def plot_iterations(
     model_variable: str,
     model_abbreviations: dict[str, str] = MODEL_APPREVIATIONS,
     **kwargs,
-) -> Figure:
+) -> Figure | None:
     """Plot iterations of exports (e) or imports (m)."""
     if model_variable in model_abbreviations:
         column_char: str = model_abbreviations[model_variable]
         columns: list[str] = [col for col in df.columns.values if column_char in col]
     else:
-        print(model_variable, "not implemented for plotting.")
-        return
+        logger.error(model_variable, "not implemented for plotting.")
+        return None
     plot_df = df[columns]
     plot_df.index = [" ".join(label) for label in plot_df.index.values]
     region_names: list[str] = list(df.index.get_level_values(0).unique().values)
@@ -82,7 +82,7 @@ def plot_iterations(
         regions_title_str = f"{len(region_names)} Cities"
     # print(plot_df.columns)
     return plot_df.transpose().plot(
-        title=f"Iterations of {model_variable}s between {regions_title_str}", **kwargs
+        title=f"Iterations of {model_variable} between {regions_title_str}", **kwargs
     )
 
 
