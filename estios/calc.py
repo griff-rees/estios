@@ -3,7 +3,7 @@
 
 from functools import wraps
 from logging import getLogger
-from typing import Callable, Final, Iterable, Optional, Sequence, Union
+from typing import Callable, Final, Iterable, Optional, Sequence
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
@@ -12,20 +12,20 @@ from .uk.regions import UK_EPSG_GEO_CODE
 from .utils import (
     CITY_COLUMN,
     OTHER_CITY_COLUMN,
+    REGION_COLUMN_NAME,
+    SECTOR_COLUMN_NAME,
     df_dict_to_multi_index,
     dtype_wrapper,
     generate_i_m_index,
     generate_ij_index,
     ordered_iter_overlaps,
-    wrap_as_series,
     series_dict_to_multi_index,
-    REGION_COLUMN_NAME,
-    SECTOR_COLUMN_NAME,
+    wrap_as_series,
 )
 
 logger = getLogger(__name__)
 
-FloatOrPandasTypes = float | Series | DataFrame 
+FloatOrPandasTypes = float | Series | DataFrame
 FloatOrSeriesType = float | Series
 
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
@@ -63,7 +63,7 @@ def technical_coefficients(
     if not isinstance(final_output, Series):
         final_output = final_output.sum(axis="columns")
     # return (io_matrix / final_output).astype("float64")
-    return (io_matrix / final_output)
+    return io_matrix / final_output
 
 
 @dtype_wrapper("float64")
@@ -144,7 +144,7 @@ def F_i_m_scaled_by_regions(
     regional_populations: Series,
     national_population: float,
     sector_row_names: Sequence[str] | None = None,
-    ) -> DataFrame:
+) -> DataFrame:
     region_dict: dict[str, DataFrame] = {
         reg: F_i_m_scaled(
             final_demand=final_demand.loc[sector_row_names],
@@ -158,7 +158,9 @@ def F_i_m_scaled_by_regions(
 
 @dtype_wrapper("float64")
 def E_i_m_scaled(
-    exports: Series | DataFrame, regional_employment: DataFrame, national_employment: Series
+    exports: Series | DataFrame,
+    regional_employment: DataFrame,
+    national_employment: Series,
 ) -> DataFrame:
     """Estimate exports of sector $m$ in region $i$.
 
@@ -175,7 +177,7 @@ def E_i_m_scaled_by_regions(
     regional_employment: DataFrame,
     national_employment: Series,
     sector_row_names: Sequence[str] | None = None,
-    ) -> DataFrame:
+) -> DataFrame:
     region_dict: dict[str, DataFrame] = {
         reg: E_i_m_scaled(
             exports=exports.loc[sector_row_names],
@@ -206,8 +208,11 @@ def M_i_m_scaled_by_regions(
     regional_populations: Series,
     national_population: float,
     sector_row_names: Sequence[str] | None = None,
-    default_region_sector_labels: tuple[str, str] = (REGION_COLUMN_NAME, SECTOR_COLUMN_NAME),
-    ) -> DataFrame | Series:
+    default_region_sector_labels: tuple[str, str] = (
+        REGION_COLUMN_NAME,
+        SECTOR_COLUMN_NAME,
+    ),
+) -> DataFrame | Series:
     region_dict: dict[str, DataFrame] = {
         reg: M_i_m_scaled(
             imports=imports.loc[sector_row_names],
@@ -609,7 +614,7 @@ def region_and_sector_convergence(
         / employment[sector.name].sum()
         # groupby within.?
     )
-    convergence_by_sector.index.names = ['Sector', 'Area']
+    convergence_by_sector.index.names = ["Sector", "Area"]
 
     convergence_by_region: Series = convergence_by_sector.reorder_levels(
         ["Area", "Sector"]
@@ -679,6 +684,7 @@ def import_export_convergence(
 #     national_portion: Union[float, Series],
 # ) -> Union[float, Series]:
 #     return national_proportion * var / national_var
+
 
 def calc_ratio(
     a: FloatOrPandasTypes, b: FloatOrSeriesType, d: FloatOrSeriesType

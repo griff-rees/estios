@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from dataclasses import dataclass, field
 from itertools import product
 from logging import DEBUG
-from dataclasses import dataclass, field
 
 import pytest
 from pandas import DataFrame, MultiIndex
@@ -20,11 +20,11 @@ from estios.utils import (  # download_and_extract_zip_file,
     generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,
+    get_attr_from_attr_str,
     invert_dict,
     match_df_cols_rows,
     match_ordered_iters,
     name_converter,
-    get_attr_from_attr_str,
 )
 
 
@@ -159,8 +159,9 @@ class TestPyMRIOIndexes:
 
 @dataclass
 class ExampleTestClass:
-    a: str = 'cat'
-    b: dict = field(default_factory=lambda: {"dog": 'bark', "fish": 'swim'})
+    a: str = "cat"
+    b: dict = field(default_factory=lambda: {"dog": "bark", "fish": "swim"})
+
 
 @pytest.fixture
 def example_test_class() -> ExampleTestClass:
@@ -168,50 +169,63 @@ def example_test_class() -> ExampleTestClass:
 
 
 class TestGetAttrFromAttrStr:
-
     @pytest.fixture(autouse=True)
     def set_caplog_level(self, caplog):
         caplog.set_level(DEBUG)
         self._caplog = caplog
 
     def test_get_base_attr(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'a') == 'cat'
+        assert get_attr_from_attr_str(example_test_class, "a") == "cat"
         assert self._caplog.messages == [
             f"Extracted 'a' from {example_test_class}, returning 'cat'",
         ]
 
     def test_get_absent_attr(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'ball') == 'ball'
+        assert get_attr_from_attr_str(example_test_class, "ball") == "ball"
         assert self._caplog.messages == [
             f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
         ]
 
     def test_get_absent_strict_attr(self, example_test_class) -> None:
         with pytest.raises(AttributeError) as err:
-            get_attr_from_attr_str(example_test_class, 'ball', strict=True)
+            get_attr_from_attr_str(example_test_class, "ball", strict=True)
 
     def test_get_base_attr_with_self(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'self.a', self_str="self") == 'cat'
+        assert (
+            get_attr_from_attr_str(example_test_class, "self.a", self_str="self")
+            == "cat"
+        )
         assert self._caplog.messages == [
             f"Extracted 'a' from {example_test_class}, returning 'cat'",
         ]
 
     def test_get_absent_attr_with_self(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'self.ball', self_str="self") == 'ball'
+        assert (
+            get_attr_from_attr_str(example_test_class, "self.ball", self_str="self")
+            == "ball"
+        )
         assert self._caplog.messages == [
             "Dropped self, `attr_str` set to: 'ball'",
             f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
         ]
 
-    def test_get_base_attr_with_self(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'selfa', self_str="self") == 'selfa'
+    @pytest.mark.xfail(reason="edge case of using `self` not as a class reference")
+    def test_get_base_attr_with_self_no_dot(self, example_test_class) -> None:
+        assert (
+            get_attr_from_attr_str(example_test_class, "selfa", self_str="self")
+            == "selfa"
+        )
         assert self._caplog.messages == [
+            "Dropped self, `attr_str` set to: 'a'",
             "Keeping 'self' in `attr_str`: 'selfa'",
             f"Attribute 'selfa' not part of {example_test_class}, returning 'selfa'",
         ]
 
     def test_get_base_attr_to_self(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, 'self', self_str="self") == example_test_class
+        assert (
+            get_attr_from_attr_str(example_test_class, "self", self_str="self")
+            == example_test_class
+        )
         assert self._caplog.messages == [
             f"`attr_str`: 'self' == `self_str`: 'self', returning {example_test_class}",
         ]

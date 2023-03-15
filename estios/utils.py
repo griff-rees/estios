@@ -435,6 +435,7 @@ def conditional_type_wrapper(
 
     return callable_wrapper
 
+
 # <<<<<<< Updated upstream
 def df_column_to_single_value(
     df: DataFrame,
@@ -449,7 +450,9 @@ def filter_fields_by_type(cls: Any, field_type: Type | TypeAlias) -> tuple[Field
     return tuple(field for field in fields(cls) if field.type == field_type)
 
 
-def filter_fields_by_types(cls: Any, field_types: tuple[Type | TypeAlias, ...]) -> tuple[Field, ...]:
+def filter_fields_by_types(
+    cls: Any, field_types: tuple[Type | TypeAlias, ...]
+) -> tuple[Field, ...]:
     """Return tuple of cls attributes of field_type."""
     return tuple(field for field in fields(cls) if field.type in field_types)
 
@@ -459,9 +462,13 @@ def filter_by_attr(items: Iterable, attr_name: str) -> tuple[Any, ...]:
     return tuple(item for item in items if hasattr(item, attr_name))
 
 
-def filter_by_list_of_attrs(items: Iterable, attr_names: Sequence[str]) -> tuple[Any, ...]:
+def filter_by_list_of_attrs(
+    items: Iterable, attr_names: Sequence[str]
+) -> tuple[Any, ...]:
     """Return tuple of itmes which have `attr_name` attribute."""
-    return tuple(item for item in items if all(hasattr(item, attr) for attr in attr_names))
+    return tuple(
+        item for item in items if all(hasattr(item, attr) for attr in attr_names)
+    )
 
 
 def field_names(field_sequence: Sequence[Field]) -> tuple[str, ...]:
@@ -516,6 +523,8 @@ def df_to_trimmed_multi_index(
     ]
     trimmed_df.columns = columns
     return trimmed_df.set_index(index)
+
+
 # =======
 
 
@@ -524,7 +533,6 @@ def series_dict_to_multi_index(
     column_names: tuple[str, str] = (REGION_COLUMN_NAME, SECTOR_COLUMN_NAME),
     # sector_row_names: Sequence[str],
     unstack: bool = True,
-
 ) -> Series | DataFrame:
     """Generate a Series or DataFrame label."""
     series: DataFrame | Series
@@ -534,10 +542,12 @@ def series_dict_to_multi_index(
         series.index.name = column_names[0]
         series.columns.name = column_names[1]
     else:
-        series: DataFrame | Series = DataFrame.from_dict(
-            {(group, row[0]): row[1:]
-             for group, series in nested_series.items()
-             for row in series.items()}
+        series = DataFrame.from_dict(
+            {
+                (group, row[0]): row[1:]
+                for group, series in nested_series.items()
+                for row in series.items()
+            }
         )
         series = series.iloc[0]
         assert isinstance(series, Series)
@@ -548,13 +558,14 @@ def series_dict_to_multi_index(
 def df_dict_to_multi_index(
     nested_df: dict[str | int, DataFrame],
     column_names: Sequence[str],
-    invert: bool = True
+    invert: bool = True,
 ) -> DataFrame:
     df: DataFrame = DataFrame.from_dict(
-        {(group, row[0]): row[1:]
-         for group, df in nested_df.items()
-         for row in df.itertuples()
-         }
+        {
+            (group, row[0]): row[1:]
+            for group, df in nested_df.items()
+            for row in df.itertuples()
+        }
     )
     if invert:
         df = df.T
@@ -593,7 +604,7 @@ def get_attr_from_attr_str(
     attr_str: str,
     self_str: str | None = None,
     strict: bool = False,
-    split_str: str = '.'
+    split_str: str = ".",
 ) -> Any:
     """Return value inferred from cls and attr_str."""
     if self_str:
@@ -603,8 +614,10 @@ def get_attr_from_attr_str(
             logger.debug(f"Dropped {self_str}, `attr_str` set to: '{attr_str}'")
         else:
             if attr_str_list[0] == self_str:
-                logger.debug(f"`attr_str`: '{attr_str}' == `self_str`: '{self_str}', "
-                             f"returning {cls}")
+                logger.debug(
+                    f"`attr_str`: '{attr_str}' == `self_str`: '{self_str}', "
+                    f"returning {cls}"
+                )
                 return cls
             else:
                 logger.info(f"Keeping '{self_str}' in `attr_str`: '{attr_str}'")
@@ -615,7 +628,9 @@ def get_attr_from_attr_str(
         if strict:
             raise err
         else:
-            logger.debug(f"Attribute '{attr_str}' not part of {cls}, returning '{attr_str}'")
+            logger.debug(
+                f"Attribute '{attr_str}' not part of {cls}, returning '{attr_str}'"
+            )
             return attr_str
     else:
         logger.debug(f"Extracted '{attr_str}' from {cls}, returning '{value}'")
@@ -650,6 +665,7 @@ def get_attr_from_attr_str(
     # if obj is not None:
     #     return param_str
     # raise AttributeError(f"Failed to extract {param_str} from {obj}.")
+
 
 # def expand_df_dict_to_multi_index(df, )
 

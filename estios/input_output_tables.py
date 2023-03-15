@@ -1373,7 +1373,9 @@ class InputOutputTableOECD(InputOutputTable):
 
     """Add OECD query infrastructure via `pymrio`."""
 
-    raw_io_table: MetaFileOrDataFrameType = field(default_factory=lambda: OECD_INPUT_OUTPUT_TABLES)
+    raw_io_table: MetaFileOrDataFrameType = field(
+        default_factory=lambda: OECD_INPUT_OUTPUT_TABLES
+    )
     # all_sector_labels: dict[str, str] | DataFrame = OECD_
     final_demand_column_names = OECD_FINAL_DEMAND_COLUMN_NAMES
 

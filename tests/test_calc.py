@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Literal
 from logging import DEBUG
+from typing import Literal
 
 import pytest
 from numpy import absolute, exp, log, maximum
@@ -11,23 +11,21 @@ from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from estios.calc import (
-    I_m,
-    S_m,
-    X_m,
-    F_i_m_scaled,
-    F_i_m_scaled_by_regions,
     E_i_m_scaled,
     E_i_m_scaled_by_regions,
+    F_i_m_scaled,
+    F_i_m_scaled_by_regions,
+    I_m,
     M_i_m_scaled,
     M_i_m_scaled_by_regions,
-    X_i_m_scaled,
+    S_m,
+    X_m,
     calc_ratio,
     calc_region_distances,
     calc_transport_table,
     gross_value_added,
 )
 from estios.sources import MetaData
-
 
 
 def test_3_city_distances(three_cities_io) -> None:
@@ -89,12 +87,12 @@ def test_S_m_national(three_cities_io, correct_uk_ons_S_m_national) -> None:
 def test_F_m_leeds(three_cities_io, correct_leeds_2017_final_demand) -> None:
     leeds_F_m: DataFrame = F_i_m_scaled(
         final_demand=three_cities_io.national_final_demand,
-        regional_populations=three_cities_io.regional_populations['Leeds'],
+        regional_populations=three_cities_io.regional_populations["Leeds"],
         national_population=three_cities_io.national_population,
     )
     manchester_F_m: DataFrame = F_i_m_scaled(
         final_demand=three_cities_io.national_final_demand,
-        regional_populations=three_cities_io.regional_populations['Manchester'],
+        regional_populations=three_cities_io.regional_populations["Manchester"],
         national_population=three_cities_io.national_population,
     )
     leeds_calc_example: DataFrame = calc_ratio(
@@ -105,15 +103,13 @@ def test_F_m_leeds(three_cities_io, correct_leeds_2017_final_demand) -> None:
     assert_frame_equal(leeds_F_m, leeds_calc_example)
     assert (leeds_F_m <= manchester_F_m).all().all()
     assert (manchester_F_m <= three_cities_io.national_final_demand).all().all()
-    assert_frame_equal(
-        leeds_F_m, correct_leeds_2017_final_demand
-    )
+    assert_frame_equal(leeds_F_m, correct_leeds_2017_final_demand)
 
 
 def test_regional_F_i_m(three_cities_io, correct_leeds_2017_final_demand) -> None:
     correct_manchester_gt_leeds_trade_not_household: Series = Series(
         [True, True, True, True, True, False, True, True, True, True],
-        index=three_cities_io.sector_names
+        index=three_cities_io.sector_names,
     )
 
     scaled_F_i_m_regions: DataFrame = F_i_m_scaled_by_regions(
@@ -122,28 +118,46 @@ def test_regional_F_i_m(three_cities_io, correct_leeds_2017_final_demand) -> Non
         national_population=three_cities_io.national_population,
         sector_row_names=three_cities_io.sector_names,
     )
-    assert (scaled_F_i_m_regions.index.levels[0].values == three_cities_io.region_names).all()
-    assert set(three_cities_io.sector_names) == set(scaled_F_i_m_regions.index.levels[1].values)
-    assert_frame_equal(scaled_F_i_m_regions.loc["Leeds"], correct_leeds_2017_final_demand)
-    assert (scaled_F_i_m_regions.loc["Leeds"]["Household Purchase"] <
-            scaled_F_i_m_regions.loc["Manchester"]["Household Purchase"]
-            ).all()
+    assert (
+        scaled_F_i_m_regions.index.levels[0].values == three_cities_io.region_names
+    ).all()
+    assert set(three_cities_io.sector_names) == set(
+        scaled_F_i_m_regions.index.levels[1].values
+    )
+    assert_frame_equal(
+        scaled_F_i_m_regions.loc["Leeds"], correct_leeds_2017_final_demand
+    )
+    assert (
+        scaled_F_i_m_regions.loc["Leeds"]["Household Purchase"]
+        < scaled_F_i_m_regions.loc["Manchester"]["Household Purchase"]
+    ).all()
     for column in three_cities_io.final_demand_column_names[1:]:
-        assert ((scaled_F_i_m_regions.loc["Leeds"][column] <
-                scaled_F_i_m_regions.loc["Manchester"][column]
-                ) == correct_manchester_gt_leeds_trade_not_household).all()
-    assert (scaled_F_i_m_regions.loc["Manchester"] <= three_cities_io.national_final_demand).all().all()
+        assert (
+            (
+                scaled_F_i_m_regions.loc["Leeds"][column]
+                < scaled_F_i_m_regions.loc["Manchester"][column]
+            )
+            == correct_manchester_gt_leeds_trade_not_household
+        ).all()
+    assert (
+        (
+            scaled_F_i_m_regions.loc["Manchester"]
+            <= three_cities_io.national_final_demand
+        )
+        .all()
+        .all()
+    )
 
 
 def test_M_m_leeds(three_cities_io, correct_leeds_2017_imports) -> None:
     leeds_M_m: DataFrame = M_i_m_scaled(
         imports=three_cities_io.national_imports,
-        regional_populations=three_cities_io.regional_populations['Leeds'],
+        regional_populations=three_cities_io.regional_populations["Leeds"],
         national_population=three_cities_io.national_population,
     )
     manchester_M_m: DataFrame = M_i_m_scaled(
         imports=three_cities_io.national_imports,
-        regional_populations=three_cities_io.regional_populations['Manchester'],
+        regional_populations=three_cities_io.regional_populations["Manchester"],
         national_population=three_cities_io.national_population,
     )
     leeds_calc_example: DataFrame = calc_ratio(
@@ -151,10 +165,11 @@ def test_M_m_leeds(three_cities_io, correct_leeds_2017_imports) -> None:
         three_cities_io.national_population,
         three_cities_io.regional_populations["Leeds"],
     ).astype(float)
-    assert_series_equal(leeds_M_m, leeds_calc_example )
+    assert_series_equal(leeds_M_m, leeds_calc_example)
     assert (leeds_M_m < manchester_M_m).all().all()
     assert (manchester_M_m < three_cities_io.national_imports).all().all()
     assert_series_equal(leeds_M_m, correct_leeds_2017_imports)
+
 
 def test_regional_M_i_m(three_cities_io, correct_leeds_2017_imports) -> None:
     """Test M_i_m, case of a single column rathern that multiple categories.
@@ -170,8 +185,12 @@ def test_regional_M_i_m(three_cities_io, correct_leeds_2017_imports) -> None:
     )
     assert (scaled_M_i_m_regions.index.values == three_cities_io.region_names).all()
     assert set(three_cities_io.sector_names) == set(scaled_M_i_m_regions.columns)
-    assert (scaled_M_i_m_regions.loc["Leeds"] < scaled_M_i_m_regions.loc["Manchester"]).all()
-    assert (scaled_M_i_m_regions.loc["Manchester"] < three_cities_io.national_imports).all()
+    assert (
+        scaled_M_i_m_regions.loc["Leeds"] < scaled_M_i_m_regions.loc["Manchester"]
+    ).all()
+    assert (
+        scaled_M_i_m_regions.loc["Manchester"] < three_cities_io.national_imports
+    ).all()
     # To be fixed, currently returns `Sector`, above returns `Imports`
     # assert_series_equal(scaled_M_i_m_regions.loc["Leeds"], correct_leeds_2017_imports)
 
@@ -181,12 +200,12 @@ def test_E_m_leeds(three_cities_io, correct_leeds_2017_exports, caplog) -> None:
     caplog.set_level(DEBUG)
     leeds_E_m: DataFrame = E_i_m_scaled(
         exports=three_cities_io.national_exports,
-        regional_employment=three_cities_io.regional_employment.loc['Leeds'],
+        regional_employment=three_cities_io.regional_employment.loc["Leeds"],
         national_employment=three_cities_io.national_employment,
     )
     manchester_E_m: DataFrame = E_i_m_scaled(
         exports=three_cities_io.national_exports,
-        regional_employment=three_cities_io.regional_employment.loc['Manchester'],
+        regional_employment=three_cities_io.regional_employment.loc["Manchester"],
         national_employment=three_cities_io.national_employment,
     )
     leeds_calc_example: DataFrame = calc_ratio(
@@ -194,14 +213,10 @@ def test_E_m_leeds(three_cities_io, correct_leeds_2017_exports, caplog) -> None:
         three_cities_io.national_employment,
         three_cities_io.regional_employment.loc["Leeds"],
     ).astype(float)
-    assert_frame_equal(
-        leeds_E_m, leeds_calc_example
-    )
+    assert_frame_equal(leeds_E_m, leeds_calc_example)
     assert (leeds_E_m <= manchester_E_m).all().all()
     assert (manchester_E_m <= three_cities_io.national_exports).all().all()
-    assert_frame_equal(
-        leeds_E_m, correct_leeds_2017_exports
-    )
+    assert_frame_equal(leeds_E_m, correct_leeds_2017_exports)
 
 
 @pytest.mark.remote_data
@@ -212,8 +227,12 @@ def test_regional_E_i_m(three_cities_io, correct_leeds_2017_exports) -> None:
         national_employment=three_cities_io.national_employment,
         sector_row_names=three_cities_io.sector_names,
     )
-    assert (scaled_E_i_m_regions.index.levels[0].values == three_cities_io.region_names).all()
-    assert set(three_cities_io.sector_names) == set(scaled_E_i_m_regions.index.levels[1].values)
+    assert (
+        scaled_E_i_m_regions.index.levels[0].values == three_cities_io.region_names
+    ).all()
+    assert set(three_cities_io.sector_names) == set(
+        scaled_E_i_m_regions.index.levels[1].values
+    )
     assert_frame_equal(scaled_E_i_m_regions.loc["Leeds"], correct_leeds_2017_exports)
 
 

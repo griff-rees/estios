@@ -22,11 +22,12 @@ class TestInputOutputModel:
     """Test constructing and running a 3 city InterRegionInputOutput model."""
 
     @pytest.mark.skip(f"Cache currently interferes with 3 city results")
-    def test_default_construction(self,
-                                  tmp_path,
-                                  monkeypatch,
-                                  nomis_2017_10_cities_employment,
-                                  nomis_2017_national_employment,
+    def test_default_construction(
+        self,
+        tmp_path,
+        monkeypatch,
+        nomis_2017_10_cities_employment,
+        nomis_2017_national_employment,
     ) -> None:  # -> Generator[TestMetaExample, None, None]:
         monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
         io_model = InterRegionInputOutputUK2017()
@@ -37,30 +38,41 @@ class TestInputOutputModel:
             repr(io_model)
             == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=10)"
         )
-        assert_frame_equal(io_model.regional_employment, nomis_2017_10_cities_employment)
+        assert_frame_equal(
+            io_model.regional_employment, nomis_2017_10_cities_employment
+        )
         # assert_series_equal(io_model.national_employment, nomis_2017_national_employment)
 
-    def test_3_city_construction(self, 
-                                  # tmp_path,
-                                  # monkeypatch,
-                                 three_cities_io,
-                                 # three_cities,
-                                 nomis_2017_3_cities_employment,
-                                 nomis_2017_national_employment) -> None:
+    def test_3_city_construction(
+        self,
+        # tmp_path,
+        # monkeypatch,
+        three_cities_io,
+        # three_cities,
+        nomis_2017_3_cities_employment,
+        nomis_2017_national_employment,
+    ) -> None:
         # monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
         # io_model = InterRegionInputOutputUK2017(regions=three_cities)
         assert (
-            str(three_cities_io) == "UK 2017-06-01 Input-Output model: 10 sectors, 3 regions"
+            str(three_cities_io)
+            == "UK 2017-06-01 Input-Output model: 10 sectors, 3 regions"
         )
         assert (
             repr(three_cities_io)
             == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=3)"
         )
-        assert_frame_equal(three_cities_io.regional_employment, nomis_2017_3_cities_employment)
+        assert_frame_equal(
+            three_cities_io.regional_employment, nomis_2017_3_cities_employment
+        )
         # assert_series_equal(three_cities_io.national_employment, nomis_2017_national_employment)
 
-    def test_3_city_national_employment(self, three_cities_io, nomis_2017_national_employment) -> None:
-        assert_series_equal(three_cities_io.national_employment, nomis_2017_national_employment)
+    def test_3_city_national_employment(
+        self, three_cities_io, nomis_2017_national_employment
+    ) -> None:
+        assert_series_equal(
+            three_cities_io.national_employment, nomis_2017_national_employment
+        )
 
     def test_3_city_distances(self, three_cities_io) -> None:
         CORRECT_DISTANCES = Series(
@@ -105,9 +117,17 @@ class TestInputOutputModel:
             correct_uk_ons_S_m_national, three_cities_results.S_m_national
         )
         assert_series_equal(correct_uk_gva_2017, three_cities_results.GVA_m_national)
-        assert_series_equal(correct_leeds_2017_final_demand.sum(axis="columns"), three_cities_results.F_i_m.loc["Leeds"])
-        assert_series_equal(correct_leeds_2017_exports.sum(axis="columns"), three_cities_results.E_i_m.loc["Leeds"])
-        assert_series_equal(correct_leeds_2017_imports, three_cities_results.M_i_m["Leeds"])
+        assert_series_equal(
+            correct_leeds_2017_final_demand.sum(axis="columns"),
+            three_cities_results.F_i_m.loc["Leeds"],
+        )
+        assert_series_equal(
+            correct_leeds_2017_exports.sum(axis="columns"),
+            three_cities_results.E_i_m.loc["Leeds"],
+        )
+        assert_series_equal(
+            correct_leeds_2017_imports, three_cities_results.M_i_m["Leeds"]
+        )
 
     @pytest.mark.xfail(reason="These need to be rechecked with new city units")
     def test_3_city_singly_constrained(self, three_cities_results) -> None:
@@ -316,7 +336,8 @@ class TestInputOutputModel:
         #     CORRECT_national_employment, three_cities_results.national_employment
         # )
         assert_series_equal(
-            CORRECT_y_ij_m_df["Q_i^m"].astype(float), three_cities_results._y_ij_m["Q_i^m"]
+            CORRECT_y_ij_m_df["Q_i^m"].astype(float),
+            three_cities_results._y_ij_m["Q_i^m"],
         )
         assert_series_equal(
             CORRECT_y_ij_m_df[B_j_m_im_column],

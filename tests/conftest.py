@@ -1,41 +1,39 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from logging import getLogger
-from typing import Generator, Sequence
-from string import ascii_uppercase
 from copy import deepcopy
+from logging import getLogger
+from string import ascii_uppercase
+from typing import Generator, Sequence
 
 import pytest
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
-from dotenv import load_dotenv
 
 # from estios.input_output_tables import InputOutputCPATable
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
 from estios.uk.input_output_tables import InputOutputTableUK2017
 from estios.uk.models import InterRegionInputOutputUK2017
+from estios.uk.nomis_contemporary_employment import (
+    NOMIS_API_KEY,
+    NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT,
+    NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
+    APIKeyNommisError,
+    clean_nomis_employment_query,
+    national_employment_query,
+    nomis_query,
+)
 from estios.uk.ons_employment_2017 import generate_employment_quarterly_dates
 from estios.uk.ons_population_projections import (
     ONS_ENGLAND_POPULATION_META_DATA,
     ONS_PROJECTION_YEARS,
     ONSPopulationProjection,
 )
-from estios.uk.nomis_contemporary_employment import (
-    nomis_query, trim_df_for_employment_count,
-    NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
-    NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT, 
-    clean_nomis_employment_query,
-    NOMIS_API_KEY,
-    APIKeyNommisError,
-    NOMIS_NATIONAL_EMPLOYMENT_TABLE_CODE,
-    national_employment_query,
-)
 from estios.uk.ons_uk_population_history import ONS_UK_POPULATION_HISTORY_META_DATA
 from estios.uk.populations import (
-    NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA,
     NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA,
+    NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA,
 )
 from estios.uk.regions import (
     TEN_UK_CITY_REGIONS,
@@ -205,7 +203,7 @@ def nomis_2017_regional_employment_raw(tmp_path_factory) -> DataFrame:
         2017,
         nomis_table_code=NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
         query_params=NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT,
-        download_path=tmp_path_factory.mktemp("test-nomis")
+        download_path=tmp_path_factory.mktemp("test-nomis"),
     )
 
 
@@ -217,8 +215,12 @@ def nomis_2017_regional_employment_filtered(tmp_path_factory) -> DataFrame:
         api_key = NOMIS_API_KEY
         assert api_key
     except KeyError:
-        raise APIKeyNommisError(f"To run these tests a `NOMIS_API_KEY` is required in `.env`")
-    return clean_nomis_employment_query(2017, download_path=tmp_path_factory.mktemp("test-nomis"), api_key=api_key)
+        raise APIKeyNommisError(
+            f"To run these tests a `NOMIS_API_KEY` is required in `.env`"
+        )
+    return clean_nomis_employment_query(
+        2017, download_path=tmp_path_factory.mktemp("test-nomis"), api_key=api_key
+    )
 
 
 @pytest.fixture(scope="session")
@@ -231,20 +233,22 @@ def ten_city_names(ten_regions: dict = TEN_UK_CITY_REGIONS) -> tuple[str, ...]:
 @pytest.fixture(scope="session")
 def nomis_2017_10_cities_employment(tmp_path_factory, ten_city_names) -> DataFrame:
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
-    regional_employment_nomis_2017.path = '10-cities-test.csv'
+    regional_employment_nomis_2017.path = "10-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
-    regional_employment_nomis_2017._reader_kwargs['region_names'] = ten_city_names
+    regional_employment_nomis_2017._reader_kwargs["region_names"] = ten_city_names
     return regional_employment_nomis_2017.read()
+
 
 @pytest.mark.remote_data
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_3_cities_employment(tmp_path_factory, three_city_names) -> DataFrame:
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
-    regional_employment_nomis_2017.path = '3-cities-test.csv'
+    regional_employment_nomis_2017.path = "3-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
-    regional_employment_nomis_2017._reader_kwargs['region_names'] = three_city_names
+    regional_employment_nomis_2017._reader_kwargs["region_names"] = three_city_names
     return regional_employment_nomis_2017.read()
+
 
 @pytest.mark.remote_data
 @pytest.mark.nomis
@@ -259,13 +263,16 @@ def nomis_2017_national_employment(tmp_path_factory) -> DataFrame:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_nation_employment_table(tmp_path_factory) -> DataFrame:
-    
     try:
         api_key = NOMIS_API_KEY
         assert api_key
     except KeyError:
-        raise APIKeyNommisError(f"To run these tests a `NOMIS_API_KEY` is required in `.env`")
-    return national_employment_query(2017, download_path=tmp_path_factory.mktemp("test-nomis"), api_key=api_key)
+        raise APIKeyNommisError(
+            f"To run these tests a `NOMIS_API_KEY` is required in `.env`"
+        )
+    return national_employment_query(
+        2017, download_path=tmp_path_factory.mktemp("test-nomis"), api_key=api_key
+    )
 
 
 @pytest.fixture
@@ -363,24 +370,46 @@ def correct_uk_national_employment_2017(three_cities_io) -> Series:
         index=three_cities_io.sectors,
     )
 
+
 @pytest.fixture
 def correct_leeds_2017_final_demand(three_cities_io) -> DataFrame:
     return DataFrame(
         {
-            'Household Purchase': [
-                863824080.1922507, 12910688415.722689, 195078434.4977476, 32846833836.39243,
-                3897179528.8352375, 7845761753.233474, 35315069651.356255, 3942577124.0064607,
-                6979808493.090483, 7964555182.937662
+            "Household Purchase": [
+                863824080.1922507,
+                12910688415.722689,
+                195078434.4977476,
+                32846833836.39243,
+                3897179528.8352375,
+                7845761753.233474,
+                35315069651.356255,
+                3942577124.0064607,
+                6979808493.090483,
+                7964555182.937662,
             ],
-            'Government Purchase': [
-                243.9047716360901, 1259025829.250631, 244.6169027669075, 377444862.3125664,
-                405085838.6851054, 0.0, 244.616904630556, 244.616904630556, 44086204312.41963,
-                487766352.4502333
+            "Government Purchase": [
+                243.9047716360901,
+                1259025829.250631,
+                244.6169027669075,
+                377444862.3125664,
+                405085838.6851054,
+                0.0,
+                244.616904630556,
+                244.616904630556,
+                44086204312.41963,
+                487766352.4502333,
             ],
-            'Non-profit Purchase': [
-                121.95238581804504, 122.308452315278, 122.30845138345376, 489.233809261112,
-                122.308452315278, 0.0, 157411100.4382151, 308217544.45140517, 4444806206.326068,
-                892607207.3053511
+            "Non-profit Purchase": [
+                121.95238581804504,
+                122.308452315278,
+                122.30845138345376,
+                489.233809261112,
+                122.308452315278,
+                0.0,
+                157411100.4382151,
+                308217544.45140517,
+                4444806206.326068,
+                892607207.3053511,
             ],
         },
         index=three_cities_io.sector_names,
@@ -391,7 +420,7 @@ def correct_leeds_2017_final_demand(three_cities_io) -> DataFrame:
 def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
     return DataFrame(
         {
-            'Exports to EU': [
+            "Exports to EU": [
                 54415828.56237425,
                 9809992044.03674,
                 90.43701681873807,
@@ -403,7 +432,7 @@ def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
                 246.01207030888295,
                 1290488.185247481,
             ],
-            'Exports outside EU': [
+            "Exports outside EU": [
                 21126522.775823142,
                 9326960784.934875,
                 90.43701681873807,
@@ -415,7 +444,7 @@ def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
                 246.01207030888295,
                 398456621.4053595,
             ],
-            'Exports of services': [
+            "Exports of services": [
                 5817935.754843496,
                 1206046904.8668356,
                 221477270.769351,
@@ -435,18 +464,18 @@ def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
 @pytest.fixture
 def correct_leeds_2017_imports(three_cities_io) -> DataFrame:
     return Series(
-            [
-                108642578.11956923,
-                14716026243.967617,
-                952384699.312282,
-                4676870989.681791,
-                2212125101.231273,
-                2861365859.7478576,
-                618566915.0002943,
-                3004024570.375315,
-                2467381922.9378333,
-                364963704.4151428,
-            ],
+        [
+            108642578.11956923,
+            14716026243.967617,
+            952384699.312282,
+            4676870989.681791,
+            2212125101.231273,
+            2861365859.7478576,
+            618566915.0002943,
+            3004024570.375315,
+            2467381922.9378333,
+            364963704.4151428,
+        ],
         index=three_cities_io.sector_names,
         name="Imports",
     )
@@ -454,28 +483,29 @@ def correct_leeds_2017_imports(three_cities_io) -> DataFrame:
 
 @pytest.fixture
 def correct_liverpool_2017_letter_sector_employment() -> DataFrame:
-    return Series( {
-        'A':     125.0,
-        'B':      20.0,
-        'C':   23000.0,
-        'D':     550.0,
-        'E':    1850.0,
-        'F':   10500.0,
-        'G':   44000.0,
-        'H':   17000.0,
-        'I':   23000.0,
-        'J':    7600.0,
-        'K':   11250.0,
-        'L':    5600.0,
-        'M':   20000.0,
-        'N':   26000.0,
-        'O':   18750.0,
-        'P':   30000.0,
-        'Q':   57000.0,
-        'R':   12000.0,
-        'S':    5500.0,
-        'T':       0.0,
-        'U':       0.0,
-         },
-        name="Liverpool"
+    return Series(
+        {
+            "A": 125.0,
+            "B": 20.0,
+            "C": 23000.0,
+            "D": 550.0,
+            "E": 1850.0,
+            "F": 10500.0,
+            "G": 44000.0,
+            "H": 17000.0,
+            "I": 23000.0,
+            "J": 7600.0,
+            "K": 11250.0,
+            "L": 5600.0,
+            "M": 20000.0,
+            "N": 26000.0,
+            "O": 18750.0,
+            "P": 30000.0,
+            "Q": 57000.0,
+            "R": 12000.0,
+            "S": 5500.0,
+            "T": 0.0,
+            "U": 0.0,
+        },
+        name="Liverpool",
     )

@@ -26,18 +26,14 @@ from warnings import filterwarnings
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 from shapely.errors import ShapelyDeprecationWarning
-from numpy import int64
 
 from .calc import (
     DEFAULT_IMPORT_EXPORT_ITERATIONS,
     DISTANCE_UNIT_DIVIDE,
     INITIAL_P,
-    E_i_m_scaled,
     E_i_m_scaled_by_regions,
-    F_i_m_scaled,
     F_i_m_scaled_by_regions,
     I_m,
-    M_i_m_scaled,
     M_i_m_scaled_by_regions,
     S_m,
     X_i_m_scaled,
@@ -53,9 +49,6 @@ from .calc import (
 )
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
-    GROSS_VALUE_ADDED_ROW_NAME,
-    IMPORTS_ROW_NAME,
-    NET_SUBSIDIES_COLUMN_NAME,
     TOTAL_PRODUCTION_ROW_NAME,
     TOTAL_SALES_ROW_NAME,
     InputOutputCPATable,
@@ -67,9 +60,9 @@ from .sources import (
     pandas_from_path_or_package,
 )
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
-from .uk import ons_IO_2017
 from .uk.ons_employment_2017 import load_region_employment_excel
-from .uk.regions import TEN_UK_CITY_REGIONS, load_and_join_centre_for_cities_data
+from .uk.regions import load_and_join_centre_for_cities_data
+
 # =======
 # from .uk.employment import (
 #     CITY_SECTOR_REGION_PREFIX,
@@ -83,7 +76,6 @@ from .uk.regions import TEN_UK_CITY_REGIONS, load_and_join_centre_for_cities_dat
 #     UK_CITY_REGIONS,
 #     load_and_join_centre_for_cities_data,
 # )
-from .uk.utils import UNITED_KINGDOM_CONTEMPORARY_INDEX
 # >>>>>>> Stashed changes
 from .utils import (
     SECTOR_10_CODE_DICT,
@@ -96,18 +88,18 @@ from .utils import (
     aggregate_rows,
     collect_dupes,
     column_to_series,
+    conditional_type_wrapper,
+    df_set_columns,
     filter_attrs_by_substring,
     filter_by_region_name_and_type,
     generate_ij_index,
     generate_ij_m_index,
-    iter_attr_by_key,
-    str_keys_of_dict,
-    tuples_to_ordered_dict,
-    sum_if_multi_column_df,
-    df_set_columns,
-    conditional_type_wrapper,
-    len_less_or_eq,
     get_df_first_row,
+    iter_attr_by_key,
+    len_less_or_eq,
+    str_keys_of_dict,
+    sum_if_multi_column_df,
+    tuples_to_ordered_dict,
 )
 
 logger = getLogger(__name__)
@@ -184,9 +176,9 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     # national_employment_scale: float = UK_JOBS_BY_SECTOR_SCALING
     # io_table_scale: float = IO_TABLE_SCALING
     national_population: float | None = None
-    national_working_population:  float | None = None
+    national_working_population: float | None = None
     national_gva_row_name: ColumnOrRowNames | None = None
-    national_net_subsidies_row_name: ColumnOrRowNames | None  = None
+    national_net_subsidies_row_name: ColumnOrRowNames | None = None
     national_gov_investment_column_names: ColumnOrRowNames | None = None
     # # >>>>>>> Stashed changes
     regional_populations: Optional[Series] = None
@@ -363,44 +355,45 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             logger.warning(
                 f"Set {self} date to employment_date {self.employment_date}."
             )
-  # <<<<<<< Updated upstream
+        # <<<<<<< Updated upstream
         super().__post_init__()
-  # =======
-        # if not self.regional_populations and self.year < 2021:
-        #     self.regional_populations = get_regional_mid_year_populations(
-        #         year=self.year,
-        #         regions=self.region_names,
-        #     )
-        # if not ons_2017_pop_meta_data.is_local:
-        #     ons_2017_pop_meta_data.save_local()
-        # if not ons_contemporary_populations.is_local:
-        #     ons_contemporary_populations.save_local()
-        # if not uk_regions:
-        #     uk_regions = generate_uk_puas()
 
-        #     ons_2017_pop_df = ons_2017_pop_meta_data.read()
-        #     
-        #     self.regional_populations = Series(
-        #         sum_for_regions_by_la_code(
-        #             df=ons_2017_pop_df,
-        #             region_names=regions,
-        #             column_names=all_ages_column,
-        #             regions=uk_regions,
-        #         )
-        #     )
-        # if not self.national_population and self.year < 2021:
-        #     self.national_population = get_regional_mid_year_populations(
-        #         year=self.year,
-        #         regions=UNITED_KINGDOM_CONTEMPORARY_INDEX,
-        #     )
-        #     assert isinstance(self.national_population, float | int64)
+    # =======
+    # if not self.regional_populations and self.year < 2021:
+    #     self.regional_populations = get_regional_mid_year_populations(
+    #         year=self.year,
+    #         regions=self.region_names,
+    #     )
+    # if not ons_2017_pop_meta_data.is_local:
+    #     ons_2017_pop_meta_data.save_local()
+    # if not ons_contemporary_populations.is_local:
+    #     ons_contemporary_populations.save_local()
+    # if not uk_regions:
+    #     uk_regions = generate_uk_puas()
+
+    #     ons_2017_pop_df = ons_2017_pop_meta_data.read()
+    #
+    #     self.regional_populations = Series(
+    #         sum_for_regions_by_la_code(
+    #             df=ons_2017_pop_df,
+    #             region_names=regions,
+    #             column_names=all_ages_column,
+    #             regions=uk_regions,
+    #         )
+    #     )
+    # if not self.national_population and self.year < 2021:
+    #     self.national_population = get_regional_mid_year_populations(
+    #         year=self.year,
+    #         regions=UNITED_KINGDOM_CONTEMPORARY_INDEX,
+    #     )
+    #     assert isinstance(self.national_population, float | int64)
 
     # def __repr__(self) -> str:
     #     return (
     #         f"Input output model of {self.year}: "
     #         f"{len(self.sectors)} sectors, {len(self.regions)} regions"
     #     )
-  # >>>>>>> Stashed changes
+    # >>>>>>> Stashed changes
 
     @cached_property
     def region_data(self) -> GeoDataFrame:
@@ -619,24 +612,23 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         $M_i^{(m)} = M_*^{(m)} * P_i/P_*$
         """
         return M_i_m_scaled_by_regions(
-  # <<<<<<< Updated upstream
-  #             imports=self.io_table[self.sectors].loc[self.imports_column_name],
-  #             employment=self.employment_table,
-  #             national_employment=self.national_employment,
-  #         ).astype("float64")
-  # =======
+            # <<<<<<< Updated upstream
+            #             imports=self.io_table[self.sectors].loc[self.imports_column_name],
+            #             employment=self.employment_table,
+            #             national_employment=self.national_employment,
+            #         ).astype("float64")
+            # =======
             imports=self.national_imports,
             regional_populations=self.regional_populations,
             national_population=self.national_population,
             sector_row_names=self.sector_names,
         )
 
-  # >>>>>>> Stashed changes
+    # >>>>>>> Stashed changes
     @property
     def national_final_demand(self) -> DataFrame:
         """Return national final demand columns."""
         return self.io_table.loc[self.sector_names, self.final_demand_column_names]
-
 
     @property
     def F_i_m_full(self) -> DataFrame:
@@ -662,7 +654,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         $F_i^{(m)} = F_*^{(m)} * P_i/P_*$
         """
-        return df_set_columns(sum_if_multi_column_df(self.F_i_m_full).unstack(), self.sector_names)
+        return df_set_columns(
+            sum_if_multi_column_df(self.F_i_m_full).unstack(), self.sector_names
+        )
 
     @property
     def E_i_m_full(self) -> DataFrame:
@@ -683,7 +677,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         $E_i^{(m)} = E_*^{(m)} * Q_i^{(m)}/Q_*^{(m)}$
         """
-        return df_set_columns(sum_if_multi_column_df(self.E_i_m_full).unstack(), self.sector_names)
+        return df_set_columns(
+            sum_if_multi_column_df(self.E_i_m_full).unstack(), self.sector_names
+        )
         # return E_i_m_scaled(
         #     exports=self.io_table.loc[self.sectors, self.export_column_names].sum(
         #         axis=1
@@ -751,10 +747,10 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
         # <<<<<<< Updated upstream
         #     #     $X_i^m = X_*^m * Q_i^m/Q_*^m$
-        # 
+        #
         #     #     Todo:
         #     #         * At least check the "Total Sale" column specified.
-        #     #     
+        #     #
         #     #     return X_i_m_scaled(
         #     #         total_production=self.io_table[self.sectors].loc["Total Sales"],
         #     #         employment=self.employment_table,
@@ -763,11 +759,14 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         # =======
         """
         return X_i_m_scaled(
-            total_production = self.X_m_national + self.GVA_m_national + self.S_m_national,
+            total_production=self.X_m_national
+            + self.GVA_m_national
+            + self.S_m_national,
             employment=self.employment_table,
             national_employment=self.national_employment,
         )
-  # >>>>>>> Stashed changes
+
+    # >>>>>>> Stashed changes
 
     @property
     def x_i_mn_summed(self) -> DataFrame:

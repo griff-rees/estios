@@ -33,7 +33,13 @@ from .ons_uk_population_projections import (
     get_uk_pop_scaled_all_ages_ts,
     get_uk_pop_scaled_working_ages_ts,
 )
-from .utils import THREE_UK_CITY_REGIONS, GenericRegionsManager, generate_uk_puas, sum_for_regions_by_la_code 
+from .utils import (
+    THREE_UK_CITY_REGIONS,
+    GenericRegionsManager,
+    generate_uk_puas,
+    sum_for_regions_by_la_code,
+)
+
 logger = getLogger(__name__)
 
 

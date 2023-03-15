@@ -2,7 +2,6 @@ from datetime import date
 from logging import INFO
 
 import pytest
-from pandas import DataFrame
 
 from estios.models import InterRegionInputOutputTimeSeries
 from estios.temporal import annual_io_time_series, date_io_time_series
@@ -226,8 +225,8 @@ class TestInputOutputTimeSeries:
             assert hasattr(model, "y_ij_m_model")
             assert hasattr(model, "e_m_model")
             assert (
-                f'{model} `raw_io_table` attribute needs conversion from '
+                f"{model} `raw_io_table` attribute needs conversion from "
                 "type <class 'pandas.core.frame.DataFrame'>. "
-                'Will try running `self._get_meta_file_or_data_fields()`.'
+                "Will try running `self._get_meta_file_or_data_fields()`."
                 in caplog.messages
             )

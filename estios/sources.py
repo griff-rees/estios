@@ -34,9 +34,8 @@ from pandas import DataFrame, Series, read_csv, read_excel
 from .utils import (
     filter_fields_by_type,
     filter_fields_by_types,
-    filter_by_attr,
+    get_attr_from_attr_str,
     value_in_dict_vals,
-    get_attr_from_attr_str
 )
 
 logger = getLogger(__name__)
@@ -175,9 +174,7 @@ class DataSaveReadCallable(Protocol):
 
 
 def save_pandas_to_csv(
-    pandas_object: DataFrame | Series,
-    local_path: FilePathType,
-    **kwargs
+    pandas_object: DataFrame | Series, local_path: FilePathType, **kwargs
 ) -> DataFrame | Series:
     pandas_object.to_csv(local_path, **kwargs)
     return pandas_object
@@ -346,7 +343,7 @@ class MetaData:
     info_url: Optional[str] = None
     doi: Optional[str] = None
     path: Optional[FilePathType] = None
-    license: Optional[str | DataLicense] = field(default_factory=lambda:CopyrightTRIPS)
+    license: Optional[str | DataLicense] = field(default_factory=lambda: CopyrightTRIPS)
     date_time_obtained: Optional[datetime] = None
     auto_download: Optional[bool] = None
     dates: Optional[list[date] | list[int]] = None
@@ -358,11 +355,13 @@ class MetaData:
     dict_key_appreviation: str | None = None
     unit: str | None = None
     cite_as: str | Callable[[Any], str] | None = None
-    _api_func: Optional[Callable[[Any,...], SupportedAttrDataTypes]] = None
+    _api_func: Optional[Callable[[Any, ...], SupportedAttrDataTypes]] = None
     _api_kwargs: dict[str, Any] = field(default_factory=dict)
     _save_func: Optional[DataSaveReadCallable] = download_and_save_file  # type: ignore[assignment]
     _save_func_override: bool = False
-    _save_local_from_pandas_func: Callable[[DataFrame | Series, FilePathType, ...], DataFrame | Series] = save_pandas_to_csv
+    _save_local_from_pandas_func: Callable[
+        [DataFrame | Series, FilePathType, ...], DataFrame | Series
+    ] = save_pandas_to_csv
     _save_kwargs: dict[str, Any] = field(default_factory=dict)
     _package_data: bool = False
     _package_path: Optional[FilePathType] = Path("uk/data")
@@ -419,7 +418,7 @@ class MetaData:
 
     @property
     def has_post_read_func(self) -> bool:
-        return hasattr(self, '_post_read_func') and callable(self._post_read_func)
+        return hasattr(self, "_post_read_func") and callable(self._post_read_func)
 
     def read(self, apply_post_read_func: bool = True) -> Optional[Any]:
         """Read file if self._reader_func defined, else None."""
@@ -516,12 +515,14 @@ class MetaData:
         if self._api_func:
             logger.info("Using {self._api_func} to query data for {self}")
             pandas_obj_from_api: DataFrame | Series = self._api_func(**self._api_kwargs)
-            logger.info(f"Using locally generate pandas data type for {self}, no download.")
+            logger.info(
+                f"Using locally generate pandas data type for {self}, no download."
+            )
             pandas_obj: DataFrame | Series = self._save_local_from_pandas_func(
                 pandas_obj_from_api,
                 local_path=self.absolute_save_path,
-                **self._save_kwargs
-            ) 
+                **self._save_kwargs,
+            )
         else:
             try:
                 assert self.url
@@ -637,7 +638,6 @@ def pandas_from_path_or_package(
     return reader(url_or_path, **kwargs)
 
 
-
 # def pandas_from_path_or_package_csv(
 #     path: FilePathType,
 #     default_file: FilePathType,
@@ -694,7 +694,9 @@ MetaFileOrDataFrameType = SupportedAttrDataTypes | FilePathType | MetaData
 #     data: SupportedAttrDataTypes = reader_func(path, **kwargs)
 #     setattr(cls, data_attr_name, data)
 
-class OverwriteRawMetaError(Exception): ...
+
+class OverwriteRawMetaError(Exception):
+    ...
 
 
 @dataclass
@@ -718,7 +720,9 @@ class ModelDataSourcesHandler:
     def _filter_fields_by_type(self, field_type: Type | TypeAlias) -> tuple[Field, ...]:
         return self._filter_fields_by_type_func(self, field_type)
 
-    def _filter_fields_by_types(self, field_types: tuple[Type | TypeAlias, ...]) -> tuple[Field, ...]:
+    def _filter_fields_by_types(
+        self, field_types: tuple[Type | TypeAlias, ...]
+    ) -> tuple[Field, ...]:
         return self._filter_fields_by_types_func(self, field_types)
 
     def _get_field_by_name(self, field_name) -> Field:
@@ -734,7 +738,9 @@ class ModelDataSourcesHandler:
     @property
     def _meta_file_or_dataframe_fields(self) -> tuple[Field, ...]:
         """Return all fields with `MetaData` or `MetaFileOrDataFrameType` types."""
-        return self._filter_fields_by_types(field_types=(MetaData, MetaFileOrDataFrameType))
+        return self._filter_fields_by_types(
+            field_types=(MetaData, MetaFileOrDataFrameType)
+        )
 
     @property
     def _meta_data_fields_strict(self) -> tuple[Field, ...]:
@@ -753,16 +759,20 @@ class ModelDataSourcesHandler:
     @property
     def _processed_meta_data_attrs(self) -> tuple[Field, ...]:
         """Return all attributes where of `MetaData` *after* processing."""
-        return tuple(attr for attr in dir(self) if attr.endswith('__meta_data'))
+        return tuple(attr for attr in dir(self) if attr.endswith("__meta_data"))
 
     @property
     def _processed_meta_data_with_post_read_func_attrs(self) -> tuple[Field, ...]:
         """Return all attributes where of `MetaData` *after* processing."""
-        return tuple(attr for attr in self._processed_meta_data_attrs if hasattr(attr, '_post_proc_func'))
+        return tuple(
+            attr
+            for attr in self._processed_meta_data_attrs
+            if hasattr(attr, "_post_proc_func")
+        )
 
     @property
     def _processed_meta_data_post_read_func_attr_names(self) -> tuple[Field, ...]:
-        return tuple(attr for attr in dir(self) if attr.endswith('_post_read_func'))
+        return tuple(attr for attr in dir(self) if attr.endswith("_post_read_func"))
 
     @property
     def _file_or_path_data_fields(self) -> tuple[Field, ...]:
@@ -784,10 +794,14 @@ class ModelDataSourcesHandler:
                 if strict:
                     raise TypeError(f"{meta_field.name} is not a `MetaData` instance.")
                 else:
-                    logger.debug(f"{meta_field.name} is not a `MetaData` instance, skipping.")
+                    logger.debug(
+                        f"{meta_field.name} is not a `MetaData` instance, skipping."
+                    )
                     continue
             apply_po
-            self._set_meta_field(meta_field, parser, force_default_parser, apply_post_read_func, **kwargs)
+            self._set_meta_field(
+                meta_field, parser, force_default_parser, apply_post_read_func, **kwargs
+            )
 
     def _set_meta_field(
         self,
@@ -800,7 +814,9 @@ class ModelDataSourcesHandler:
     ) -> SupportedAttrDataTypes:
         logger.debug(f"Processing {meta_field.name} data file for: {self}")
         apply_post_read_func = apply_post_read_func or self._auto_apply_post_read_func
-        apply_post_read_func_within_read = apply_post_read_func_within_read or self._apply_post_read_func_within_read
+        apply_post_read_func_within_read = (
+            apply_post_read_func_within_read or self._apply_post_read_func_within_read
+        )
         if not parser or force_default_parser:
             parser = self._default_data_source_parser
         meta_data: MetaData = getattr(self, meta_field.name)
@@ -810,19 +826,19 @@ class ModelDataSourcesHandler:
                 raise AutoDownloadPermissionError(
                     f"Permission for `auto_download` for field {meta_field} for {self} is false. Consider altering {meta_data} `auto_download` to true."
                 )
-        meta_field_attr_name: str = f"_{meta_field.name}__meta_data" 
+        meta_field_attr_name: str = f"_{meta_field.name}__meta_data"
         setattr(self, meta_field_attr_name, meta_data)
         assert hasattr(meta_data, "path")
         setattr(self, f"_{meta_field.name}__path", meta_data.path)
         if hasattr(meta_data, "url"):
             setattr(self, f"_{meta_field.name}__url", meta_data.url)
         data: SupportedAttrDataTypes
-        if self._extract_read_kwargs_if_strs and hasattr(meta_data, '_reader_kwargs'):
+        if self._extract_read_kwargs_if_strs and hasattr(meta_data, "_reader_kwargs"):
             for kwarg, value in meta_data._reader_kwargs.items():
                 if isinstance(value, str):
                     # new_val = get_attr_from_attr_str(self, value)
                     # meta_data._reader_kwargs[kwarg] = new_val
-                    new_val = get_attr_from_attr_str(self, value, self_str='self')
+                    new_val = get_attr_from_attr_str(self, value, self_str="self")
                     meta_data._reader_kwargs[kwarg] = new_val
         if meta_data.has_read_func:
             apply_post_read_func_within_read = (
@@ -834,22 +850,28 @@ class ModelDataSourcesHandler:
                 setattr(self, f"{meta_field_attr_name}_post_read_applied", True)
         else:
             if apply_post_read_func_within_read:
-                logger.warning(f"`apply_post_read_func_within_read` set to True "
-                               f"but using provided parser {parser} so not applied.")
+                logger.warning(
+                    f"`apply_post_read_func_within_read` set to True "
+                    f"but using provided parser {parser} so not applied."
+                )
             data = parser(
                 path=meta_data.path, default_file=meta_field.default, **kwargs
             )
         setattr(self, meta_field.name, data)
-        if apply_post_read_func and meta_data.has_post_read_func and not apply_post_read_func_within_read:
-            data = self._set_meta_data_post_read_attr(meta_attr_name=meta_field_attr_name,
-                                                      meta_data=meta_data,
-                                                      **kwargs)
+        if (
+            apply_post_read_func
+            and meta_data.has_post_read_func
+            and not apply_post_read_func_within_read
+        ):
+            data = self._set_meta_data_post_read_attr(
+                meta_attr_name=meta_field_attr_name, meta_data=meta_data, **kwargs
+            )
             # assert 'post_proc' not in meta_field.name
         return data
 
     def _gen_attr_to_original_name(self, attr_name: str) -> str:
         """Return original `attr` name assuming this pattern: _attr_name__gen_meta_attr."""
-        return attr_name[1:].split('__')[0]
+        return attr_name[1:].split("__")[0]
 
     # def _extract_attr_name_from_param_str(self, param_str: str, self_str="self", strict=False) -> tuple[str, Any]:
     #     """Return attr_name inferred from param_str."""
@@ -862,9 +884,9 @@ class ModelDataSourcesHandler:
         force: bool = False,
         overried_func: Callable | None = None,
         add_as_first_arg_if_not_kwarg: bool = True,
-        **kwargs
+        **kwargs,
     ) -> SupportedAttrDataTypes | None:
-        """Apply post_read_func to meta_field """
+        """Apply post_read_func to meta_field"""
         if force or self._auto_apply_post_read_func:
             meta_data = meta_data or getattr(self, meta_attr_name)
             assert meta_data.has_post_read_func
@@ -873,24 +895,31 @@ class ModelDataSourcesHandler:
             assert hasattr(self, original_attr_name)
             original_value = getattr(self, original_attr_name)
             if force:
-                logger.warning(f"Force apply `_post_read_func` from `meta_attr_name`: {meta_data}")
+                logger.warning(
+                    f"Force apply `_post_read_func` from `meta_attr_name`: {meta_data}"
+                )
             else:
-                logger.info(f"Applyng `_post_read_func` from `meta_attr_name`: {meta_data}")
+                logger.info(
+                    f"Applyng `_post_read_func` from `meta_attr_name`: {meta_data}"
+                )
             if hasattr(self, raw_attr_name):
                 if not force:
-                    raise OverwriteRawMetaError(f"`{raw_attr_name}` alread set in {self}. Set `force` to `True` to override.")
+                    raise OverwriteRawMetaError(
+                        f"`{raw_attr_name}` alread set in {self}. Set `force` to `True` to override."
+                    )
                 else:
                     logger.info(f"Force override of `{raw_attr_name}` in {self}.")
             setattr(self, raw_attr_name, original_value)
             func: Callable = overried_func or meta_data._post_read_func
             if self._extract_post_read_kwargs_if_strs:
-                self._convert_kwarg_str_values_to_attrs(meta_data._post_read_kwargs,
-                                                        original_value,
-                                                        original_attr_name)
+                self._convert_kwarg_str_values_to_attrs(
+                    meta_data._post_read_kwargs, original_value, original_attr_name
+                )
             final_kwargs: dict[str, Any] = meta_data._post_read_kwargs | kwargs
             data: SupportedAttrDataTypes
-            if (add_as_first_arg_if_not_kwarg and
-                    not value_in_dict_vals(original_value, final_kwargs)):
+            if add_as_first_arg_if_not_kwarg and not value_in_dict_vals(
+                original_value, final_kwargs
+            ):
                 data = func(original_value, **final_kwargs)
             else:
                 data = func(**final_kwargs)
@@ -899,15 +928,21 @@ class ModelDataSourcesHandler:
             setattr(self, f"_{original_attr_name}__post_read_kwargs", final_kwargs)
             return data
         else:
-            logger.info("Could not set `_set_meta_data_post_read_field()` for {meta_field}")
+            logger.info(
+                "Could not set `_set_meta_data_post_read_field()` for {meta_field}"
+            )
 
-    def _convert_kwarg_str_values_to_attrs(self, param_kwargs, original_value, original_attr_name: str) -> dict[str, Any]:
+    def _convert_kwarg_str_values_to_attrs(
+        self, param_kwargs, original_value, original_attr_name: str
+    ) -> dict[str, Any]:
         for name, value in param_kwargs.items():
             if isinstance(value, str):
                 if value == original_attr_name:
                     param_kwargs[name] = original_value
                 else:
-                    param_kwargs[name] = get_attr_from_attr_str(self, value, self_str='self', strict=True)
+                    param_kwargs[name] = get_attr_from_attr_str(
+                        self, value, self_str="self", strict=True
+                    )
                     # obj = get_attr_from_attr_str(self, value, self_str='self', strict=True) or obj
                     # if obj is not None:
                     #     assert False

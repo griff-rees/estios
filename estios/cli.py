@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date
-from typing import Final
 
 from typer import Typer, echo, secho
 from typer.colors import GREEN, RED
@@ -24,7 +23,6 @@ from .uk.scenarios import baseline_england_annual_projection
 from .utils import DateConfigType, enforce_end_str, enforce_start_str
 
 app = Typer()
-
 
 
 @app.callback()

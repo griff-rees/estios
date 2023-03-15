@@ -3,8 +3,8 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
-from typing import Any, Callable, Final, Generator, Sequence
 from logging import getLogger
+from typing import Any, Callable, Generator, Sequence
 
 from geopandas import GeoDataFrame
 from numpy import exp
@@ -41,7 +41,7 @@ class Region:
         repr += f"name={self.name}, "
         repr += f"date={self.date}, "
         repr += f"code={self.code}, "
-        
+
         repr += f"geography_type={self.geography_type})"
         return repr
 
@@ -68,7 +68,9 @@ class RegionsManagerMixin:
     meta_data: MetaData | None
     region_name: str | None
 
-    def __init__(self, meta_data: MetaData | None = None, region_name: str | None = None) -> None:
+    def __init__(
+        self, meta_data: MetaData | None = None, region_name: str | None = None
+    ) -> None:
         super().__init__()
         self.meta_data = meta_data
         self.region_name = region_name
@@ -164,7 +166,7 @@ def sum_for_regions_by_attr(
     attr: str,
     set_index_to_column: str | None = None,
     ignore_key_errors: bool = False,
-    strict_set_index_to_column: bool = False
+    strict_set_index_to_column: bool = False,
 ) -> Generator[dict[str, float | Series], None, None]:
     """Sum columns for passed pua_names from df.
 
@@ -184,12 +186,16 @@ def sum_for_regions_by_attr(
                 assert df[set_index_to_column] == df.index
             else:
                 if strict_set_index_to_column:
-                    raise ValueError(f"`set_index_to_column`: '{set_index_to_column}' "
-                                     f"only matches `df.index.name` and "
-                                     f"`strict_set_index_to_column` is '{strict_set_index_to_column}'.")
+                    raise ValueError(
+                        f"`set_index_to_column`: '{set_index_to_column}' "
+                        f"only matches `df.index.name` and "
+                        f"`strict_set_index_to_column` is '{strict_set_index_to_column}'."
+                    )
                 else:
-                    logger.warning(f"`set_index_to_column`: '{set_index_to_column}' "
-                                   "only matches `df.index.name`, assuming correct.")
+                    logger.warning(
+                        f"`set_index_to_column`: '{set_index_to_column}' "
+                        "only matches `df.index.name`, assuming correct."
+                    )
         else:
             df.set_index(set_index_to_column, inplace=True)
     for region in region_names:
@@ -211,7 +217,6 @@ def sum_for_regions_by_attr(
         #             logger.error(f"Raised by {region}: {err}")
         #         else:
         #             raise err
-
 
     # return {
     #     region: df.loc[getattr(regions[region], attr), column_names]

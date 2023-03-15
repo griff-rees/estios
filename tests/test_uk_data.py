@@ -13,6 +13,11 @@ from estios.uk.gdp_projections import (
     OECD_GDP_LONG_TERM_FORCASTS,
     get_uk_gdp_ts_as_series,
 )
+from estios.uk.nomis_contemporary_employment import (
+    gen_date_query,
+    nomis_query,
+    trim_df_for_employment_count,
+)
 from estios.uk.ons_population_projections import (
     FIRST_YEAR,
     LAST_YEAR,
@@ -29,6 +34,12 @@ from estios.uk.ons_uk_population_projections import (
     get_uk_pop_scaled_working_ages_ts,
     get_uk_pop_unscaled_projection,
 )
+from estios.uk.populations import (
+    UK_NATION_NAMES,
+    get_employment_by_region_by_sector,
+    get_nation_employment_by_sector,
+    get_regional_mid_year_populations,
+)
 from estios.uk.regions import (
     TEN_UK_CITY_REGIONS,
     get_all_centre_for_cities_dict,
@@ -37,12 +48,6 @@ from estios.uk.regions import (
     load_centre_for_cities_gis,
 )
 from estios.uk.sector_codes import get_uk_io_codes
-from estios.uk.populations import get_regional_mid_year_populations, get_employment_by_region_by_sector, get_nation_employment_by_sector, UK_NATION_NAMES
-from estios.uk.nomis_contemporary_employment import (
-    nomis_query, NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT, NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE, 
-    trim_df_for_employment_count, gen_date_query
-)
-
 
 YORK_WORK_POP_2038_TO_2043: Final[Series] = Series(
     {
@@ -258,36 +263,22 @@ class TestONSRegionPopulationContemporary:
     """
 
     def test_2017_3_cities_populations(
-        self,
-        three_city_names,
-        correct_three_cities_pop_2017,
-        caplog
+        self, three_city_names, correct_three_cities_pop_2017, caplog
     ) -> None:
         test_3_cities_population: Series = get_regional_mid_year_populations(
-            year=2017,
-            region_names=three_city_names
+            year=2017, region_names=three_city_names
         )
-        assert_series_equal(
-            test_3_cities_population,
-            correct_three_cities_pop_2017
-        )
-        assert 'No ONS data directly available on Aldershot' in caplog.messages
+        assert_series_equal(test_3_cities_population, correct_three_cities_pop_2017)
+        assert "No ONS data directly available on Aldershot" in caplog.messages
 
     def test_2017_all_non_skip_city_populations(
-        self,
-        three_city_names,
-        correct_three_cities_pop_2017,
-        caplog
+        self, three_city_names, correct_three_cities_pop_2017, caplog
     ) -> None:
         test_3_cities_population: Series = get_regional_mid_year_populations(
-            year=2017,
-            region_names=three_city_names
+            year=2017, region_names=three_city_names
         )
-        assert_series_equal(
-            test_3_cities_population,
-            correct_three_cities_pop_2017
-        )
-        assert 'No ONS data directly available on Aldershot' in caplog.messages
+        assert_series_equal(test_3_cities_population, correct_three_cities_pop_2017)
+        assert "No ONS data directly available on Aldershot" in caplog.messages
 
 
 @pytest.mark.remote_data
@@ -381,7 +372,7 @@ def test_uk_io_codes() -> None:
 
 def test_nomis_date_query() -> None:
     query: str = gen_date_query(year=2017, quarter="June")
-    assert query == 'latestMINUS21'
+    assert query == "latestMINUS21"
 
 
 @pytest.mark.remote_data
@@ -396,76 +387,135 @@ class TestNomisRegionalEmployment:
     def test_query_nomis_regional_total_employment(self, tmp_path) -> None:
         """Test querying total regional employment from NOMIS."""
         nomis_2017_employment: DataFrame = nomis_query(2017, download_path=tmp_path)
-        assert (nomis_2017_employment['DATE_NAME'] == 2017).all()
+        assert (nomis_2017_employment["DATE_NAME"] == 2017).all()
         assert len(nomis_2017_employment) == 814
-        assert 'Leeds' in nomis_2017_employment.GEOGRAPHY_NAME.values
+        assert "Leeds" in nomis_2017_employment.GEOGRAPHY_NAME.values
 
-    def test_query_nomis_regional_employment_categories(self, nomis_2017_regional_employment_raw, uk_sector_letter_codes) -> None:
+    def test_query_nomis_regional_employment_categories(
+        self, nomis_2017_regional_employment_raw, uk_sector_letter_codes
+    ) -> None:
         """Test querying regional employment by sector from NOMIS."""
-        assert (nomis_2017_regional_employment_raw['DATE_NAME'] == 2017).all()
-        assert (nomis_2017_regional_employment_raw['INDUSTRY_CODE'].unique() == uk_sector_letter_codes).all()
+        assert (nomis_2017_regional_employment_raw["DATE_NAME"] == 2017).all()
+        assert (
+            nomis_2017_regional_employment_raw["INDUSTRY_CODE"].unique()
+            == uk_sector_letter_codes
+        ).all()
         assert len(nomis_2017_regional_employment_raw) == self.FULL_REGION_ROWS_COUNT
-        assert 'Leeds' in nomis_2017_regional_employment_raw.GEOGRAPHY_NAME.values
-        assert 'Great Britain' in nomis_2017_regional_employment_raw.GEOGRAPHY_NAME.values
+        assert "Leeds" in nomis_2017_regional_employment_raw.GEOGRAPHY_NAME.values
+        assert (
+            "Great Britain" in nomis_2017_regional_employment_raw.GEOGRAPHY_NAME.values
+        )
 
-    def test_filter_employment_to_counts(self, nomis_2017_regional_employment_raw, uk_sector_letter_codes) -> None:
+    def test_filter_employment_to_counts(
+        self, nomis_2017_regional_employment_raw, uk_sector_letter_codes
+    ) -> None:
         """Test querying regional employment by sector and filtering just to `employed` counts from NOMIS."""
-        filtered_df: DataFrame = trim_df_for_employment_count(nomis_2017_regional_employment_raw)
-        assert (filtered_df['DATE_NAME'] == 2017).all()
-        assert (filtered_df['INDUSTRY_CODE'].unique() == uk_sector_letter_codes).all()
-        assert len(filtered_df) == self.FULL_REGION_ROWS_COUNT/4  # this removes 3 extra rows per record
-        assert 'Leeds' in filtered_df.GEOGRAPHY_NAME.values
-        assert 'Great Britain' in filtered_df.GEOGRAPHY_NAME.values
+        filtered_df: DataFrame = trim_df_for_employment_count(
+            nomis_2017_regional_employment_raw
+        )
+        assert (filtered_df["DATE_NAME"] == 2017).all()
+        assert (filtered_df["INDUSTRY_CODE"].unique() == uk_sector_letter_codes).all()
+        assert (
+            len(filtered_df) == self.FULL_REGION_ROWS_COUNT / 4
+        )  # this removes 3 extra rows per record
+        assert "Leeds" in filtered_df.GEOGRAPHY_NAME.values
+        assert "Great Britain" in filtered_df.GEOGRAPHY_NAME.values
 
-    def test_cleaned_2017_employment_counts(self, nomis_2017_regional_employment_filtered, uk_sector_letter_codes) -> None:
+    def test_cleaned_2017_employment_counts(
+        self, nomis_2017_regional_employment_filtered, uk_sector_letter_codes
+    ) -> None:
         """Test querying and filtering regional employment by sector to `employed` counts from NOMIS."""
-        assert (nomis_2017_regional_employment_filtered['DATE_NAME'] == 2017).all()
-        assert (nomis_2017_regional_employment_filtered['INDUSTRY_CODE'].unique() == uk_sector_letter_codes).all()
-        assert len(nomis_2017_regional_employment_filtered) == self.FULL_REGION_ROWS_COUNT/4  # this removes 3 other rows per record
-        assert 'Leeds' in nomis_2017_regional_employment_filtered.GEOGRAPHY_NAME.values
-        assert 'Great Britain' in nomis_2017_regional_employment_filtered.GEOGRAPHY_NAME.values
+        assert (nomis_2017_regional_employment_filtered["DATE_NAME"] == 2017).all()
+        assert (
+            nomis_2017_regional_employment_filtered["INDUSTRY_CODE"].unique()
+            == uk_sector_letter_codes
+        ).all()
+        assert (
+            len(nomis_2017_regional_employment_filtered)
+            == self.FULL_REGION_ROWS_COUNT / 4
+        )  # this removes 3 other rows per record
+        assert "Leeds" in nomis_2017_regional_employment_filtered.GEOGRAPHY_NAME.values
+        assert (
+            "Great Britain"
+            in nomis_2017_regional_employment_filtered.GEOGRAPHY_NAME.values
+        )
 
-    def test_get_employment_by_region_by_sector_belfast_error(self, three_city_names) -> None:
+    def test_get_employment_by_region_by_sector_belfast_error(
+        self, three_city_names
+    ) -> None:
         """Test aggregating employment up to PUM levels raises error for lack of Belfast data."""
         with pytest.raises(KeyError):
             region_employment: DataFrame = get_employment_by_region_by_sector(
-                year=2017, region_names=(*three_city_names, 'Belfast')
+                year=2017, region_names=(*three_city_names, "Belfast")
             )
 
-    def test_get_employment_by_region_by_sector_three_cities(self, three_city_names, correct_liverpool_2017_letter_sector_employment) -> None:
+    def test_get_employment_by_region_by_sector_three_cities(
+        self, three_city_names, correct_liverpool_2017_letter_sector_employment
+    ) -> None:
         """Test aggregating employment up to PUM levels for three cities."""
         region_employment: DataFrame = get_employment_by_region_by_sector(
             year=2017,
             region_names=three_city_names,
         )
-        assert (region_employment.loc['Liverpool'] == correct_liverpool_2017_letter_sector_employment).all()
+        assert (
+            region_employment.loc["Liverpool"]
+            == correct_liverpool_2017_letter_sector_employment
+        ).all()
 
-    def test_get_employment_by_region_by_sector_all_cities(self, correct_liverpool_2017_letter_sector_employment, caplog) -> None:
+    def test_get_employment_by_region_by_sector_all_cities(
+        self, correct_liverpool_2017_letter_sector_employment, caplog
+    ) -> None:
         """Test aggregating employment up to PUM levels for all cities, with `ignore_key_errors`."""
         BELFAST_ERROR_LOG: str = (
             """Raised by Belfast: "None of [Index([\'N09000003\', \'N09000007\'], dtype=\'object\', """
             '''name=\'GEOGRAPHY_CODE\')] are in the [index]"'''
         )
-        region_employment: DataFrame = get_employment_by_region_by_sector(year=2017, ignore_key_errors=True)
-        assert (region_employment.loc['Liverpool'] == correct_liverpool_2017_letter_sector_employment).all()
+        region_employment: DataFrame = get_employment_by_region_by_sector(
+            year=2017, ignore_key_errors=True
+        )
+        assert (
+            region_employment.loc["Liverpool"]
+            == correct_liverpool_2017_letter_sector_employment
+        ).all()
         assert caplog.messages[-3] == BELFAST_ERROR_LOG
 
-    def test_get_quarterly_national_2017(self, caplog, nomis_2017_nation_employment_table, uk_sector_letter_codes) -> None:
+    def test_get_quarterly_national_2017(
+        self, caplog, nomis_2017_nation_employment_table, uk_sector_letter_codes
+    ) -> None:
         """Test National Sector query."""
-        assert (nomis_2017_nation_employment_table['INDUSTRY_CODE'].unique() == uk_sector_letter_codes).all()
+        assert (
+            nomis_2017_nation_employment_table["INDUSTRY_CODE"].unique()
+            == uk_sector_letter_codes
+        ).all()
         assert len(nomis_2017_nation_employment_table) == self.FULL_NATION_ROWS_COUNT
-        assert (UK_NATION_NAMES == nomis_2017_nation_employment_table.GEOGRAPHY_NAME.unique()).all()
-        assert (nomis_2017_nation_employment_table['DATE_NAME'] == 'September 2017').all()
+        assert (
+            UK_NATION_NAMES
+            == nomis_2017_nation_employment_table.GEOGRAPHY_NAME.unique()
+        ).all()
+        assert (
+            nomis_2017_nation_employment_table["DATE_NAME"] == "September 2017"
+        ).all()
 
     def test_get_national_employment_2017(self, uk_sector_letter_codes) -> None:
-        national_2017_sectoral_employment: DataFrame = get_nation_employment_by_sector(year=2017)
+        national_2017_sectoral_employment: DataFrame = get_nation_employment_by_sector(
+            year=2017
+        )
         assert len(national_2017_sectoral_employment) == self.FULL_NATION_ROWS_COUNT
-        assert (national_2017_sectoral_employment['INDUSTRY_CODE'].unique() == uk_sector_letter_codes).all()
+        assert (
+            national_2017_sectoral_employment["INDUSTRY_CODE"].unique()
+            == uk_sector_letter_codes
+        ).all()
         assert set(UK_NATION_NAMES) == set(national_2017_sectoral_employment.index)
-        assert (national_2017_sectoral_employment.columns == ["OBS_VALUE", "INDUSTRY_CODE"]).all()
+        assert (
+            national_2017_sectoral_employment.columns == ["OBS_VALUE", "INDUSTRY_CODE"]
+        ).all()
 
     def test_get_uk_2017(self, uk_sector_letter_codes) -> None:
-        national_2017_sectoral_employment: DataFrame = get_nation_employment_by_sector(year=2017, nation_names='United Kingdom')
-        assert len(national_2017_sectoral_employment) == self.FULL_NATION_ROWS_COUNT/5
-        assert (national_2017_sectoral_employment.index.values == uk_sector_letter_codes).all()
+        national_2017_sectoral_employment: DataFrame = get_nation_employment_by_sector(
+            year=2017, nation_names="United Kingdom"
+        )
+        assert len(national_2017_sectoral_employment) == self.FULL_NATION_ROWS_COUNT / 5
+        assert (
+            national_2017_sectoral_employment.index.values == uk_sector_letter_codes
+        ).all()
         assert national_2017_sectoral_employment.name == "OBS_VALUE"

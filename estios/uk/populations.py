@@ -1,27 +1,32 @@
-from typing import Sequence, Final, Callable
 from copy import deepcopy
 from pathlib import Path
+from typing import Callable, Sequence
 
-from pandas import Series, DataFrame
+from pandas import DataFrame, Series
 
+from ..sources import FilePathType, pandas_from_path_or_package
+from ..utils import SECTOR_10_CODE_DICT, aggregate_rows
+from .nomis_contemporary_employment import (
+    NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
+    NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
+    NOMIS_INDUSTRY_CODE_COLUMN_NAME,
+    NOMIS_METADATA,
+    NOMIS_OBSERVATION_VALUE_COLUMN_NAME,
+    clean_nomis_employment_query,
+    national_employment_query,
+)
+from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
-from ..sources import MetaData, pandas_from_path_or_package, FilePathType
-from ..utils import aggregate_rows, SECTOR_10_CODE_DICT
 # from ..temporal import MonthDay
 from .utils import (
-    THREE_UK_CITY_REGIONS,
-    GenericRegionsManager, get_working_cities_puas_manager, PUASManager, load_contemporary_ons_population,
-    UK_NAME, sum_for_regions_by_la_code, UK_NATION_NAMES
+    UK_NAME,
+    UK_NATION_NAMES,
+    GenericRegionsManager,
+    PUASManager,
+    get_working_cities_puas_manager,
+    load_contemporary_ons_population,
+    sum_for_regions_by_la_code,
 )
-from .ons_population_estimates import ONS_2017_POPULATION_META_DATA # , ONS_2017_ALL_AGES_COLUMN_NAME
-from .nomis_contemporary_employment import (
-    clean_nomis_employment_query,
-    nomis_query, NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT, NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
-    NOMIS_OBSERVATION_VALUE_COLUMN_NAME, NOMIS_OBSERVATION_VALUE_COLUMN_NAME, NOMIS_INDUSTRY_CODE_COLUMN_NAME,
-    national_employment_query, NOMIS_GEOGRAPHY_NAME_COLUMN_NAME, NOMIS_METADATA,
-)
-
-from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 
 # def get_contemporary_regional_full_population_history(
 #     # years: Sequence[int] | None = TWO_YEARS,
@@ -31,7 +36,7 @@ from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 #     # month_day: MonthDay | None = None,
 #     # working_age_columns: Sequence[int] = WORKING_AGE_LIST,
 #     all_ages_column: str = ONS_2017_ALL_AGES_COLUMN_NAME,
-# 
+#
 #     ):
 #     if isinstance(ons_population_df, MetaData):
 #         ons_population_df = ons_population_df.read()
@@ -50,14 +55,13 @@ from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 #     )
 
 
-
 def get_regional_mid_year_populations(
     year: int = 2017,
     region_names: Sequence[str] | str | None = None,
     ons_population_df: DataFrame | None = None,
     regions_manager: PUASManager | GenericRegionsManager | None = None,
-    column_prefix: str = 'Mid-',
-    set_index_to_column: str | None = 'Code',
+    column_prefix: str = "Mid-",
+    set_index_to_column: str | None = "Code",
 ) -> float | Sequence | DataFrame:
     if not ons_population_df:
         ons_population_df = load_contemporary_ons_population()
@@ -71,11 +75,12 @@ def get_regional_mid_year_populations(
         df=ons_population_df,
         regions_manager=regions_manager,
         year=year,
-        region_names=region_names, 
+        region_names=region_names,
         column_prefix=column_prefix,
-        set_index_to_column=set_index_to_column
-
+        set_index_to_column=set_index_to_column,
     )
+
+
 # Series(
 #         sum_for_regions_by_la_code(
 #             df=ons_population_df,
@@ -86,13 +91,14 @@ def get_regional_mid_year_populations(
 #         )
 #     )
 
+
 def series_mid_year_population(
     df: DataFrame,
     regions_manager: PUASManager,
     year: int = 2017,
     region_names: Sequence[str] | str | None = None,
-    set_index_to_column: str | None = 'Code',
-    column_prefix: str = 'Mid-',
+    set_index_to_column: str | None = "Code",
+    column_prefix: str = "Mid-",
 ) -> Series:
     return Series(
         sum_for_regions_by_la_code(
@@ -103,8 +109,6 @@ def series_mid_year_population(
             set_index_to_column=set_index_to_column,
         )
     )
-
-
 
     # for region in regions_manager:
     #     code: str = regions_manager[region].code
@@ -139,7 +143,9 @@ def get_employment_by_region_by_sector(
     for sector_code in sector_codes:
         sectors_dict[sector_code] = Series(
             sum_for_regions_by_la_code(
-                df=nomis_employment_df[nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME] == sector_code],
+                df=nomis_employment_df[
+                    nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME] == sector_code
+                ],
                 region_names=region_names,
                 column_names=[NOMIS_OBSERVATION_VALUE_COLUMN_NAME],
                 regions=regions_manager,
@@ -155,7 +161,9 @@ def get_nation_employment_by_sector(
     quarter: str = "June",  # Mid year easest for comparison
     nation_names: Sequence[str] | str | None = UK_NATION_NAMES,
     # sector_codes: Sequence[str] = None,
-    column_names: Sequence[str] | str | None = [
+    column_names: Sequence[str]
+    | str
+    | None = [
         NOMIS_OBSERVATION_VALUE_COLUMN_NAME,
         NOMIS_INDUSTRY_CODE_COLUMN_NAME,
     ],
@@ -163,7 +171,7 @@ def get_nation_employment_by_sector(
     set_index_to_column: str | None = NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
 ) -> float | Sequence | DataFrame | Series:
     if nomis_employment_df is None:
-        nomis_employment_df = national_employment_query(year=year, quarter=quarter)  
+        nomis_employment_df = national_employment_query(year=year, quarter=quarter)
     # if not sector_codes:
     #     sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
     assert isinstance(nomis_employment_df, DataFrame)
@@ -171,7 +179,9 @@ def get_nation_employment_by_sector(
         nomis_employment_df.set_index(set_index_to_column, inplace=True)
     if len(nation_names) == 1 or isinstance(nation_names, str):
         nomis_employment_df = nomis_employment_df.loc[nation_names, column_names]
-        return nomis_employment_df.set_index(NOMIS_INDUSTRY_CODE_COLUMN_NAME)[NOMIS_OBSERVATION_VALUE_COLUMN_NAME]
+        return nomis_employment_df.set_index(NOMIS_INDUSTRY_CODE_COLUMN_NAME)[
+            NOMIS_OBSERVATION_VALUE_COLUMN_NAME
+        ]
     else:
         return nomis_employment_df.loc[nation_names, column_names]
 
@@ -180,12 +190,13 @@ def meta_data_reader_wrapper(
     path: FilePathType,
     local_path: FilePathType,
     data_filter_func: Callable,
-    df_kwarg: str = 'nomis_employment_df',
+    df_kwarg: str = "nomis_employment_df",
     **kwargs,
 ) -> DataFrame | Series:
     loaded_df = pandas_from_path_or_package(path, local_path)
     kwargs[df_kwarg] = loaded_df
     return data_filter_func(**kwargs)
+
 
 # def national_employment_by_sector_meta_data_wrapper(
 #     path: FilePathType,
@@ -195,11 +206,11 @@ def meta_data_reader_wrapper(
 #     nomis_employment_df = pandas_from_path_or_package(path, local_path)
 #     return get_nation_employment_by_sector(nomis_employment_df=nomis_employment_df,
 #                                            **kwargs)
-# 
+#
 
 
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA = deepcopy(NOMIS_METADATA)
-NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.name = 'NOMIS UK Annual National Employment'
+NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.name = "NOMIS UK Annual National Employment"
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.year = 2017
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.auto_download = True
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._package_data = True
@@ -208,17 +219,18 @@ NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._api_func = national_employment_query
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._api_kwargs = dict(year=2017)
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._reader_func = meta_data_reader_wrapper
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._reader_kwargs = dict(
-    data_filter_func=get_nation_employment_by_sector,
-    nation_names=UK_NAME
+    data_filter_func=get_nation_employment_by_sector, nation_names=UK_NAME
 )
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._post_read_func = aggregate_rows
-NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._post_read_kwargs = dict(sector_dict=SECTOR_10_CODE_DICT)
-NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.path = 'nomis_national_employment.csv'
+NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._post_read_kwargs = dict(
+    sector_dict=SECTOR_10_CODE_DICT
+)
+NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA.path = "nomis_national_employment.csv"
 
 # NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA._package_data = True
 
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA = deepcopy(NOMIS_METADATA)
-NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.name = 'NOMIS UK Annual Regional Employment'
+NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.name = "NOMIS UK Annual Regional Employment"
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.year = 2017
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.auto_download = True
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._package_data = True
@@ -229,26 +241,27 @@ NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._reader_func = meta_data_reader_wrapper
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._reader_kwargs = dict(
     data_filter_func=get_employment_by_region_by_sector,
     ignore_key_errors=True,
-    region_names = 'self.region_names',
+    region_names="self.region_names",
 )
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._post_read_func = aggregate_rows
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._post_read_kwargs = dict(
     sector_dict=SECTOR_10_CODE_DICT,
 )
-NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.path = 'nomis_regional_employment.csv'
+NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.path = "nomis_regional_employment.csv"
 # NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._package_data = True
- 
+
 #             if not self.raw_regional_employment:
 #                 self.raw_regional_employment = get_employment_by_region_by_sector(year=self.year,
 
 
-
 ONS_MID_YEAR_POPULATIONS_2017_METADATA = deepcopy(ONS_CONTEMPORARY_POPULATION_META_DATA)
-ONS_MID_YEAR_POPULATIONS_2017_METADATA.name = "UK ONS 2017 Mid-Year Population Estimates"
+ONS_MID_YEAR_POPULATIONS_2017_METADATA.name = (
+    "UK ONS 2017 Mid-Year Population Estimates"
+)
 ONS_MID_YEAR_POPULATIONS_2017_METADATA._post_read_func = series_mid_year_population
 ONS_MID_YEAR_POPULATIONS_2017_METADATA._post_read_kwargs = dict(
-    regions_manager = get_working_cities_puas_manager(),
-    region_names = 'self.region_names',
+    regions_manager=get_working_cities_puas_manager(),
+    region_names="self.region_names",
 )
 ONS_MID_YEAR_POPULATIONS_2017_METADATA._package_data = True
 # ONS_MID_YEAR_POPULATIONS_2017_METADATA.set_path = 'nomis_2017_mid_year_populations.csv'

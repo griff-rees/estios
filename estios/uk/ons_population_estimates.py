@@ -4,8 +4,6 @@
 from datetime import date
 from typing import Final
 
-from pandas import Series
-
 from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
 
 FIRST_YEAR: Final[int] = 2001

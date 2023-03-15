@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from logging import DEBUG
 from os import PathLike
 from pathlib import Path
-from typing import Iterable, Final
+from typing import Final, Iterable
 
 import pytest
 from numpy import ndarray, savetxt
@@ -13,8 +13,8 @@ from pandas import DataFrame
 from estios.sources import (
     AutoDownloadPermissionError,
     FilePathType,
-    MetaFileOrDataFrameType,
     MetaData,
+    MetaFileOrDataFrameType,
     ModelDataSourcesHandler,
     download_and_save_file,
     extract_file_name_from_url,
@@ -24,11 +24,8 @@ from estios.uk.ons_population_projections import (
     ONS_ENGLAND_POPULATION_PROJECTIONS_FILE_NAME,
     ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL,
 )
-from estios.uk.ons_uk_population_projections import (
-    ONS_UK_POPULATION_META_DATA,
-)
+from estios.uk.ons_uk_population_projections import ONS_UK_POPULATION_META_DATA
 from estios.utils import field_names, filter_fields_by_type
-from estios.uk.utils import sum_for_regions_by_la_code, get_working_cities_puas_manager
 
 
 @pytest.mark.remote_data
@@ -179,16 +176,21 @@ def meta_source_handler(
 def filter_to_all_ages(df, all_ages_label="All ages", years=Iterable[str]) -> DataFrame:
     return df.loc[all_ages_label, years]
 
-EXAMPLE_PROJECTIONS_YEAR_FILTER: Final[list[str]] = ['2030', '2040'] 
 
-ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018: MetaData = deepcopy(ONS_UK_POPULATION_META_DATA)
-ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018.name = "UK ONS Population projection by Local Authority"
+EXAMPLE_PROJECTIONS_YEAR_FILTER: Final[list[str]] = ["2030", "2040"]
+
+ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018: MetaData = deepcopy(
+    ONS_UK_POPULATION_META_DATA
+)
+ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018.name = (
+    "UK ONS Population projection by Local Authority"
+)
 ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018._post_read_func = filter_to_all_ages
 ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018._post_read_kwargs = dict(
     years=EXAMPLE_PROJECTIONS_YEAR_FILTER,
-    df='meta_data_field',
+    df="meta_data_field",
 )
-    
+
 
 class TestMetaSourceManager:
 
@@ -220,7 +222,9 @@ class TestMetaSourceManager:
             "meta_data_field",
             "meta_data_field_post_proc",
         )
-        assert field_names(meta_source_handler._meta_file_or_dataframe_fields_strict) == (
+        assert field_names(
+            meta_source_handler._meta_file_or_dataframe_fields_strict
+        ) == (
             "any_source_field",
             "meta_data_field",
         )
@@ -233,7 +237,12 @@ class TestMetaSourceManager:
             "meta_data_field_post_proc",
         )
         assert field_names(meta_source_handler._processed_meta_data_attrs) == ()
-        assert field_names(meta_source_handler._processed_meta_data_with_post_read_func_attrs) == ()
+        assert (
+            field_names(
+                meta_source_handler._processed_meta_data_with_post_read_func_attrs
+            )
+            == ()
+        )
         assert field_names(filter_fields_by_type(meta_source_handler, DataFrame)) == (
             "data_frame_field",
         )
@@ -275,12 +284,12 @@ class TestMetaSourceManager:
         meta_source_handler._extract_post_read_kwargs_if_strs = True
         meta_source_handler._set_all_meta_file_or_data_fields()
         assert repr(
-            meta_source_handler._meta_data_field__meta_data ==
-            "MetaData(name='UK ONS Population Projection', region='UK', year=2018)"
+            meta_source_handler._meta_data_field__meta_data
+            == "MetaData(name='UK ONS Population Projection', region='UK', year=2018)"
         )
         assert repr(
-            meta_source_handler._meta_data_field_post_proc__meta_data ==
-            "MetaData(name='UK ONS Population projection by Local Authority', region='UK', year=2018)"
+            meta_source_handler._meta_data_field_post_proc__meta_data
+            == "MetaData(name='UK ONS Population projection by Local Authority', region='UK', year=2018)"
         )
         assert (
             meta_source_handler._meta_data_field__path
@@ -293,7 +302,11 @@ class TestMetaSourceManager:
         assert len(caplog.messages) == 11
         assert caplog.messages[0] == self.META_DATA_FIELD_LOG
         meta_source_handler._processed_meta_data_post_read_func_attr_names == ()
-        assert (meta_source_handler.meta_data_field_post_proc.columns ==
-                EXAMPLE_PROJECTIONS_YEAR_FILTER).all()
-        assert (meta_source_handler._meta_data_field_post_proc__raw.columns ==
-                meta_source_handler.meta_data_field.columns).all()
+        assert (
+            meta_source_handler.meta_data_field_post_proc.columns
+            == EXAMPLE_PROJECTIONS_YEAR_FILTER
+        ).all()
+        assert (
+            meta_source_handler._meta_data_field_post_proc__raw.columns
+            == meta_source_handler.meta_data_field.columns
+        ).all()

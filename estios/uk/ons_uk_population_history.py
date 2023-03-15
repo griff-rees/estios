@@ -62,7 +62,7 @@ ONS_UK_POPULATION_HISTORY_META_DATA: Final[MetaData] = MetaData(
 )
 
 
-def get_uk_population_history(year: int = 2017, region_column: str = 'GBPOP'):
+def get_uk_population_history(year: int = 2017, region_column: str = "GBPOP"):
     ONS_UK_POPULATION_HISTORY_META_DATA.save_local()
     df: DataFrame = ONS_UK_POPULATION_HISTORY_META_DATA.read()
     return df.loc[year, region_column]
