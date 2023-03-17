@@ -58,6 +58,7 @@ ONS_IO_TABLE_2017_METADATA = MetaData(
     authors="Office of National Statistics",
     cite_as="Office for National Statistics – UK input-output analytical tables - product by product, UK: July to September 2017",
     auto_download=True,
+    # auto_download=False,
     license=OpenGovernmentLicense,
     _package_data=True,
     # _save_func=download_and_extract_zip_file,  # type: ignore

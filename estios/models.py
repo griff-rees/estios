@@ -49,6 +49,7 @@ from .calc import (
 )
 from .input_output_tables import (
     FINAL_DEMAND_COLUMN_NAMES,
+    IMPORTS_ROW_NAME,
     TOTAL_PRODUCTION_ROW_NAME,
     TOTAL_SALES_ROW_NAME,
     InputOutputCPATable,
@@ -60,10 +61,7 @@ from .sources import (
     pandas_from_path_or_package,
 )
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
-from .uk.ons_employment_2017 import load_region_employment_excel
-from .uk.regions import load_and_join_centre_for_cities_data
 
-# =======
 # from .uk.employment import (
 #     CITY_SECTOR_REGION_PREFIX,
 #     EMPLOYMENT_QUARTER_DEC_2017,
@@ -77,6 +75,10 @@ from .uk.regions import load_and_join_centre_for_cities_data
 #     load_and_join_centre_for_cities_data,
 # )
 # >>>>>>> Stashed changes
+from .uk.ons_employment_2017 import load_region_employment_excel
+
+# from .uk.regions import UK_CITY_REGIONS, load_and_join_centre_for_cities_data
+from .uk.regions import load_and_join_centre_for_cities_data
 from .utils import (
     SECTOR_10_CODE_DICT,
     AggregatedSectorDictType,
@@ -116,6 +118,8 @@ NamesListType = Union[list[str], Collection[str]]
 
 ColumnOrRowNames = str | Sequence[str]
 # OptionalColumnOrRowNames = ColumnOrRowNames | None
+
+NamesListType = Union[list[str], Collection[str]]
 
 
 @dataclass(kw_only=True)
@@ -160,6 +164,16 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     distance_unit_factor: float = DISTANCE_UNIT_DIVIDE
     # imports_column_name: str = IMPORTS_COLUMN_NAME
     # imports_column_names: str = IMPORTS_ROW_NAME
+    final_demand_column_names: list[str] = field(
+        default_factory=lambda: FINAL_DEMAND_COLUMN_NAMES
+    )
+    export_column_names: list[str] = field(
+        # default_factory=lambda: UK_EXPORT_COLUMN_NAMES
+        default_factory=list
+    )
+    # imports_column_name: str = IMPORTS_COLUMN_NAME
+    total_production_index_name: str = TOTAL_PRODUCTION_ROW_NAME
+    imports_column_name: str = IMPORTS_ROW_NAME
     # total_production_column_name: str = TOTAL_PRODUCTION_ROW_NAME
     raw_national_employment: Optional[DataFrame | Series] = None
     national_employment: Optional[Series] = None
@@ -181,6 +195,17 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     national_net_subsidies_row_name: ColumnOrRowNames | None = None
     national_gov_investment_column_names: ColumnOrRowNames | None = None
     # # >>>>>>> Stashed changes
+    # ===
+    # national_column_name: str = ""  # To be replaced in future
+    # io_table_scale: float = 1.0
+    # national_population: Optional[float] = None
+    # national_working_population: Optional[float] = None
+    # national_gva_row_name: str = GROSS_VALUE_ADDED_ROW_NAME
+    # national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
+    # national_gov_investment_column_names: tuple[
+    #     str, ...
+    # ] = ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
+    # >>> origin/uk-model-refactor
     regional_populations: Optional[Series] = None
     regional_working_populations: Optional[Series] = None
     regional_employment: Optional[DataFrame] = None
@@ -199,6 +224,11 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
             # for attr_name, _ in filter_attrs_by_substring(self, "_raw_io_table"):
             #     logger.debug(f"Removing {attr_name} from {self}.")
             #     delattr(self, attr_name)
+            #     f"{type(self.raw_io_table)}. Will try instantiating a {self._io_table_cls} ."
+            # )
+            # for attr_name, _ in filter_attrs_by_substring(self, "_raw_io_table"):
+            #    logger.debug(f"Removing {attr_name} from {self}.")
+            #    delattr(self, attr_name)
             processed_io_table = self._io_table_cls(
                 raw_io_table=self.raw_io_table,
                 sector_names=self.sector_names,
@@ -223,6 +253,8 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
         repr: str = f"{self.__class__.__name__}("
         repr += f"nation='{self.national_column_name}', "
         repr += f"date='{self.date}', "
+        # repr += f"nation={self.national_column_name}, "
+        # repr += f"date={self.date}, "
         repr += f"sectors={self.sectors_count}, "
         repr += f"regions={self.regions_count})"
         return repr
@@ -330,6 +362,12 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     #     str, ...
     # ] = ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
     # >>>>>>> Stashed changes
+    region_attributes_path: PathLike | None = None  # CENTRE_FOR_CITIES_CSV_FILE_NAME
+    region_spatial_path: PathLike | None = None  # CITIES_TOWNS_GEOJSON_FILE_NAME
+    region_type_prefix: str | None = None  # CITY_SECTOR_REGION_PREFIX
+    total_sales_row_name: str = TOTAL_SALES_ROW_NAME
+    imports_column_name: str = IMPORTS_ROW_NAME
+    national_column_name: str = "UK"  # To be replaced in future
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     # _employment_by_sector_and_region: Optional[DataFrame] = None
     _raw_region_data: Optional[DataFrame] = None
@@ -349,6 +387,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                 region_path=self.region_attributes_path,
                 spatial_path=self.region_spatial_path,
             )
+        # self._set_national_employment()
         # self._set_national_employment()
         if not self.date:
             self.date = self.employment_date
@@ -394,6 +433,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     #         f"{len(self.sectors)} sectors, {len(self.regions)} regions"
     #     )
     # >>>>>>> Stashed changes
+    # super().__post_init__()
 
     @cached_property
     def region_data(self) -> GeoDataFrame:
@@ -508,7 +548,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         # elif self._national_employment is None:
         #     raise TypeError("'_national_employment' attribute cannot be None.")
 
-    @cached_property
+    @property
     def technical_coefficients(self) -> DataFrame:
         """Return the technical coefficients derived from `self.io_table`.
 
@@ -524,7 +564,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             self.io_table, self.final_demand_column_names, self.sectors
         )
 
-    @cached_property
+    @property
     def io_table(self) -> DataFrame:
         """Return national Input-Ouput table, aggregated by self.sector_aggregation.
 
@@ -535,7 +575,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         """
         if not isinstance(self.raw_io_table, InputOutputTable):
             logger.warning(
-                f"{self} `raw_io_table` attribute needs conversion from type {type(self.raw_io_table)}. Will try running `self._get_meta_file_or_data_fields()`."
+                f"{self} `raw_io_table` attribute needs conversion from type "
+                f"{type(self.raw_io_table)} to {type(self._io_table_cls)}. "
+                f"Will try running `self._get_meta_file_or_data_fields()`."
             )
             self._process_raw_io_table()
             # self._get_meta_file_or_data_field('raw_io_table', parser=InputOutputTable)
@@ -606,6 +648,20 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         #     return Series(self.io_table.loc[self.import_row_names, self.sector_names])
 
     @property
+    #
+    # @cached_property
+    # def X_i_m(self) -> DataFrame:
+    #     """Return the total production of sector $m$ in region $i$ and cache results.
+
+    #     $X_i^m = X_*^m * Q_i^m/Q_*^m$
+    #     """
+    #     return X_i_m_scaled(
+    #         total_production=self.io_table[self.sectors].loc[self.total_sales_row_name],
+    #         employment=self.employment_table,
+    #         national_employment=self.national_employment,
+    #     ).astype("float64")
+
+    # @cached_property
     def M_i_m(self) -> DataFrame:
         """Return the imports of sector $m$ in region $i$ and cache results.
 
@@ -623,6 +679,12 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             national_population=self.national_population,
             sector_row_names=self.sector_names,
         )
+
+    # return M_i_m_scaled(
+    #     imports=self.io_table[self.sectors].loc[self.imports_column_name],
+    #     employment=self.employment_table,
+    #     national_employment=self.national_employment,
+    # ).astype("float64")
 
     # >>>>>>> Stashed changes
     @property
@@ -766,6 +828,21 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             national_employment=self.national_employment,
         )
 
+    # @cached_property
+    # def X_i_m(self) -> DataFrame:
+    #     """Return the total production of sector $m$ in region $i$ and cache results.
+
+    #     $X_i^m = X_*^m * Q_i^m/Q_*^m$
+
+    #     Todo:
+    #         * At least check the "Total Sale" column specified.
+    #     """
+    #     return X_i_m_scaled(
+    #         total_production=self.io_table[self.sectors].loc["Total Sales"],
+    #         employment=self.employment_table,
+    #         national_employment=self.national_employment,
+    #     ).astype("float64")
+
     # >>>>>>> Stashed changes
 
     @property
@@ -779,11 +856,11 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
             X_i_m=self.X_i_m, technical_coefficients=self.technical_coefficients
         )
 
-    @cached_property
+    @property
     def _y_ij_m(self) -> DataFrame:
         return self.spatial_interaction.y_ij_m
 
-    @cached_property
+    @property
     def spatial_interaction(self) -> SpatialInteractionBaseClass:
         return self._spatial_model_cls(
             self.distances, self.employment_table, self.national_column_name
@@ -906,6 +983,7 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
             repr += f"start={self.years[0]}, end={self.years[-1]}, "
         else:
             repr += f"start='{self.dates[0]}', end='{self.dates[-1]}', "
+            # repr += f"start={self.dates[0]}, end={self.dates[-1]}, "
         repr += f"sectors={self.sectors_count}, "
         repr += f"regions={self.regions_count})"
         return repr

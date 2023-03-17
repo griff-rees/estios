@@ -8,6 +8,8 @@ from typing import Callable, Final, Iterable, Optional, Sequence
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
+# from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
+# from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
 from .uk.regions import UK_EPSG_GEO_CODE
 from .utils import (
     CITY_COLUMN,
@@ -62,7 +64,6 @@ def technical_coefficients(
     final_output: Series | DataFrame = io_table.loc[sectors, final_output_column]
     if not isinstance(final_output, Series):
         final_output = final_output.sum(axis="columns")
-    # return (io_matrix / final_output).astype("float64")
     return io_matrix / final_output
 
 
@@ -77,6 +78,36 @@ def X_i_m_scaled(
     return total_production * employment / national_employment
 
 
+# def M_i_m_scaled(
+#     imports: Series, employment: DataFrame, national_employment: Series
+# ) -> DataFrame:
+#     """Estimate imports of sector $m$ in region $i$.
+#
+#     $M_i^m = M_*^m * Q_i^m/Q_*^m$
+#     """
+#     return imports * employment / national_employment
+#
+#
+# def F_i_m_scaled(
+#     final_demand: Series, employment: DataFrame, national_employment: Series
+# ) -> DataFrame:
+#     """Estimate the final demand of sector $m$ in region $i$.
+#
+#     $F_i^m = F_*^m * Q_i^m/Q_*^m$
+#     """
+#     return final_demand * employment / national_employment
+#
+#
+# def E_i_m_scaled(
+#     exports: Series, employment: DataFrame, national_employment: Series
+# ) -> DataFrame:
+#     """Estimate exports of sector $m$ in region $i$.
+#
+#     $E_i^m = E_*^m * Q_i^m/Q_*^m$
+#     """
+#     return exports * employment / national_employment
+#
+#
 class InputOutputBaseException(Exception):
     ...
 
@@ -351,8 +382,8 @@ def calc_region_distances(
     """
     if not other_regions:
         other_regions = regions
-    if not national_column_name:
-        national_column_name = "UK"
+    # if not national_column_name:
+    #     national_column_name = "UK"
     projected_regions_df = regions_df.to_crs(distance_CRS)
     region_distances: GeoDataFrame = GeoDataFrame(
         index=generate_ij_index(

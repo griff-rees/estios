@@ -34,9 +34,13 @@ from pandas import DataFrame, Series, read_csv, read_excel
 from .utils import (
     filter_fields_by_type,
     filter_fields_by_types,
-    get_attr_from_attr_str,
+    get_attr_from_str,
     value_in_dict_vals,
 )
+
+# =======
+# from .utils import filter_fields_by_type
+# >>>>>>> origin/uk-model-refactor
 
 logger = getLogger(__name__)
 
@@ -344,6 +348,7 @@ class MetaData:
     doi: Optional[str] = None
     path: Optional[FilePathType] = None
     license: Optional[str | DataLicense] = field(default_factory=lambda: CopyrightTRIPS)
+    # license: Optional[str | DataLicense] = CopyrightTRIPS
     date_time_obtained: Optional[datetime] = None
     auto_download: Optional[bool] = None
     dates: Optional[list[date] | list[int]] = None
@@ -362,6 +367,8 @@ class MetaData:
     _save_local_from_pandas_func: Callable[
         [DataFrame | Series, FilePathType, ...], DataFrame | Series
     ] = save_pandas_to_csv
+    # _save_func: Optional[DataSaveReadCallable] = download_and_save_file  # type: ignore[assignment]
+    # _save_func_override: bool = False
     _save_kwargs: dict[str, Any] = field(default_factory=dict)
     _package_data: bool = False
     _package_path: Optional[FilePathType] = Path("uk/data")
@@ -421,6 +428,7 @@ class MetaData:
         return hasattr(self, "_post_read_func") and callable(self._post_read_func)
 
     def read(self, apply_post_read_func: bool = True) -> Optional[Any]:
+        # def read(self) -> Optional[Any]:
         """Read file if self._reader_func defined, else None."""
         if not self.has_read_func:
             logger.error(f"No reader set for {self}")
@@ -434,6 +442,11 @@ class MetaData:
                 assert self._reader_func
                 assert self.absolute_save_path
                 if self.has_post_read_func and apply_post_read_func:
+                    # if self.is_local:
+                    #     assert self._reader_func
+                    #     assert self.absolute_save_path
+                    #     if self._post_read_func:
+                    # in/uk-model-refactor
                     return self._post_read_func(
                         self._reader_func(
                             self.absolute_save_path, self.path, **self._reader_kwargs
@@ -535,6 +548,17 @@ class MetaData:
                 self._save_func(
                     self.url, local_path=self.absolute_save_path, **self._save_kwargs
                 )
+        # try:
+        #     assert self.url
+        # except AssertionError:
+        #     raise AssertionError(f"{self.url} required to to download and save {self}")
+        # logger.info(f"Saving {self.url} to {self.path} with {self._save_func}")
+        # if self._save_func_override:
+        #     self._save_func(**self._save_kwargs)
+        # else:
+        #     self._save_func(
+        #         self.url, local_path=self.absolute_save_path, **self._save_kwargs
+        #     )
         self.date_time_obtained = datetime.now()
 
     @property
@@ -732,6 +756,10 @@ class ModelDataSourcesHandler:
         raise ValueError(f"No field {field_name} found in {self}.")
 
     @property
+    def _file_or_path_data_fields(self) -> tuple[Field, ...]:
+        return self._filter_fields_by_type(field_type=FilePathType)
+
+    @property
     def _meta_file_or_dataframe_fields_strict(self) -> tuple[Field, ...]:
         return self._filter_fields_by_type(field_type=MetaFileOrDataFrameType)
 
@@ -774,9 +802,15 @@ class ModelDataSourcesHandler:
     def _processed_meta_data_post_read_func_attr_names(self) -> tuple[Field, ...]:
         return tuple(attr for attr in dir(self) if attr.endswith("_post_read_func"))
 
-    @property
-    def _file_or_path_data_fields(self) -> tuple[Field, ...]:
-        return self._filter_fields_by_type(field_type=FilePathType)
+    # @property
+    # def _file_or_path_data_fields(self) -> tuple[Field, ...]:
+    # ===
+    # def _meta_file_or_dataframe_fields(self) -> tuple[Field, ...]:
+    #     return self._filter_fields_by_type(field_type=MetaFileOrDataFrameType)
+
+    # @property
+    # def _meta_data_fields(self) -> tuple[Field, ...]:
+    #     return self._filter_fields_by_type(field_type=MetaData)
 
     def _set_all_meta_data_fields(
         self,
@@ -789,6 +823,7 @@ class ModelDataSourcesHandler:
     ) -> None:
         if not parser or force_default_parser:
             parser = self._default_data_source_parser
+        # HEAD
         for meta_field in self._meta_data_fields:
             if not isinstance(getattr(self, meta_field.name), MetaData):
                 if strict:
@@ -798,10 +833,12 @@ class ModelDataSourcesHandler:
                         f"{meta_field.name} is not a `MetaData` instance, skipping."
                     )
                     continue
-            apply_po
+            # apply_po
             self._set_meta_field(
                 meta_field, parser, force_default_parser, apply_post_read_func, **kwargs
             )
+        # for meta_field in self._meta_data_attrs:
+        #     self._set_meta_field(meta_field, parser, force_default_parser, **kwargs)
 
     def _set_meta_field(
         self,
@@ -821,6 +858,13 @@ class ModelDataSourcesHandler:
             parser = self._default_data_source_parser
         meta_data: MetaData = getattr(self, meta_field.name)
         assert isinstance(meta_data, MetaData)
+        #    **kwargs,
+        # ) -> SupportedAttrDataTypes:
+        #    logger.debug(f"Processing {meta_field.name} data file for: {self}")
+        #    if not parser or force_default_parser:
+        #        parser = self._default_data_source_parser
+        #    meta_data: MetaData = getattr(self, meta_field.name)
+        # >>> origin/uk-model-refactor
         if hasattr(meta_data, "url"):
             if not meta_data.auto_download and not meta_data.is_local:
                 raise AutoDownloadPermissionError(
@@ -836,9 +880,9 @@ class ModelDataSourcesHandler:
         if self._extract_read_kwargs_if_strs and hasattr(meta_data, "_reader_kwargs"):
             for kwarg, value in meta_data._reader_kwargs.items():
                 if isinstance(value, str):
-                    # new_val = get_attr_from_attr_str(self, value)
+                    # new_val = get_attr_from_str(self, value)
                     # meta_data._reader_kwargs[kwarg] = new_val
-                    new_val = get_attr_from_attr_str(self, value, self_str="self")
+                    new_val = get_attr_from_str(self, value, self_str="self")
                     meta_data._reader_kwargs[kwarg] = new_val
         if meta_data.has_read_func:
             apply_post_read_func_within_read = (
@@ -854,6 +898,15 @@ class ModelDataSourcesHandler:
                     f"`apply_post_read_func_within_read` set to True "
                     f"but using provided parser {parser} so not applied."
                 )
+            # setattr(self, f"_{meta_field.name}_meta_data", meta_data)
+            # assert hasattr(meta_data, "path")
+            # setattr(self, f"_{meta_field.name}_path", meta_data.path)
+            # if hasattr(meta_data, "url"):
+            #     setattr(self, f"_{meta_field.name}_url", meta_data.url)
+            # data: SupportedAttrDataTypes
+            # if meta_data.has_read_func:
+            #     data = meta_data.read()
+            # else:
             data = parser(
                 path=meta_data.path, default_file=meta_field.default, **kwargs
             )
@@ -940,10 +993,10 @@ class ModelDataSourcesHandler:
                 if value == original_attr_name:
                     param_kwargs[name] = original_value
                 else:
-                    param_kwargs[name] = get_attr_from_attr_str(
+                    param_kwargs[name] = get_attr_from_str(
                         self, value, self_str="self", strict=True
                     )
-                    # obj = get_attr_from_attr_str(self, value, self_str='self', strict=True) or obj
+                    # obj = get_attr_from_str(self, value, self_str='self', strict=True) or obj
                     # if obj is not None:
                     #     assert False
                     #     param_kwargs[name] = obj
@@ -953,6 +1006,8 @@ class ModelDataSourcesHandler:
         """Set all `MetaData` `attrs` with `__post_read_func`."""
         for post_read_attr in self._processed_meta_data_with_post_read_func_attrs:
             self._set_meta_data_post_read_attr(post_read_attr, **kwargs)
+
+        # return data
 
     def _set_file_or_path_field(
         self,
@@ -980,7 +1035,9 @@ class ModelDataSourcesHandler:
     ) -> None:
         if not parser:
             parser = self._default_data_source_parser
+        # < HEAD
         for file_or_path_field in self._file_or_path_data_fields:
+            # for file_or_path_field in self._file_or_path_data_attrs:
             _ = self._set_file_or_path_field(
                 file_or_path_field, parser, force_default_parser, **kwargs
             )
@@ -1020,7 +1077,9 @@ class ModelDataSourcesHandler:
     ) -> None:
         if not parser:
             parser = self._default_data_source_parser
+        # < HEAD
         for meta_file_or_dataframe_field in self._meta_file_or_dataframe_fields:
+            # for meta_file_or_dataframe_field in self._meta_file_or_dataframe_attrs:
             _: SupportedAttrDataTypes = self._set_meta_file_or_data_field(
                 meta_file_or_dataframe_field, parser, force_default_parser, **kwargs
             )

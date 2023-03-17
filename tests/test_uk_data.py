@@ -280,6 +280,15 @@ class TestONSRegionPopulationContemporary:
         assert_series_equal(test_3_cities_population, correct_three_cities_pop_2017)
         assert "No ONS data directly available on Aldershot" in caplog.messages
 
+    # Todo:
+    #     * Expand this in refactoring to remove:
+    #         ons_population_projections.PopulationProjections
+    # """
+
+    # def test_2017(self, caplog) -> None:
+    #     pass
+    # >>> origin/uk-model-refactor
+
 
 @pytest.mark.remote_data
 class TestGDPProjections:
@@ -294,10 +303,13 @@ class TestGDPProjections:
     CORRECT_2010_CONV_RATE: Series = Series(
         # Previous cacluation results
         # {2017: 2014484.3620965388, 2020: 1865247.6727810295, 2025: 2220589.275534}
+        # {2017: 1987401.5049337712, 2020: 1840171.1632555155, 2025: 2190735.5306760003}
         {2017: 2014513.0485250556, 2020: 1865274.234066408, 2025: 2220620.896914}
     )
-    CONV_RATE_2021: float = 0.692802
-    CONV_RATE_2010: float = 0.702243
+
+    # Last set 2023-03-16
+    CONV_RATE_2021: float = 0.677336
+    CONV_RATE_2010: float = 0.702253
 
     def gen_rate_logs(
         self,
@@ -323,9 +335,8 @@ class TestGDPProjections:
         caplog.set_level(INFO)
         gdp_ts: Series = get_uk_gdp_ts_as_series()
         assert_series_equal(gdp_ts, self.CORRECT_2021_CONV_RATE)
-        # assert caplog.messages == self.gen_rate_logs()
+        assert caplog.messages == self.gen_rate_logs()
 
-    @pytest.mark.xfail
     def test_ppp_converter_vary_by_year(self, caplog) -> None:
         """Test using OECD PPP converter for all dates provided."""
         caplog.set_level(INFO)
@@ -336,8 +347,8 @@ class TestGDPProjections:
             gdp_ts[self.CORRECT_2021_CONV_RATE.index], self.CORRECT_2021_CONV_RATE
         )
         assert (gdp_ts.index.values == OECD_GDP_LONG_TERM_FORCASTS.dates).all()
-        # for log in self.gen_rate_logs():
-        #     assert log in caplog.messages
+        for log in self.gen_rate_logs():
+            assert log in caplog.messages
         assert len(caplog.messages) == 2060 - 1990
 
     def test_ppp_converter_to_2017(self, caplog, three_cities_io) -> None:
@@ -346,8 +357,13 @@ class TestGDPProjections:
         Todo:
             * Fix the log generation testing example.
         """
+        for log in self.gen_rate_logs():
+            assert log in caplog.messages
+        assert len(caplog.messages) == 2060 - 1990
+
+    def test_ppp_converter_to_2017(self, caplog, three_cities_io) -> None:
+        """Test with constant 2010 dollars to pounds rate."""
         caplog.set_level(INFO)
-        # gdp_ts: Series = get_uk_gdp_ts_as_series(years=OECD_GDP_LONG_TERM_FORCASTS.dates)
         gdp_ts: Series = get_uk_gdp_ts_as_series(
             years=OECD_GDP_LONG_TERM_FORCASTS.dates,
             approximation_year=2010,
@@ -357,8 +373,8 @@ class TestGDPProjections:
             gdp_ts[self.CORRECT_2010_CONV_RATE.index], self.CORRECT_2010_CONV_RATE
         )
         assert (gdp_ts.index.values == OECD_GDP_LONG_TERM_FORCASTS.dates).all()
-        # for log in self.gen_rate_logs(rates=self.CONV_RATE_2010, from_years=2010):
-        #     assert log in caplog.messages
+        for log in self.gen_rate_logs(rates=self.CONV_RATE_2010, from_years=2010):
+            assert log in caplog.messages
         assert len(caplog.messages) == 2060 - 1989
 
 

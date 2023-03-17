@@ -162,6 +162,11 @@ class InputOutputTableUK1841(InputOutputTable):
     raw_io_table: MetaFileOrDataFrameType = field(
         default_factory=lambda: io_table_1841.METADATA
     )
+    #     * May need kw_only=Ture and repr=False
+    # """
+
+    # meta_data: MetaData = io_table_1841.METADATA
+    # raw_io_table: MetaFileOrDataFrameType = io_table_1841.METADATA
     date: DateType | YearType = 1841
     all_regions: Sequence[str] | str = ("UK",)
     all_sectors: Sequence[str] = field(
@@ -241,6 +246,7 @@ class InputOutputTableUK2017(InputOutputTable):
     raw_io_table: MetaFileOrDataFrameType = field(
         default_factory=lambda: ons_IO_2017.ONS_IO_TABLE_2017_METADATA
     )
+    # raw_io_table: MetaFileOrDataFrameType = ons_IO_2017.ONS_IO_TABLE_2017_METADATA
     io_scaling_factor: float = ons_IO_2017.ONS_2017_IO_TABLE_SCALING
     # all_sectors: Sequence[str] | str = 'CPA'
     # all_sector_lables: Sequence[str] | str = 'Product'

@@ -24,6 +24,25 @@ from .utils import DateConfigType, enforce_end_str, enforce_start_str
 
 app = Typer()
 
+# DEFAULT_UK_CITY_LIST: Final[list[str]] = [
+#     "Birmingham",  # BIRMINGHAM & SMETHWICK
+#     "Bradford",
+#     # "Coventry",
+#     # "Bristol",
+#     "Exeter",
+#     "Leeds",
+#     "Liverpool",  # LIVERPOOL & BIRKENHEAD
+#     "Manchester",  # MANCHESTER & SALFORD
+#     # Skip because of name inconsistency
+#     # 'Newcastle upon Tyne':  'North East',  # NEWCASTLE & GATESHEAD'
+#     "Norwich",
+#     "Sheffield",
+#     "Southampton",
+#     "London",
+#     "Plymouth",
+#     "York",
+# ]
+
 
 @app.callback()
 def estios() -> None:
@@ -46,6 +65,7 @@ def server(
     config_data: DateConfigType | None = None
     default_date: date | None = None
     scenario_cities: list[str] = EXAMPLE_UK_CITIES_LIST
+    # scenario_cities: list[str] = DEFAULT_UK_CITY_LIST
     if public:
         host = "0.0.0.0"
         port = 443

@@ -74,6 +74,26 @@ class TestInputOutputModel:
             three_cities_io.national_employment, nomis_2017_national_employment
         )
 
+    def test_default_construction(self) -> None:
+        io_model = InterRegionInputOutputUK2017()
+        assert (
+            str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 10 regions"
+        )
+        assert (
+            repr(io_model)
+            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=10)"
+        )
+
+    def test_3_city_construction(self, three_cities) -> None:
+        io_model = InterRegionInputOutputUK2017(regions=three_cities)
+        assert (
+            str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 3 regions"
+        )
+        assert (
+            repr(io_model)
+            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=3)"
+        )
+
     def test_3_city_distances(self, three_cities_io) -> None:
         CORRECT_DISTANCES = Series(
             [

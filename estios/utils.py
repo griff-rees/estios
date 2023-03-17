@@ -599,7 +599,11 @@ def value_in_dict_vals(value: Any, dictionary: dict) -> bool:
     return any(matches)
 
 
-def get_attr_from_attr_str(
+class GetAttrStrictError(Exception):
+    ...
+
+
+def get_attr_from_str(
     cls,
     attr_str: str,
     self_str: str | None = None,
@@ -625,12 +629,11 @@ def get_attr_from_attr_str(
     try:
         value: Any = get_attr_func(cls)
     except AttributeError as err:
+        logger.debug(f"Attribute '{attr_str}' not part of {cls}")
         if strict:
-            raise err
+            raise GetAttrStrictError(f"Parameter `strict` set to {strict} and {err}")
         else:
-            logger.debug(
-                f"Attribute '{attr_str}' not part of {cls}, returning '{attr_str}'"
-            )
+            logger.debug(f"Parameter `strict` set to {strict}, returning '{attr_str}'")
             return attr_str
     else:
         logger.debug(f"Extracted '{attr_str}' from {cls}, returning '{value}'")

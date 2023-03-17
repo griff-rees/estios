@@ -2,6 +2,7 @@ from datetime import date
 from logging import INFO
 
 import pytest
+from pandas import DataFrame
 
 from estios.models import InterRegionInputOutputTimeSeries
 from estios.temporal import annual_io_time_series, date_io_time_series
@@ -224,9 +225,13 @@ class TestInputOutputTimeSeries:
         for model in three_cities_2018_2043:
             assert hasattr(model, "y_ij_m_model")
             assert hasattr(model, "e_m_model")
+            # assert (
+            #     f"{model} `raw_io_table` attribute needs conversion from "
+            #     "type <class 'pandas.core.frame.DataFrame'>. "
+            #     f"Scaling national_employment of {model} by 1000" not in caplog.messages
+            # )
             assert (
-                f"{model} `raw_io_table` attribute needs conversion from "
-                "type <class 'pandas.core.frame.DataFrame'>. "
-                "Will try running `self._get_meta_file_or_data_fields()`."
+                f"{model} `raw_io_table` attribute needs conversion from type "
+                f"{DataFrame}. Will try instantiating a {model._io_table_cls}."
                 in caplog.messages
             )

@@ -77,6 +77,21 @@ def region_geo_data() -> GeoDataFrame:
     return load_and_join_centre_for_cities_data()
 
 
+@pytest.fixture
+def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK2017:
+    return InterRegionInputOutputUK2017(regions=three_cities)
+
+
+@pytest.fixture
+def ten_sector_aggregation_names() -> tuple[str, ...]:
+    return tuple(SECTOR_10_CODE_DICT.keys())
+
+
+@pytest.fixture
+def region_geo_data() -> GeoDataFrame:
+    return load_and_join_centre_for_cities_data()
+
+
 @pytest.fixture(scope="session")
 def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK2017:
     return InterRegionInputOutputUK2017(regions=three_cities)
@@ -127,6 +142,9 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def ons_cpa_io_table() -> InputOutputTableUK2017:
+    # =======
+    # def ons_cpa_io_table() -> InputOutputCPATable | InputOutputTableUK2017:
+    # >>>>>>> origin/uk-model-refactor
     return InputOutputTableUK2017()
 
 

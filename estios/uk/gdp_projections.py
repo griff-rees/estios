@@ -134,6 +134,9 @@ OECD_GDP_LONG_TERM_FORCASTS: Final[MetaData] = MetaData(
     # _save_kwargs=dict(zip_file_path=ONS_UK_2018_FILE_NAME),
     _reader_func=pandas_from_path_or_package,
     _reader_kwargs=dict(reader=read_csv, skipfooter=3),
+    # ==
+    # reader_kwargs=dict(reader=read_csv),
+    # >> origin/uk-model-refactor
     # _reader_kwargs=dict(),
 )
 
@@ -172,6 +175,7 @@ OECD_PPP_CONVERTER: MetaData = MetaData(
     # path=ONS_UK_2018_FILE_NAME,
     license=OECDTermsAndConditions,
     auto_download=True,
+    # auto_download=False,
     file_name_from_url=False,
     needs_scaling=False,
     path="oecd_ppp_currency_converter.csv",

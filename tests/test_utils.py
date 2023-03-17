@@ -14,13 +14,14 @@ from estios.utils import (  # download_and_extract_zip_file,
     REGION_COLUMN_NAME,
     SECTOR_10_CODE_DICT,
     SECTOR_COLUMN_NAME,
+    GetAttrStrictError,
     enforce_end_str,
     enforce_start_str,
     gen_region_attr_multi_index,
     generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,
-    get_attr_from_attr_str,
+    get_attr_from_str,
     invert_dict,
     match_df_cols_rows,
     match_ordered_iters,
@@ -175,55 +176,74 @@ class TestGetAttrFromAttrStr:
         self._caplog = caplog
 
     def test_get_base_attr(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, "a") == "cat"
+        assert get_attr_from_str(example_test_class, "a") == "cat"
         assert self._caplog.messages == [
             f"Extracted 'a' from {example_test_class}, returning 'cat'",
         ]
 
     def test_get_absent_attr(self, example_test_class) -> None:
-        assert get_attr_from_attr_str(example_test_class, "ball") == "ball"
+        assert get_attr_from_str(example_test_class, "ball") == "ball"
         assert self._caplog.messages == [
-            f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
+            f"Attribute 'ball' not part of {example_test_class}",
+            f"Parameter `strict` set to False, returning 'ball'",
         ]
 
     def test_get_absent_strict_attr(self, example_test_class) -> None:
-        with pytest.raises(AttributeError) as err:
-            get_attr_from_attr_str(example_test_class, "ball", strict=True)
-
-    def test_get_base_attr_with_self(self, example_test_class) -> None:
-        assert (
-            get_attr_from_attr_str(example_test_class, "self.a", self_str="self")
-            == "cat"
+        with pytest.raises(GetAttrStrictError) as err:
+            get_attr_from_str(example_test_class, "ball", strict=True)
+        assert str(err.value) == (
+            "Parameter `strict` set to True and 'ExampleTestClass' "
+            "object has no attribute 'ball'"
         )
         assert self._caplog.messages == [
+            f"Attribute 'ball' not part of {example_test_class}",
+        ]
+
+    def test_get_base_attr_with_self(self, example_test_class) -> None:
+        assert get_attr_from_str(example_test_class, "self.a", self_str="self") == "cat"
+        assert self._caplog.messages == [
+            "Dropped self, `attr_str` set to: 'a'",
             f"Extracted 'a' from {example_test_class}, returning 'cat'",
         ]
 
     def test_get_absent_attr_with_self(self, example_test_class) -> None:
         assert (
-            get_attr_from_attr_str(example_test_class, "self.ball", self_str="self")
+            get_attr_from_str(example_test_class, "self.ball", self_str="self")
             == "ball"
         )
         assert self._caplog.messages == [
             "Dropped self, `attr_str` set to: 'ball'",
-            f"Attribute 'ball' not part of {example_test_class}, returning 'ball'",
+            f"Attribute 'ball' not part of {example_test_class}",
+            "Parameter `strict` set to False, returning 'ball'",
         ]
 
-    @pytest.mark.xfail(reason="edge case of using `self` not as a class reference")
+    # @pytest.mark.xfail(reason="edge case of using `self` not as a class reference")
     def test_get_base_attr_with_self_no_dot(self, example_test_class) -> None:
         assert (
-            get_attr_from_attr_str(example_test_class, "selfa", self_str="self")
-            == "selfa"
+            get_attr_from_str(example_test_class, "selfa", self_str="self") == "selfa"
         )
         assert self._caplog.messages == [
-            "Dropped self, `attr_str` set to: 'a'",
             "Keeping 'self' in `attr_str`: 'selfa'",
-            f"Attribute 'selfa' not part of {example_test_class}, returning 'selfa'",
+            f"Attribute 'selfa' not part of {example_test_class}",
+            f"Parameter `strict` set to False, returning 'selfa'",
         ]
+
+    def test_get_base_attr_with_self_no_dot_strict(
+        self, example_test_class, strict=True
+    ) -> None:
+        with pytest.raises(GetAttrStrictError) as err:
+            get_attr_from_str(example_test_class, "selfa", strict=True)
+        assert self._caplog.messages == [
+            f"Attribute 'selfa' not part of {example_test_class}",
+        ]
+        assert str(err.value) == (
+            "Parameter `strict` set to True and 'ExampleTestClass' "
+            "object has no attribute 'selfa'"
+        )
 
     def test_get_base_attr_to_self(self, example_test_class) -> None:
         assert (
-            get_attr_from_attr_str(example_test_class, "self", self_str="self")
+            get_attr_from_str(example_test_class, "self", self_str="self")
             == example_test_class
         )
         assert self._caplog.messages == [

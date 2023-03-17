@@ -9,6 +9,11 @@ from typing import Final, Generator, Iterable, NamedTuple, Sequence, Type
 from pandas import DataFrame, Series
 
 from ..sources import MetaData
+
+# =======
+# from ..utils import filled_or_empty_dict
+# >>>>>>> Stashed changes
+# =======
 from ..spatial import (
     GenericRegionsManager,
     NullCodeException,
@@ -17,13 +22,7 @@ from ..spatial import (
     RegionsManagerMixin,
     sum_for_regions_by_attr,
 )
-
-# <<<<<<< Updated upstream
 from ..utils import DateType, filled_or_empty_dict
-
-# =======
-# from ..utils import filled_or_empty_dict
-# >>>>>>> Stashed changes
 from .centre_for_cities_puas import (
     CENTRE_FOR_CITIES_2022_CITY_PUAS,
     CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
@@ -99,6 +98,13 @@ def sum_for_regions_by_la_code(
             ignore_key_errors=ignore_key_errors,
         )
     }
+
+
+THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
+    "Leeds": "Yorkshire and the Humber",
+    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
+    "Manchester": "North West",  # MANCHESTER & SALFORD
+}
 
 
 def load_contemporary_ons_population(
@@ -580,6 +586,8 @@ def generate_base_regions(
         )
     return regions_manager
 
+
+# <<<<<<< HEAD
 
 # <<<<<<< Updated upstream
 # =======

@@ -16,6 +16,8 @@ from .utils import DateType, generate_ij_m_index
 
 # from .uk.utils import UK_NATIONAL_COLUMN_NAME
 
+# from .uk.utils import UK_NATIONAL_COLUMN_NAME
+
 logger = getLogger(__name__)
 
 
