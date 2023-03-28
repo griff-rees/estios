@@ -62,21 +62,6 @@ from .sources import (
 )
 from .spatial import AttractionConstrained, SpatialInteractionBaseClass
 
-# from .uk.employment import (
-#     CITY_SECTOR_REGION_PREFIX,
-#     EMPLOYMENT_QUARTER_DEC_2017,
-#     UK_JOBS_BY_SECTOR_SCALING,
-#     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
-# )
-# from .uk.regions import (
-#     CENTRE_FOR_CITIES_CSV_FILE_NAME,
-#     CITIES_TOWNS_GEOJSON_FILE_NAME,
-#     UK_CITY_REGIONS,
-#     load_and_join_centre_for_cities_data,
-# )
-# >>>>>>> Stashed changes
-from .uk.ons_employment_2017 import load_region_employment_excel
-
 # from .uk.regions import UK_CITY_REGIONS, load_and_join_centre_for_cities_data
 from .uk.regions import load_and_join_centre_for_cities_data
 from .utils import (
@@ -103,6 +88,22 @@ from .utils import (
     sum_if_multi_column_df,
     tuples_to_ordered_dict,
 )
+
+# from .uk.employment import (
+#     CITY_SECTOR_REGION_PREFIX,
+#     EMPLOYMENT_QUARTER_DEC_2017,
+#     UK_JOBS_BY_SECTOR_SCALING,
+#     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
+# )
+# from .uk.regions import (
+#     CENTRE_FOR_CITIES_CSV_FILE_NAME,
+#     CITIES_TOWNS_GEOJSON_FILE_NAME,
+#     UK_CITY_REGIONS,
+#     load_and_join_centre_for_cities_data,
+# )
+# >>>>>>> Stashed changes
+# from .uk.ons_employment_2017 import load_region_employment_excel
+
 
 logger = getLogger(__name__)
 
@@ -175,7 +176,7 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     total_production_index_name: str = TOTAL_PRODUCTION_ROW_NAME
     imports_column_name: str = IMPORTS_ROW_NAME
     # total_production_column_name: str = TOTAL_PRODUCTION_ROW_NAME
-    raw_national_employment: Optional[DataFrame | Series] = None
+    # raw_national_employment: Optional[DataFrame | Series] = None
     national_employment: Optional[Series] = None
     national_employment_scale: float = 1.0
     io_table_scale: float = 1.0

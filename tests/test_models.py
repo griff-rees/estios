@@ -10,6 +10,7 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 
 from estios import __version__
 from estios.uk.models import InterRegionInputOutputUK2017
+from estios.uk.regions import CENTRE_FOR_CITIES_NAME_FIX_DICT
 
 
 def test_version() -> None:
@@ -108,6 +109,18 @@ class TestInputOutputModel:
             name="Distance",
         )
         assert_series_equal(three_cities_io.distances["Distance"], CORRECT_DISTANCES)
+
+    def test_national_final_demand(
+        self, three_cities_io, correct_agg_uk_nation_final_demand
+    ) -> None:
+        assert (
+            (
+                three_cities_io.national_final_demand
+                == correct_agg_uk_nation_final_demand
+            )
+            .all()
+            .all()
+        )
 
     @pytest.mark.xfail(reason="These need to be rechecked with new city units")
     def test_3_city_singly_constrained_national_table(
@@ -428,11 +441,11 @@ class TestInputOutputModelAllCities:
     def test_all_city_construction(self, all_cities_io) -> None:
         assert (
             str(all_cities_io)
-            == "UK 2017-06-01 Input-Output model: 10 sectors, 48 regions"
+            == "UK 2017-06-01 Input-Output model: 10 sectors, 50 regions"
         )
         assert (
             repr(all_cities_io)
-            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=48)"
+            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=50)"
         )
 
     def test_all_city_distances(self, all_cities_io) -> None:
@@ -464,3 +477,5 @@ class TestInputOutputModelAllCities:
         assert_series_equal(
             all_cities_io.distances["Distance"].tail(), CORRECT_TAIL_DISTANCES
         )
+        for value in CENTRE_FOR_CITIES_NAME_FIX_DICT.values():
+            value in all_cities_io.distances.index

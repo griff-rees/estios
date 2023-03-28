@@ -23,24 +23,22 @@ from typing import (
     Literal,
     Optional,
     Sequence,
-    Union,
 )
 
-from pandas import DataFrame, Index, MultiIndex, Series, read_csv
+from pandas import DataFrame, Index, MultiIndex, Series
 from pymrio import IOSystem, MRIOMetaData, download_oecd, parse_oecd
 
 from .calc import technical_coefficients
 from .sector_codes import OECD_FINAL_DEMAND_COLUMN_NAMES
 from .sources import (
-    FilePathType,
     MetaData,
     MetaFileOrDataFrameType,
     ModelDataSourcesHandler,
     OECDTermsAndConditions,
     pandas_from_path_or_package,
-    path_or_package_data,
 )
-from .uk import io_table_1841, ons_employment_2017
+
+# from .uk import io_table_1841  # , ons_employment_2017
 from .utils import (
     REGION_COLUMN_NAME,
     SECTOR_10_CODE_DICT,
@@ -67,7 +65,7 @@ CPA_COLUMN_NAME: Final[str] = "CPA"
 TOTAL_PRODUCTION_ROW_NAME: Final[str] = "Intermediate Demand"
 
 
-### Todo: resolve ambiguity in ROW/INDEX variable lables
+### Todo: resolve ambiguity in ROW/INDEX variable labels
 
 TOTAL_PRODUCTION_INDEX_NAME: Final[str] = TOTAL_PRODUCTION_ROW_NAME
 ONS_GROSS_VALUE_ADDED_INDEX_NAME: Final[str] = "Gross value added"
@@ -94,6 +92,7 @@ COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
 SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
 NET_SUBSIDIES_COLUMN_NAME: Final[str] = "Net subsidies"
 INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
+INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 GROSS_CAPITAL_FORMATION_COLUMN_NAME: Final[str] = "Gross fixed capital formation"
@@ -118,6 +117,9 @@ CPA_TAXES_NET_SUBSIDIES_ROW_NAME: Final[str] = "Taxes less subsidies on products
 CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[
     str
 ] = "Total intermediate/final use at purchaser's prices"
+CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
+    str
+] = "Total intermediate use at purchaser's prices"
 
 
 DEFAULT_DOG_LEG_ROWS: Final[tuple[str, ...]] = (
@@ -137,6 +139,36 @@ DEFAULT_DOG_LEG_COLUMNS: Final[tuple[str, ...]] = (
 DEFAULT_INPUT_OUTPUT_META_DATA_NAME: Final[str] = "Input-Output Data File"
 
 DEFAULT_OECD_STORAGE_PATH: Final[Path] = Path("data/oecd/")
+
+
+IO_TABLE_ATTR_NAME: Final[str] = "raw_io_table"
+IO_TABLE_ALL_INPUT_ROW_LABELS_ATTR_NAME: Final[str] = "all_input_row_labels"
+IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME: Final[str] = "all_output_column_labels"
+
+DEFAULT_IO_MODEL_ATTR_LABELS: Final[tuple[str, str, str]] = (
+    IO_TABLE_ATTR_NAME,
+    IO_TABLE_ALL_INPUT_ROW_LABELS_ATTR_NAME,
+    IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME,
+)
+
+IO_TABLE_ALL_INPUT_ROW_ATTR: Final[
+    str
+] = f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_ROW_LABELS_ATTR_NAME}"
+IO_TABLE_ALL_INPUT_COLUMN_ATTR: Final[
+    str
+] = f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME}"
+
+
+def post_read_io_table_wrapper(
+    data: DataFrame | Series,
+    func: Callable,
+    attr_labels=DEFAULT_IO_MODEL_ATTR_LABELS,
+    **kwargs,
+) -> dict:
+    # df, input_row_labels, output_row_labels = func(data, **kwargs)
+    results_tuple = func(data, **kwargs)
+    assert len(results_tuple) == len(attr_labels)
+    return {attr_labels[i]: results_tuple[i] for i in range(len(results_tuple))}
 
 
 def crop_io_table_to_sectors(
@@ -259,42 +291,42 @@ def arrange_cpa_io_table(
 
 
 # Comment this out if possible
-def load_io_table_csv(
-    path: FilePathType = io_table_1841.CSV_FILE_NAME,
-    usecols: Optional[Union[str, list[str]]] = io_table_1841.COLUMNS,
-    skiprows: Optional[list[int]] = io_table_1841.SKIPROWS,
-    index_col: Optional[Union[int, str]] = io_table_1841.INDEX_COL,
-    cpa_column_name: Optional[str] = None,
-    sector_desc_column_name: str = SECTOR_DESC_COLUMN_NAME,
-    imports_column_name: str = IMPORTS_COLUMN_NAME,
-    net_subsidies_column_name: str = NET_SUBSIDIES_COLUMN_NAME,
-    intermediate_column_name: str = INTERMEDIATE_COLUMN_NAME,
-    **kwargs,
-) -> DataFrame:
-    """Import an Input-Ouput Table as a DataFrame from a csv file.
-
-    Todo:
-        * Raise warning if the file has the wrong extension.
-        * Fix packaging of csv file
-    """
-    path = path_or_package_data(path, io_table_1841.CSV_FILE_NAME)
-    io_table: DataFrame = read_csv(
-        path,
-        usecols=usecols,
-        skiprows=skiprows,
-        index_col=index_col,
-        **kwargs,
-    )
-    if cpa_column_name:
-        io_table = arrange_cpa_io_table(
-            io_table,
-            cpa_column_name,
-            sector_desc_column_name,
-            imports_column_name,
-            net_subsidies_column_name,
-            intermediate_column_name,
-        )
-    return io_table
+# def load_io_table_csv(
+#     path: FilePathType = io_table_1841.CSV_FILE_NAME,
+#     usecols: Optional[Union[str, list[str]]] = io_table_1841.COLUMNS,
+#     skiprows: Optional[list[int]] = io_table_1841.SKIPROWS,
+#     index_col: Optional[Union[int, str]] = io_table_1841.INDEX_COL,
+#     cpa_column_name: Optional[str] = None,
+#     sector_desc_column_name: str = SECTOR_DESC_COLUMN_NAME,
+#     imports_column_name: str = IMPORTS_COLUMN_NAME,
+#     net_subsidies_column_name: str = NET_SUBSIDIES_COLUMN_NAME,
+#     intermediate_column_name: str = INTERMEDIATE_COLUMN_NAME,
+#     **kwargs,
+# ) -> DataFrame:
+#     """Import an Input-Ouput Table as a DataFrame from a csv file.
+#
+#     Todo:
+#         * Raise warning if the file has the wrong extension.
+#         * Fix packaging of csv file
+#     """
+#     path = path_or_package_data(path, io_table_1841.CSV_FILE_NAME)
+#     io_table: DataFrame = read_csv(
+#         path,
+#         usecols=usecols,
+#         skiprows=skiprows,
+#         index_col=index_col,
+#         **kwargs,
+#     )
+#     if cpa_column_name:
+#         io_table = arrange_cpa_io_table(
+#             io_table,
+#             cpa_column_name,
+#             sector_desc_column_name,
+#             imports_column_name,
+#             net_subsidies_column_name,
+#             intermediate_column_name,
+#         )
+#     return io_table
 
 
 # def load_io_table_excel(
@@ -334,28 +366,28 @@ def load_io_table_csv(
 #     return io_table
 
 
-def load_employment_by_region_and_sector_csv(
-    path: FilePathType = ons_employment_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
-    skiprows: int = ons_employment_2017.CITY_SECTOR_SKIPROWS,
-    skipfooter: int = ons_employment_2017.CITY_SECTOR_SKIPFOOTER,
-    engine: str = ons_employment_2017.CITY_SECTOR_ENGINE,
-    usecols: Callable[[str], bool] = ons_employment_2017.CITY_SECTOR_USECOLS,
-    index_col: int = ons_employment_2017.CITY_SECTOR_INDEX_COLUMN,
-    **kwargs,
-) -> DataFrame:
-    """Import region level sector employment data as a DataFrame."""
-    path = path_or_package_data(
-        path, ons_employment_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
-    )
-    return read_csv(
-        path,
-        skiprows=skiprows,
-        skipfooter=skipfooter,
-        engine=engine,
-        usecols=usecols,
-        index_col=index_col,
-        **kwargs,
-    )
+# def load_employment_by_region_and_sector_csv(
+#     path: FilePathType = ons_employment_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
+#     skiprows: int = ons_employment_2017.CITY_SECTOR_SKIPROWS,
+#     skipfooter: int = ons_employment_2017.CITY_SECTOR_SKIPFOOTER,
+#     engine: str = ons_employment_2017.CITY_SECTOR_ENGINE,
+#     usecols: Callable[[str], bool] = ons_employment_2017.CITY_SECTOR_USECOLS,
+#     index_col: int = ons_employment_2017.CITY_SECTOR_INDEX_COLUMN,
+#     **kwargs,
+# ) -> DataFrame:
+#     """Import region level sector employment data as a DataFrame."""
+#     path = path_or_package_data(
+#         path, ons_employment_2017.CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME
+#     )
+#     return read_csv(
+#         path,
+#         skiprows=skiprows,
+#         skipfooter=skipfooter,
+#         engine=engine,
+#         usecols=usecols,
+#         index_col=index_col,
+#         **kwargs,
+#     )
 
 
 # def aggregate_io_table(
@@ -1032,17 +1064,11 @@ class InputOutputTable(ModelDataSourcesHandler):
         # self._gen_methods_and_check_io_table('raw_io_table')
         # if callable(self.calc_full_table):
         self._set_all_meta_file_or_data_fields()
-        if not isinstance(self.raw_io_table, DataFrame | IOSystem):
-            # Todo: assess cases where this isn't covered in _set_all_meta_file_or_data_fields
-            self._set_meta_file_or_data_field("raw_io_table")
+        # if not isinstance(self.raw_io_table, DataFrame | IOSystem):
+        #     # Todo: assess cases where this isn't covered in _set_all_meta_file_or_data_fields
+        #     self._set_meta_file_or_data_field("raw_io_table")
         assert isinstance(self.raw_io_table, DataFrame | IOSystem)
 
-        # intermediary_io_table: DataFrame
-        # if callable(self.process_base_io_table_func):
-        #     self.processed_base_io_table = self.process_base_io_table_func(self.raw_io_table, **self.process_base_io_table_kwargs)
-        #     intermediary_io_table = self.processed_base_io_table
-        # else:
-        #     intermediary_io_table = self.raw_io_table
         if callable(self.full_io_table_func):
             (
                 self.full_io_table,
@@ -1051,6 +1077,12 @@ class InputOutputTable(ModelDataSourcesHandler):
             ) = self.full_io_table_func(self.raw_io_table, **self.full_io_table_kwargs)
         else:
             self.full_io_table = self.raw_io_table
+        for attr, meta_attr in {
+            "all_output_column_labels": IO_TABLE_ALL_INPUT_COLUMN_ATTR,
+            "all_input_row_labels": IO_TABLE_ALL_INPUT_ROW_ATTR,
+        }.items():
+            if hasattr(self, meta_attr):
+                setattr(self, attr, getattr(self, meta_attr))
         self.set_all_regions()
         self.set_all_input_rows()
         self.set_all_output_columns()

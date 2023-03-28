@@ -5,20 +5,17 @@ from collections import OrderedDict
 from datetime import date
 from logging import getLogger
 from pathlib import Path
-from typing import Callable, Final, Iterable
+from typing import Callable, Final
 
-from pandas import DataFrame, read_csv, read_excel
+from pandas import DataFrame
 
-from ..sources import (
-    FilePathType,
-    MetaData,
-    OpenGovernmentLicense,
-    pandas_from_path_or_package,
-    path_or_package_data,
-)
-from ..utils import DateConfigType, enforce_date_format
+from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
+from ..utils import DateConfigType
+from .utils import enforce_ons_date_format, generate_employment_quarterly_dates
 
 # ONS jobs data
+
+ONS_URL_PREFIX: str = "https://www.ons.gov.uk/file?"
 
 logger = getLogger(__name__)
 
@@ -65,9 +62,34 @@ CITY_SECTOR_INDEX_COLUMN: Final[int] = 0
 CITY_SECTOR_READ_KWARGS: Final[dict[str, int | Callable]] = dict(
     skiprows=CITY_SECTOR_SKIPROWS,
     skipfooter=CITY_SECTOR_SKIPFOOTER,
+    engine=CITY_SECTOR_ENGINE,
     usecols=CITY_SECTOR_USECOLS,
     index_col=CITY_SECTOR_INDEX_COLUMN,
 )
+#     path: FilePathType = CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
+#     skiprows: int = CITY_SECTOR_SKIPROWS,
+#     skipfooter: int = CITY_SECTOR_SKIPFOOTER,
+#     engine: str = CITY_SECTOR_ENGINE,
+#     usecols: Callable[[str], bool] = CITY_SECTOR_USECOLS,
+#     index_col: int = CITY_SECTOR_INDEX_COLUMN,
+
+ONS_AGGREGATE_SECTOR_COLUMNS: Final[tuple[str, ...]] = ("G-T", "A-T")
+
+
+def add_covid_flags_and_drop_agg_sector_columns(
+    df: DataFrame,
+    date_column_name: str = DATE_COLUMN_NAME,
+    covid_flags_column: str = COVID_FLAGS_COLUMN,
+    agg_sector_columns: tuple[str, ...] = ONS_AGGREGATE_SECTOR_COLUMNS,
+    date_index_name: str = "Date",
+) -> DataFrame:
+    df[covid_flags_column] = df[date_column_name].apply(
+        lambda cell: cell.strip().endswith(")")
+    )
+    df.index = df[date_column_name].apply(enforce_ons_date_format)
+    df.index.name = date_index_name
+    df.drop([date_column_name], axis="columns", inplace=True)
+    return df.drop([*agg_sector_columns], axis="columns")
 
 
 NOMIS_2017_SECTOR_EMPLOYMENT_METADATA: Final[MetaData] = MetaData(
@@ -75,7 +97,7 @@ NOMIS_2017_SECTOR_EMPLOYMENT_METADATA: Final[MetaData] = MetaData(
     region="England",
     path=CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
     year=2017,
-    auto_download=True,
+    auto_download=False,
     # name="NOMIS England City Employment",
     # region="England",
     # path=CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
@@ -85,76 +107,104 @@ NOMIS_2017_SECTOR_EMPLOYMENT_METADATA: Final[MetaData] = MetaData(
     _package_data=True,
     _reader_func=pandas_from_path_or_package,
     _reader_kwargs=CITY_SECTOR_READ_KWARGS,
+    # _post_read_func=add_covid_flags_and_drop_agg_sector_columns,
+    # _post_read_kwargs=dict(
+    #     date_column_name=DATE_COLUMN_NAME,
+    #     covid_flags_column=COVID_FLAGS_COLUMN,
+    # ),
 )
 
+ONS_CONTEMPORARY_JOBS_URL: str = (
+    f"{ONS_URL_PREFIX}uri=/employmentandlabourmarket/peopleinwork/"
+    "employmentandemployeetypes/datasets/workforcejobsbyregionandindustryjobs05/"
+    "current/previous/v26/jobs05jul2021.xls"
+)
 
-def load_employment_by_region_and_sector_csv(
-    path: FilePathType = CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
-    skiprows: int = CITY_SECTOR_SKIPROWS,
-    skipfooter: int = CITY_SECTOR_SKIPFOOTER,
-    engine: str = CITY_SECTOR_ENGINE,
-    usecols: Callable[[str], bool] = CITY_SECTOR_USECOLS,
-    index_col: int = CITY_SECTOR_INDEX_COLUMN,
-    **kwargs,
-) -> DataFrame:
-    """Import region level sector employment data as a DataFrame.
+#     region[covid_flags_column] = region[date_column_name].apply(
+#         lambda cell: cell.strip().endswith(")")
+#     )
+#     region.index = region[date_column_name].apply(enforce_date_format)
+#     return region.drop([date_column_name], axis=1)
 
-    Todo:
-        * Replace with sources MetaData options
-    """
-    path = path_or_package_data(path, CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME)
-    return read_csv(
-        path,
-        skiprows=skiprows,
-        skipfooter=skipfooter,
-        engine=engine,
-        usecols=usecols,
-        index_col=index_col,
-        **kwargs,
-    )
+# def load_employment_by_region_and_sector_csv(
+#     path: FilePathType = CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
+#     skiprows: int = CITY_SECTOR_SKIPROWS,
+#     skipfooter: int = CITY_SECTOR_SKIPFOOTER,
+#     engine: str = CITY_SECTOR_ENGINE,
+#     usecols: Callable[[str], bool] = CITY_SECTOR_USECOLS,
+#     index_col: int = CITY_SECTOR_INDEX_COLUMN,
+#     **kwargs,
+# ) -> DataFrame:
+#     """Import region level sector employment data as a DataFrame.
+#
+#     Todo:
+#         * Replace with sources MetaData options
+#     """
+#     path = path_or_package_data(path, CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME)
+#     return read_csv(
+#         path,
+#         skiprows=skiprows,
+#         skipfooter=skipfooter,
+#         engine=engine,
+#         usecols=usecols,
+#         index_col=index_col,
+#         **kwargs,
+#     )
+#
 
-
-def load_region_employment_excel(
-    sheet: str = UK_NATIONAL_EMPLOYMENT_SHEET,
-    path: FilePathType = UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
-    date_column_name: str = DATE_COLUMN_NAME,
-    covid_flags_column: str = COVID_FLAGS_COLUMN,
-    **kwargs,
-) -> DataFrame:
-    """Load regional employment data from https://www.nomisweb.co.uk/ excel exports.
-
-    Todo:
-        * Replace with sources MetaData options
-    """
-    path = path_or_package_data(path, UK_JOBS_BY_SECTOR_XLS_FILE_NAME)
-    region: DataFrame = read_excel(
-        path,
-        sheet_name=sheet,
+ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA: Final[MetaData] = MetaData(
+    name="ONS Region Employment Time Series",
+    region="England",
+    year=2017,
+    url=ONS_CONTEMPORARY_JOBS_URL,
+    path=UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
+    license=OpenGovernmentLicense,
+    auto_download=True,
+    _package_data=True,
+    _reader_func=pandas_from_path_or_package,
+    _reader_kwargs=dict(
+        sheet_name=UK_NATIONAL_EMPLOYMENT_SHEET,
         skiprows=5,
         skipfooter=4,
-        usecols=lambda x: "Unnamed" not in x,
-        dtype={date_column_name: str},
-        **kwargs,
-    )
-    logger.warning(f"Applying NOMIS fixes loading sheet {sheet} from {path}")
-    region[covid_flags_column] = region[date_column_name].apply(
-        lambda cell: cell.strip().endswith(")")
-    )
-    region.index = region[date_column_name].apply(enforce_date_format)
-    return region.drop([date_column_name], axis=1)
-
-
-def generate_employment_quarterly_dates(
-    years: Iterable[int], reverse: bool = False
-) -> Iterable[date]:
-    """Return quaterly dates for UK employment data in reverse chronological order."""
-    for year in years:
-        if reverse:
-            for month in range(12, 0, -3):
-                yield date(year, month, 1)
-        else:
-            for month in range(3, 13, 3):
-                yield date(year, month, 1)
+        # usecols=lambda x: "Unnamed" not in x,
+        usecols=CITY_SECTOR_USECOLS,
+        dtype={DATE_COLUMN_NAME: str},
+    ),
+    _post_read_func=add_covid_flags_and_drop_agg_sector_columns,
+    _post_read_kwargs=dict(
+        date_column_name=DATE_COLUMN_NAME,
+        covid_flags_column=COVID_FLAGS_COLUMN,
+    ),
+)
+#
+# def load_region_employment_excel(
+#     sheet: str = UK_NATIONAL_EMPLOYMENT_SHEET,
+#     path: FilePathType = UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
+#     date_column_name: str = DATE_COLUMN_NAME,
+#     covid_flags_column: str = COVID_FLAGS_COLUMN,
+#     **kwargs,
+# ) -> DataFrame:
+#     """Load regional employment data from https://www.nomisweb.co.uk/ excel exports.
+#
+#     Todo:
+#         * Replace with sources MetaData options
+#     """
+#     path = path_or_package_data(path, UK_JOBS_BY_SECTOR_XLS_FILE_NAME)
+#     region: DataFrame = read_excel(
+#         path,
+#         sheet_name=sheet,
+#         skiprows=5,
+#         skipfooter=4,
+#         usecols=lambda x: "Unnamed" not in x,
+#         dtype={date_column_name: str},
+#         **kwargs,
+#     )
+#     logger.warning(f"Applying NOMIS fixes loading sheet {sheet} from {path}")
+#     region[covid_flags_column] = region[date_column_name].apply(
+#         lambda cell: cell.strip().endswith(")")
+#     )
+#     region.index = region[date_column_name].apply(enforce_date_format)
+#     return region.drop([date_column_name], axis=1)
 
 
 CONFIG_2017_QUARTERLY: Final[OrderedDict[date, dict["str", date]]] = OrderedDict(

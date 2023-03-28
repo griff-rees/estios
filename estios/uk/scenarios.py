@@ -11,9 +11,8 @@ from pandas import DataFrame, Series
 from ..calc import calc_ratio
 from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from ..sources import MetaData, MonthDay
-from ..spatial import sum_for_regions_by_attr
 from ..temporal import annual_io_time_series, date_io_time_series
-from ..utils import AnnualConfigType, DateConfigType  # sum_by_rows_cols,
+from ..utils import AnnualConfigType, DateConfigType, gen_filter_by_func
 from .gdp_projections import get_uk_gdp_ts_as_series
 from .models import InterRegionInputOutputUK2017
 from .ons_employment_2017 import EMPLOYMENT_QUARTER_JUN_2017
@@ -26,13 +25,13 @@ from .ons_population_projections import (
     NATIONAL_RETIREMENT_AGE,
     ONS_ENGLAND_POPULATION_META_DATA,
     WORKING_AGE_MINIMUM,
-    ONSPopulationProjection,
 )
 from .ons_uk_population_history import ONS_UK_POPULATION_HISTORY_META_DATA
 from .ons_uk_population_projections import (
     get_uk_pop_scaled_all_ages_ts,
     get_uk_pop_scaled_working_ages_ts,
 )
+from .populations import regional_population_projections_all_ages
 from .utils import (
     THREE_UK_CITY_REGIONS,
     GenericRegionsManager,
@@ -103,6 +102,7 @@ def baseline_england_annual_population_projection_config(
     working_age_columns: Sequence[int] = WORKING_AGE_LIST,
     all_ages_column: str = ONS_2017_ALL_AGES_COLUMN_NAME,
     national_gdp_projections: Series | None = None,
+    regional_pop_projections: DataFrame | None = None,
 ) -> tuple[AnnualConfigType, InterRegionInputOutput]:
     """Generate a baseline configuration for England time series projection.
 
@@ -127,19 +127,24 @@ def baseline_england_annual_population_projection_config(
 
     ons_2017_pop_df = ons_2017_pop_meta_data.read()
     assert ons_2017_pop_df is not None
-    if not ons_population_projection.is_local:
-        ons_population_projection.save_local()
+    if not regional_pop_projections:
+        if not ons_population_projection.is_local:
+            ons_population_projection.save_local()
+        regional_pop_projections = ons_population_projection.read()
     if not national_gdp_projections:
         national_gdp_projections = get_uk_gdp_ts_as_series()
 
-    regional_pop_projections = ONSPopulationProjection(
-        regions=regions,
-        meta_data=ons_population_projection,
-        # ons_path=ons_population_projection.path,
-        age_projections=ons_population_projection.read(),
-    )
+    # regional_pop_projections = ONSPopulationProjection(
+    #     regions=regions,
+    #     meta_data=ons_population_projection,
+    #     # ons_path=ons_population_projection.path,
+    #     age_projections=ons_population_projection.read(),
+    # )
+    assert isinstance(regional_pop_projections, DataFrame)
     if not years:
-        years = regional_pop_projections.years
+        years = list(
+            int(x) for x in gen_filter_by_func(regional_pop_projections.columns)
+        )
     scaled_national_at_working_ages: Series = get_uk_pop_scaled_working_ages_ts()
     scaled_national_all_ages: Series = get_uk_pop_scaled_all_ages_ts()
 
@@ -210,25 +215,37 @@ def baseline_england_annual_population_projection_config(
             scaled_national_at_working_ages[new_year_str],  # next time point
         )
 
-        new_regional_populations: Series = Series(
-            sum_for_regions_by_attr(
-                df=regional_pop_projections.full_population_projections,
-                region_names=regions,
-                column_names=[new_year_str],
-                regions=uk_regions,
-                attr="la_names",
-            )
+        new_regional_populations: Series = regional_population_projections_all_ages(
+            year=year,
+            population_projections_df=regional_pop_projections,
+            region_names=regions,
+            regions_manager=uk_regions,
         )
+        new_regional_at_working_ages: Series = regional_population_projections_all_ages(
+            year=year,
+            population_projections_df=regional_pop_projections,
+            region_names=regions,
+            regions_manager=uk_regions,
+        )
+        # new_regional_populations: Series = Series(
+        #     sum_for_regions_by_attr(
+        #         df=regional_pop_projections.full_population_projections,
+        #         region_names=regions,
+        #         column_names=[new_year_str],
+        #         regions=uk_regions,
+        #         attr="la_names",
+        #     )
+        # )
 
-        new_regional_at_working_ages: Series = Series(
-            sum_for_regions_by_attr(
-                df=regional_pop_projections.working_age_projections,
-                region_names=regions,
-                column_names=[new_year_str],
-                regions=uk_regions,
-                attr="la_names",
-            )
-        )
+        # new_regional_at_working_ages: Series = Series(
+        #     sum_for_regions_by_attr(
+        #         df=regional_pop_projections.working_age_projections,
+        #         region_names=regions,
+        #         column_names=[new_year_str],
+        #         regions=uk_regions,
+        #         attr="la_names",
+        #     )
+        # )
 
         new_regional_employment_table = calc_ratio(
             last_regional_employment_projection,
@@ -263,12 +280,12 @@ def baseline_england_annual_projection(
     date_check: date | None = None,  # Bowan's suggestion
     regions: list[str] = list(THREE_UK_CITY_REGIONS.keys()),
     # regions: dict | list[str] = THREE_UK_CITY_REGIONS,
-    ons_population_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA,
+    # ons_population_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA,
     years: Sequence[int] | None = TWO_YEARS,
     input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutputUK2017,
 ) -> InterRegionInputOutputTimeSeries:
     time_series_config, first_io = baseline_england_annual_population_projection_config(
-        first_io_time, date_check, regions, ons_population_projection, years=years
+        first_io_time=first_io_time, date_check=date_check, regions=regions, years=years
     )
     io_time_series: InterRegionInputOutputTimeSeries = annual_io_time_series(
         time_series_config,

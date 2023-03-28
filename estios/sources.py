@@ -85,11 +85,19 @@ class NoPotentialFilesError(Exception):
     pass
 
 
-class NotValidCitation(Exception):
+class NotValidCitationError(Exception):
     pass
 
 
 class AutoDownloadPermissionError(Exception):
+    ...
+
+
+class NoDataLoadedError(Exception):
+    ...
+
+
+class NoDataReturnedError(Exception):
     ...
 
 
@@ -98,8 +106,8 @@ class MonthDay:
     month: int = 1
     day: int = 1
 
-    def from_year(self, year: int) -> date:
-        return date(year, self.month, self.day)
+    def from_year(self, year: int | str) -> date:
+        return date(int(year), self.month, self.day)
 
 
 DEFAULT_ANNUAL_MONTH_DAY: Final[MonthDay] = MonthDay()
@@ -377,10 +385,11 @@ class MetaData:
     # _reader_func_override: bool = False
     _post_read_func: Optional[Callable] = None
     _post_read_kwargs: dict[str, Any] = field(default_factory=dict)
+    _ensure_data_returned: bool = False
 
     def __post_init__(self) -> None:
         if not self.region and not self.doi and not self.url:
-            raise NotValidCitation(
+            raise NotValidCitationError(
                 f"At least `region`, `doi` or `url` must be specified for {self}"
             )
         if not self.url and self.doi:
@@ -427,19 +436,28 @@ class MetaData:
     def has_post_read_func(self) -> bool:
         return hasattr(self, "_post_read_func") and callable(self._post_read_func)
 
-    def read(self, apply_post_read_func: bool = True) -> Optional[Any]:
+    def read(
+        self, ensure_data_returned: bool = False, apply_post_read_func: bool = True
+    ) -> Optional[Any]:
         # def read(self) -> Optional[Any]:
         """Read file if self._reader_func defined, else None."""
+        ensure_data_returned = ensure_data_returned or self._ensure_data_returned
         if not self.has_read_func:
             logger.error(f"No reader set for {self}")
-            return None
+            if ensure_data_returned:
+                NoDataReturnedError(
+                    f"Cannot return data `_reader_func` hasn't been set for {self}"
+                )
+            else:
+                return None
         else:
             if self.auto_download:
                 logger.info(f"Downloading data for {self}")
                 self.save_local()
                 assert self.absolute_save_path is not None
             if self.is_local:
-                assert self._reader_func
+                data: Any
+                assert self.has_read_func
                 assert self.absolute_save_path
                 if self.has_post_read_func and apply_post_read_func:
                     # if self.is_local:
@@ -447,16 +465,28 @@ class MetaData:
                     #     assert self.absolute_save_path
                     #     if self._post_read_func:
                     # in/uk-model-refactor
-                    return self._post_read_func(
+                    data = self._post_read_func(
                         self._reader_func(
                             self.absolute_save_path, self.path, **self._reader_kwargs
                         ),
                         **self._post_read_kwargs,
                     )
                 else:
-                    return self._reader_func(
+                    data = self._reader_func(
                         self.absolute_save_path, self.path, **self._reader_kwargs
                     )
+                if data is None:
+                    if ensure_data_returned:
+                        raise NoDataLoadedError(
+                            f"Data from {self} via `read()` is None"
+                        )
+                    else:
+                        logger.error(
+                            f"File for {self} not loaded correctly. Try setting `ensure_data_returned` to True. "
+                        )
+                        return None
+                else:
+                    return data
                 # if self._package_data:
                 #     return self._reader_func(self.absolute_save_path, self.path, **self._reader_kwargs)
                 # else:
@@ -497,12 +527,15 @@ class MetaData:
             # assert False
             # makedirs(self.path.dirname(), exist_ok=True)
 
-    def save_local(self, force_overwrite: bool = False) -> None:
+    def save_local(
+        self, force_overwrite: bool = False, ensure_data_returned: bool = False
+    ) -> SupportedAttrDataTypes | None:
         """Get file from self.url and save locally.
 
         Todo:
             * May need to refactor means of creating local folder below vs _save_func.
         """
+        ensure_data_returned = ensure_data_returned or self._ensure_data_returned
         if not self.path:
             logger.error(f"Path must be set to save {self}")
             return
@@ -519,19 +552,27 @@ class MetaData:
             #     installed_path: PathLike = path(__file__)
             # assert False
             makedirs(Path(self.absolute_save_path).parent, exist_ok=True)
+        data: SupportedAttrDataTypes | None
         if self.is_local:
             if not force_overwrite:
                 logger.warning(
                     f"{self.path} already exists. To force set 'force_overwrite' to True"
                 )
-                return
+                if ensure_data_returned:
+                    raise NoDataReturnedError(
+                        f"With `force_overwrite` False and `is_local` True, cannot return already saved {self}"
+                    )
+            else:
+                logger.info(
+                    f"{self.path} already exists. Overwriting as 'force_overwrite' set to True"
+                )
         if self._api_func:
             logger.info("Using {self._api_func} to query data for {self}")
             pandas_obj_from_api: DataFrame | Series = self._api_func(**self._api_kwargs)
             logger.info(
                 f"Using locally generate pandas data type for {self}, no download."
             )
-            pandas_obj: DataFrame | Series = self._save_local_from_pandas_func(
+            data = self._save_local_from_pandas_func(
                 pandas_obj_from_api,
                 local_path=self.absolute_save_path,
                 **self._save_kwargs,
@@ -540,14 +581,19 @@ class MetaData:
             try:
                 assert self.url
             except AssertionError:
-                raise AssertionError(f"{self.url} required to download and save {self}")
+                raise AssertionError(
+                    f"Attribute `self.url` required to download and save {self}"
+                )
             logger.info(f"Saving {self.url} to {self.path} with {self._save_func}")
             if self._save_func_override:
-                self._save_func(**self._save_kwargs)
+                data = self._save_func(**self._save_kwargs)
             else:
-                self._save_func(
+                data = self._save_func(
                     self.url, local_path=self.absolute_save_path, **self._save_kwargs
                 )
+        assert self.is_local
+        self.date_time_obtained = datetime.now()
+        return data
         # try:
         #     assert self.url
         # except AssertionError:
@@ -559,7 +605,6 @@ class MetaData:
         #     self._save_func(
         #         self.url, local_path=self.absolute_save_path, **self._save_kwargs
         #     )
-        self.date_time_obtained = datetime.now()
 
     @property
     def is_local(self) -> bool:
@@ -738,8 +783,8 @@ class ModelDataSourcesHandler:
     ] = filter_fields_by_types
     _auto_apply_post_read_func: bool = True
     _apply_post_read_func_within_read: bool = False
-    _extract_post_read_kwargs_if_strs: bool = False
-    _extract_read_kwargs_if_strs: bool = False
+    _extract_read_kwargs_if_strs: bool = True
+    _extract_post_read_kwargs_if_strs: bool = True
 
     def _filter_fields_by_type(self, field_type: Type | TypeAlias) -> tuple[Field, ...]:
         return self._filter_fields_by_type_func(self, field_type)
@@ -969,13 +1014,18 @@ class ModelDataSourcesHandler:
                     meta_data._post_read_kwargs, original_value, original_attr_name
                 )
             final_kwargs: dict[str, Any] = meta_data._post_read_kwargs | kwargs
-            data: SupportedAttrDataTypes
+            data: SupportedAttrDataTypes | dict[str, SupportedAttrDataTypes]
             if add_as_first_arg_if_not_kwarg and not value_in_dict_vals(
                 original_value, final_kwargs
             ):
                 data = func(original_value, **final_kwargs)
             else:
                 data = func(**final_kwargs)
+            if isinstance(data, dict) and original_attr_name in data:
+                extra_attrs: dict[str, Any] = data
+                data = extra_attrs.pop(original_attr_name)
+                for key, value in extra_attrs.items():
+                    setattr(self, f"_{original_attr_name}__{key}", value)
             setattr(self, original_attr_name, data)
             setattr(self, f"_{original_attr_name}__post_read_func", func)
             setattr(self, f"_{original_attr_name}__post_read_kwargs", final_kwargs)

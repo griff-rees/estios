@@ -3,17 +3,13 @@
 
 from collections import UserDict
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from logging import getLogger
 from typing import Final, Generator, Iterable, NamedTuple, Sequence, Type
 
 from pandas import DataFrame, Series
 
 from ..sources import MetaData
-
-# =======
-# from ..utils import filled_or_empty_dict
-# >>>>>>> Stashed changes
-# =======
 from ..spatial import (
     GenericRegionsManager,
     NullCodeException,
@@ -28,6 +24,11 @@ from .centre_for_cities_puas import (
     CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA,
 )
 from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
+from .ons_population_projections import (
+    NATIONAL_RETIREMENT_AGE,
+    RETIREMENT_AGE_INCREASE_YEAR,
+    WORKING_AGE_MINIMUM,
+)
 from .regions import SKIP_CITIES
 
 logger = getLogger(__name__)
@@ -42,6 +43,8 @@ UK_NATION_NAMES: Final[tuple[str, ...]] = (
     "United Kingdom",
     "Wales",
 )
+ONS_AREA_CODE_COLUMN_NAME: Final[str] = "AREA_CODE"
+ONS_AGES_COLUMN_NAME: Final[str] = "AGE_GROUP"
 
 RegionInfoTypes = str | bool | int
 RegionInfoMapper = dict[str, dict[str, RegionInfoTypes]]
@@ -76,6 +79,32 @@ THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
 }
 
 LA_CODES_COLUMN: Final[str] = "la_codes"
+
+
+def enforce_ons_date_format(cell: str) -> str:
+    """Set convert date strings for consistent formatting."""
+    if cell.endswith("00:00"):
+        return cell.split()[0]
+    else:
+        cell = cell.strip()
+        if cell.endswith(")") or len(cell.split()) > 2:
+            # Remove flags of the form " (r)", " (p)" and " 4 (p)" 20 4 (4 is a footnote)
+            logger.info(f"Date {cell} has extra section. Trimming.")
+            cell = " ".join(cell.split()[:2])
+        return str(datetime.strptime(cell, "%b %y")).split()[0]
+
+
+def generate_employment_quarterly_dates(
+    years: Iterable[int], reverse: bool = False
+) -> Iterable[DateType]:
+    """Return quaterly dates for UK employment data in reverse chronological order."""
+    for year in years:
+        if reverse:
+            for month in range(12, 0, -3):
+                yield date(year, month, 1)
+        else:
+            for month in range(3, 13, 3):
+                yield date(year, month, 1)
 
 
 def sum_for_regions_by_la_code(
@@ -388,7 +417,7 @@ def region_from_alt_names(
         and NO_CONTEMPORARY_KEY in alt_names[region_name]
         and alt_names[region_name][NO_CONTEMPORARY_KEY]
     ):
-        logger.error(f"No ONS data directly available on {region_name}")
+        logger.warning(f"No ONS data directly available on {region_name}")
         code = (
             alt_names[region_name]["code"]
             if "code" in alt_names[region_name].keys()
@@ -591,6 +620,26 @@ def generate_base_regions(
 
 # <<<<<<< Updated upstream
 # =======
+
+
+def working_ages(
+    year: int,
+    min_working_age: int = WORKING_AGE_MINIMUM,
+    max_working_age: int = NATIONAL_RETIREMENT_AGE,
+    retirement_age_increase_year: int = RETIREMENT_AGE_INCREASE_YEAR,
+) -> Generator[int, None, None]:
+    assert year > 2000
+    if (
+        max_working_age == NATIONAL_RETIREMENT_AGE
+        and year >= retirement_age_increase_year
+    ):
+        max_working_age += 1
+        logger.debug(
+            f"Setting `max_working_age` to {max_working_age} as `year` "
+            f"{year} >= `retirement_age_increase_year` {retirement_age_increase_year}"
+        )
+    for age in range(min_working_age, max_working_age + 1):
+        yield age
 
 
 def get_working_cities_puas_manager(

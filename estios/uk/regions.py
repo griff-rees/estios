@@ -35,6 +35,13 @@ ONSGeographyLicense: Final = DataLicense(
     version=2023,
 )
 
+NEWCASTLE_ALT_NAME: Final[str] = "Newcastle upon Tyne"
+HULL_ALT_NAME: Final[str] = "Kingston upon Hull"
+
+CENTRE_FOR_CITIES_NAME_FIX_DICT: dict[str, str] = {
+    NEWCASTLE_ALT_NAME: "Newcastle",
+    HULL_ALT_NAME: "Hull",
+}
 
 ONS_CITY_GEOMETRY_META_DATA: Final[MetaData] = MetaData(
     name="2017 Cities",
@@ -104,10 +111,68 @@ SKIP_CITIES: Final[tuple[str, ...]] = (
     "Dundee",
     "Edinburgh",
     "Glasgow",
-    "Newcastle",  # In England, issues with name variation
+    # "Bournemouth",
+    # "Newcastle",  # In England, issues with name variation
     "Newport",
     "Swansea",
     "Blackburn",  # 2 in Scotland
+)
+
+ENGLISH_CITIES: Final[tuple[str]] = (
+    "Barnsley",
+    "Basildon",
+    "Birmingham",
+    "Birkenhead",
+    "Blackpool",
+    "Bournemouth",
+    "Bradford",
+    "Bristol",
+    "Burnley",
+    "Cambridge",
+    "Chatham",
+    "Coventry",
+    "Crawley",
+    "Derby",
+    "Doncaster",
+    "Exeter",
+    "Gloucester",
+    "Huddersfield",
+    "Hull",
+    "Ipswich",
+    "Leeds",
+    "Leicester",
+    "Liverpool",
+    "London",
+    "Luton",
+    "Manchester",
+    "Mansfield",
+    "Middlesbrough",
+    "Milton Keynes",
+    "Newcastle",
+    "Norwich",
+    "Northampton",
+    "Nottingham",
+    "Oxford",
+    "Peterborough",
+    "Plymouth",
+    "Portsmouth",
+    "Preston",
+    "Reading",
+    "Sheffield",
+    "Slough",
+    "Southampton",
+    "Sunderland",
+    "Swindon",
+    "Telford",
+    "Wakefield",
+    "Warrington",
+    "Wigan",
+    "Worthing",
+    "York",
+)
+
+WORKING_ENGLISH_CITIES: Final[tuple[str]] = tuple(
+    city for city in ENGLISH_CITIES if city not in SKIP_CITIES
 )
 
 # Centre For Cities Data
@@ -157,11 +222,18 @@ def load_and_join_centre_for_cities_data(
     region_path: PathLike = CENTRE_FOR_CITIES_CSV_FILE_NAME,
     spatial_path: PathLike = CITIES_TOWNS_GEOJSON_FILE_NAME,
     region_column: str = CENTRE_FOR_CITIES_REGION_COLUMN,
+    fix_newcastle_and_hull: bool = True,
     **kwargs,
 ) -> GeoDataFrame:
     """Import and join Centre for Cities data (demographics and coordinates)."""
     cities: DataFrame = load_centre_for_cities_csv(region_path, **kwargs)
     cities_spatial: GeoDataFrame = load_centre_for_cities_gis(spatial_path, **kwargs)
+    if fix_newcastle_and_hull:
+        for name, replacement in CENTRE_FOR_CITIES_NAME_FIX_DICT.items():
+            index_id = cities_spatial[cities_spatial["NAME1"].str.contains(name)].index[
+                0
+            ]
+            cities_spatial["NAME1"].at[index_id] = replacement
     return GeoDataFrame(
         cities.join(
             cities_spatial.set_index("NAME1")[[region_column, "COUNTRY", "geometry"]],

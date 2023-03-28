@@ -18,6 +18,7 @@ from estios.uk.nomis_contemporary_employment import (
     nomis_query,
     trim_df_for_employment_count,
 )
+from estios.uk.ons_population_estimates import ONS_2017_ALL_AGES_COLUMN_NAME
 from estios.uk.ons_population_projections import (
     FIRST_YEAR,
     LAST_YEAR,
@@ -39,9 +40,15 @@ from estios.uk.populations import (
     get_employment_by_region_by_sector,
     get_nation_employment_by_sector,
     get_regional_mid_year_populations,
+    regional_population_projections,
+    regional_population_projections_all_ages,
+    regional_population_projections_working_ages,
 )
 from estios.uk.regions import (
+    CENTRE_FOR_CITIES_NAME_FIX_DICT,
+    ENGLISH_CITIES,
     TEN_UK_CITY_REGIONS,
+    WORKING_ENGLISH_CITIES,
     get_all_centre_for_cities_dict,
     load_and_join_centre_for_cities_data,
     load_centre_for_cities_csv,
@@ -105,20 +112,27 @@ class TestLoadingCentreForCitiesData:
         assert "Leeds" in cities_geo.index
         for section in self.SECTION_OF_COLUMNS:
             assert section in cities_geo.columns
+        for correct_index in CENTRE_FOR_CITIES_NAME_FIX_DICT.values():
+            assert correct_index in cities_geo.index
 
 
 def test_get_all_centre_for_cities() -> None:
     """Test generating city: region dictionary from Centre for Cities.
 
     Note:
-        * Currently this filters Blackburn, Newcastle and all cities from
+        * Currently this filters Bournemouth and all cities from
         Scotland and Wales,
         * Total English cities 50
     """
     test_dict: dict[str, str] = get_all_centre_for_cities_dict()
-    assert len(test_dict) == 48
+    assert len(test_dict) == 50
     for city, region in TEN_UK_CITY_REGIONS.items():
         assert test_dict[city] == region
+    assert len(WORKING_ENGLISH_CITIES) == 50
+    for city in WORKING_ENGLISH_CITIES:
+        assert city in test_dict
+    assert len(ENGLISH_CITIES) == 50
+    # assert set(ENGLISH_CITIES) - set(WORKING_ENGLISH_CITIES) == {'Bournemouth'}
 
 
 @pytest.mark.remote_data
@@ -218,6 +232,53 @@ class TestONSEnglandPopulationProjection:
             ons_york_leeds_bristol_projection.converted_regions == CONVERTED_CITY_NAMES
         )
         # ons_york_leeds_bristol_projection.regions.append("Bristol")
+
+    def test_meta_data_english_population_projection_2018_all_age(
+        self, english_pop_projections, uk_pua_manager
+    ) -> None:
+        CORRECT_AGG_POPS: Series = Series(
+            # Orginally got these results, then realised the included the "All ages" and every age column, hence dividing by 2
+            {
+                "York": 419786.0 / 2,
+                "Leeds": 1578388.0 / 2,
+                "Bristol": 1492098.0 / 2,
+                "Newcastle": 1717908.0 / 2,
+            }
+        )
+        agg_populations: Series = regional_population_projections(
+            age_range=ONS_2017_ALL_AGES_COLUMN_NAME,
+            year=2018,
+            population_projections_df=english_pop_projections,
+            region_names=CORRECT_AGG_POPS.index.to_list(),
+            regions_manager=uk_pua_manager,
+        )
+        assert (agg_populations == CORRECT_AGG_POPS).all()
+        all_ages: Series = regional_population_projections_all_ages(
+            year=2018,
+            population_projections_df=english_pop_projections,
+            region_names=CORRECT_AGG_POPS.index.to_list(),
+            regions_manager=uk_pua_manager,
+        )
+        assert (all_ages == agg_populations).all()
+
+    def test_meta_data_english_population_projection_2018_working_age(
+        self, english_pop_projections, uk_pua_manager
+    ) -> None:
+        CORRECT_AGG_POPS: Series = Series(
+            {
+                "York": 140723.0,
+                "Leeds": 522266.0,
+                "Bristol": 501884.0,
+                "Newcastle": 562362.0,
+            }
+        )
+        working_ages: Series = regional_population_projections_working_ages(
+            year=2018,
+            population_projections_df=english_pop_projections,
+            region_names=CORRECT_AGG_POPS.index.to_list(),
+            regions_manager=uk_pua_manager,
+        )
+        assert (working_ages == CORRECT_AGG_POPS).all()
 
 
 @pytest.mark.remote_data

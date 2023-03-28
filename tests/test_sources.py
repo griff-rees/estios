@@ -93,8 +93,8 @@ class TestDownloadingDataFiles:
         monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
         download_and_save_file(self.jpg_url)
         assert (
-            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 63368
-        )  # Previous result: 63391
+            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 63388
+        )  # Previous result: 63366
 
     def test_extract_file_name_from_url_query_path(self, caplog) -> None:
         correct_uri_path: str = "/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea11principalprojectionuksummary/2018based/ukpppsummary18.xls"
@@ -303,7 +303,8 @@ class TestMetaSourceManager:
             meta_source_handler._meta_data_field__url == ONS_UK_POPULATION_META_DATA.url
         )
         assert meta_source_handler.meta_data_field.size == 4949
-        assert len(caplog.messages) == 11
+        # assert len(caplog.messages) == 11
+        assert len(caplog.messages) == 23
         assert caplog.messages[0] == self.META_DATA_FIELD_LOG
         meta_source_handler._processed_meta_data_post_read_func_attr_names == ()
         assert (

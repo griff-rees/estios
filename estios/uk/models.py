@@ -11,18 +11,11 @@ from ..input_output_tables import (  # TOTAL_PRODUCTION_ROW_NAME,; UK_EXPORT_COL
     NET_SUBSIDIES_COLUMN_NAME,
     InputOutputTable,
 )
-
-# from ..input_output_tables import (  # TOTAL_PRODUCTION_ROW_NAME,; UK_EXPORT_COLUMN_NAMES,
-#     GROSS_VALUE_ADDED_ROW_NAME,
 from ..models import InterRegionInputOutput
 from ..sources import MetaData, MetaFileOrDataFrameType
 from ..utils import DateConfigType, DateType
 from . import ons_IO_2017
 from .input_output_tables import UK_EXPORT_COLUMN_NAMES, InputOutputTableUK2017
-
-# =======
-# from .input_output_tables import InputOutputTableUK2017
-# >>>>>>> origin/uk-model-refactor
 from .ons_employment_2017 import (
     CITY_SECTOR_REGION_PREFIX,
     EMPLOYMENT_QUARTER_DEC_2017,
@@ -41,20 +34,6 @@ from .regions import (
 )
 from .utils import UK_NAME, UK_NATIONAL_COLUMN_NAME
 
-# =======
-#     NOMIS_2017_SECTOR_EMPLOYMENT_METADATA,
-#     UK_JOBS_BY_SECTOR_SCALING,
-#     UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
-# )
-# from .regions import CENTRE_FOR_CITIES_CSV_FILE_NAME, CITIES_TOWNS_GEOJSON_FILE_NAME
-# from .utils import UK_NATIONAL_COLUMN_NAME
-# >>>>>>> origin/uk-model-refactor
-
-# InterRegionInputOutputUK2017 = InterRegionInputOutput.load_from_file(
-#     io_table_meta_data = ons_IO_2017.ONS_IO_TABLE_2017_METADATA,
-#     date=EMPLOYMENT_QUARTER_JUN_2017,
-# )
-
 
 @dataclass(repr=False, kw_only=True)
 class InterRegionInputOutputUK2017(InterRegionInputOutput):
@@ -71,7 +50,6 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
     regions: dict[str, str] | list[str] = field(
         default_factory=lambda: deepcopy(TEN_UK_CITY_REGIONS)
     )
-    # test_io_table: MetaData = field(default_factory=lambda: ons_IO_2017.ONS_IO_TABLE_2017_METADATA)
     raw_io_table: MetaData = field(
         default_factory=lambda: ons_IO_2017.ONS_IO_TABLE_2017_METADATA
     )
@@ -137,7 +115,7 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
     # employment_by_sector_and_region: MetaFileOrDataFrameType = (
     #     NOMIS_2017_SECTOR_EMPLOYMENT_METADATA
     # )
-    national_column_name: str = UK_NATIONAL_COLUMN_NAME
+    # national_column_name: str = UK_NATIONAL_COLUMN_NAME
     national_gva_row_name: str = GROSS_VALUE_ADDED_ROW_NAME
     national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
     national_gov_investment_column_names: tuple[
@@ -149,8 +127,6 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
     )
     import_row_names: list[str] = field(default_factory=lambda: [IMPORTS_ROW_NAME])
     _io_table_cls: Type[InputOutputTable] = InputOutputTableUK2017
-    _extract_post_read_kwargs_if_strs: bool = True
-    _extract_read_kwargs_if_strs: bool = True
 
     def __post_init__(self):
         super().__post_init__()

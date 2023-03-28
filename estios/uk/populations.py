@@ -5,7 +5,7 @@ from typing import Callable, Sequence
 from pandas import DataFrame, Series
 
 from ..sources import FilePathType, pandas_from_path_or_package
-from ..utils import SECTOR_10_CODE_DICT, aggregate_rows
+from ..utils import SECTOR_10_CODE_DICT, aggregate_rows, ensure_list_of_strs
 from .nomis_contemporary_employment import (
     NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
     NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
@@ -15,10 +15,15 @@ from .nomis_contemporary_employment import (
     clean_nomis_employment_query,
     national_employment_query,
 )
-from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
+from .ons_population_estimates import (
+    ONS_2017_ALL_AGES_COLUMN_NAME,
+    ONS_CONTEMPORARY_POPULATION_META_DATA,
+)
 
 # from ..temporal import MonthDay
 from .utils import (
+    ONS_AGES_COLUMN_NAME,
+    ONS_AREA_CODE_COLUMN_NAME,
     UK_NAME,
     UK_NATION_NAMES,
     GenericRegionsManager,
@@ -26,6 +31,7 @@ from .utils import (
     get_working_cities_puas_manager,
     load_contemporary_ons_population,
     sum_for_regions_by_la_code,
+    working_ages,
 )
 
 # def get_contemporary_regional_full_population_history(
@@ -196,6 +202,49 @@ def meta_data_reader_wrapper(
     loaded_df = pandas_from_path_or_package(path, local_path)
     kwargs[df_kwarg] = loaded_df
     return data_filter_func(**kwargs)
+
+
+def regional_population_projections(
+    year: str | int,
+    age_range: str | int | Sequence[str] | Sequence[int],
+    population_projections_df: DataFrame = None,
+    region_names: Sequence[str] | None = None,
+    regions_manager: PUASManager | GenericRegionsManager | None = None,
+    age_group_column_name: str = ONS_AGES_COLUMN_NAME,
+    set_index_to_column: str | None = ONS_AREA_CODE_COLUMN_NAME,
+    ignore_key_errors: bool = False,
+) -> Series:
+    age_range = ensure_list_of_strs(age_range)
+    if not regions_manager:
+        regions_manger = get_working_cities_puas_manager()
+    if not region_names:
+        region_names = regions_manager.names
+    populations_age_filtered: DataFrame = population_projections_df[
+        population_projections_df[age_group_column_name].isin(age_range)
+    ]
+    return Series(
+        sum_for_regions_by_la_code(
+            df=populations_age_filtered,
+            region_names=region_names,
+            column_names=[str(year)],
+            regions=regions_manager,
+            set_index_to_column=set_index_to_column,
+            ignore_key_errors=ignore_key_errors,
+            # attr="la_codes",
+        )
+    )
+
+
+def regional_population_projections_all_ages(year: str | int, **kwargs) -> Series:
+    return regional_population_projections(
+        year=year, age_range=ONS_2017_ALL_AGES_COLUMN_NAME, **kwargs
+    )
+
+
+def regional_population_projections_working_ages(year: str | int, **kwargs) -> Series:
+    return regional_population_projections(
+        year=year, age_range=list(working_ages(year)), **kwargs
+    )
 
 
 # def national_employment_by_sector_meta_data_wrapper(

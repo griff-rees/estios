@@ -3,7 +3,7 @@
 
 from collections import Counter, OrderedDict
 from dataclasses import Field, field, fields
-from datetime import date, datetime
+from datetime import date
 from functools import wraps
 from itertools import zip_longest
 from logging import getLogger
@@ -208,18 +208,6 @@ def enforce_end_str(string: str, suffix: str, on: bool) -> str:
     else:
         logger.debug(f"Ensuring {string} doesn't end with {suffix}")
         return string.removesuffix(suffix)
-
-
-def enforce_date_format(cell: str) -> str:
-    """Set convert date strings for consistent formatting."""
-    if cell.endswith("00:00"):
-        return cell.split()[0]
-    else:
-        cell = cell.strip()
-        if cell.endswith(")"):
-            # Remove flags of the form " (r)" or " (p)" and " 4 (p)"
-            cell = " ".join(cell.split()[:2])
-        return str(datetime.strptime(cell, "%b %y")).split()[0]
 
 
 def filter_by_region_name_and_type(
@@ -638,6 +626,32 @@ def get_attr_from_str(
     else:
         logger.debug(f"Extracted '{attr_str}' from {cls}, returning '{value}'")
         return value
+
+
+def ensure_list_of_strs(names: str | int | Sequence[str] | Sequence[int]) -> list[str]:
+    """Ensure `names` type(s) are/is conversted into a list of strings."""
+    if isinstance(names, str):
+        return [names]
+    if isinstance(names, int):
+        return [str(names)]
+    if isinstance(names, Sequence):
+        return [str(x) for x in names]
+
+
+def is_intable_from_str(x: str) -> bool:
+    """Return if str x could validly be converted to an int."""
+    try:
+        int_x = int(x)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
+def gen_filter_by_func(
+    iterable: Iterable, func: Callable[[...], bool] = is_intable_from_str
+) -> Generator[Any, None, None]:
+    return (x for x in iterable if is_intable_from_str(x))
 
     # return  or attr_str
     # try:

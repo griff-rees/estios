@@ -13,7 +13,9 @@ from estios.uk.ons_population_projections import (
     LAST_YEAR,
     ONS_PROJECTION_YEARS,
 )
+from estios.uk.regions import ENGLISH_CITIES
 from estios.uk.scenarios import (
+    TWO_YEARS,
     annual_io_time_series_ons_2017,
     baseline_england_annual_population_projection_config,
     baseline_england_annual_projection,
@@ -86,6 +88,18 @@ class TestAnnualProjection:
             == "27 Annual Spatial Input-Output models from 2017 to 2043: 10 sectors, 3 regions"
         )
         assert len(io_model_ts.national_employment_ts) == 27
+
+    @pytest.mark.xfail(reason="Bournemouth ids not found E06000059, E06000058")
+    @pytest.mark.remote_data
+    def test_baseline_annual_projection_3_years_all_english_cities(self) -> None:
+        io_model_ts: InterRegionInputOutputTimeSeries = (
+            baseline_england_annual_projection(years=TWO_YEARS, regions=ENGLISH_CITIES)
+        )
+        assert (
+            str(io_model_ts)
+            == "3 Annual Spatial Input-Output models from 2017 to 2025: 10 sectors, 47 regions"
+        )
+        assert len(io_model_ts.national_employment_ts) == 3
 
 
 class TestInputOutputTimeSeries:
