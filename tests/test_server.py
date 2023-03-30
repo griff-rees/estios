@@ -8,6 +8,7 @@ from typing import Final, Generator
 
 import pytest
 from dash import Dash
+from fastapi import FastAPI
 
 from estios.models import InterRegionInputOutputTimeSeries
 from estios.server.auth import AuthDB
@@ -85,7 +86,7 @@ def test_AuthDB(tmp_json_auth_file) -> None:
     assert auth_db2.users == correct_auth_dict
 
 
-def test_io_table(caplog) -> None:
+def test_io_table_2015_2017_quarters(caplog) -> None:
     io_table_log: tuple[str, int, str] = (
         "estios.server.dash_app",
         INFO,
@@ -94,3 +95,21 @@ def test_io_table(caplog) -> None:
     with caplog.at_level(INFO):
         test_server, io_time_series = get_server_dash(auth=False, io_table=True)
     assert io_table_log in caplog.record_tuples
+    assert repr(io_time_series) == "InterRegionInputOutputTimeSeries(dates=12, start='2015-03-01', end='2017-12-01', sectors=10, regions=10)"
+    assert str(io_time_series) == '12 Spatial Input-Output models from 2015-03-01 to 2017-12-01: 10 sectors, 10 regions'
+    assert len(io_time_series) == 12
+    assert isinstance(test_server, FastAPI)
+
+def test_io_table_projection(caplog, three_cities_2018_2020) -> None:
+    io_table_log: tuple[str, int, str] = (
+        "estios.server.dash_app",
+        INFO,
+        "Appending 'table-div' to layout.",
+    )
+    with caplog.at_level(INFO):
+        test_server, io_time_series = get_server_dash(input_output_ts=three_cities_2018_2020, auth=False, io_table=True)
+    assert io_table_log in caplog.record_tuples
+    assert len(io_time_series) == 3
+    assert repr(io_time_series) == "InterRegionInputOutputTimeSeries(dates=3, start=2018, end=2020, sectors=10, regions=3)"
+    assert str(io_time_series) == '3 Annual Spatial Input-Output models from 2018 to 2020: 10 sectors, 3 regions'
+    assert isinstance(test_server, FastAPI)
