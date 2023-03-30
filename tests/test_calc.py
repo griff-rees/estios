@@ -25,6 +25,7 @@ from estios.calc import (
     calc_region_distances,
     calc_transport_table,
     gross_value_added,
+    region_and_sector_convergence,
 )
 from estios.sources import MetaData
 
@@ -356,6 +357,29 @@ class TestProportionalProjection:
         assert_frame_equal(
             projected_regional_employment_df, self.PROJECTED_REGIONAL_EMPLOYMENT
         )
+
+
+def tests_region_and_sector_convergence(
+    three_cities_io,
+    correct_three_cities_net_constraints,
+    correct_three_cities_exogenous_i_m,
+    correct_three_cities_convergence_by_region,
+) -> None:
+    (
+        exogenous_i_m_constant,
+        convergence_by_region,
+        net_constraint,
+    ) = region_and_sector_convergence(
+        F_i_m=three_cities_io.F_i_m,
+        E_i_m=three_cities_io.E_i_m,
+        x_i_mn_summed=three_cities_io.x_i_mn_summed,
+        X_i_m=three_cities_io.X_i_m,
+        M_i_m=three_cities_io.M_i_m,
+        employment=three_cities_io.employment_table,
+    )
+    assert (exogenous_i_m_constant == correct_three_cities_exogenous_i_m).all()
+    assert (convergence_by_region == correct_three_cities_convergence_by_region).all()
+    assert (net_constraint == correct_three_cities_net_constraints).all()
 
 
 # Here is the entropy maximising approach for a known beta.

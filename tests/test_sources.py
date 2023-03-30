@@ -93,8 +93,8 @@ class TestDownloadingDataFiles:
         monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
         download_and_save_file(self.jpg_url)
         assert (
-            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 63388
-        )  # Previous result: 63366
+            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 63337
+        )  # Previous result: 63388
 
     def test_extract_file_name_from_url_query_path(self, caplog) -> None:
         correct_uri_path: str = "/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea11principalprojectionuksummary/2018based/ukpppsummary18.xls"

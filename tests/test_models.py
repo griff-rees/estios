@@ -22,27 +22,27 @@ class TestInputOutputModel:
 
     """Test constructing and running a 3 city InterRegionInputOutput model."""
 
-    @pytest.mark.skip(f"Cache currently interferes with 3 city results")
-    def test_default_construction(
-        self,
-        tmp_path,
-        monkeypatch,
-        nomis_2017_10_cities_employment,
-        nomis_2017_national_employment,
-    ) -> None:  # -> Generator[TestMetaExample, None, None]:
-        monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
-        io_model = InterRegionInputOutputUK2017()
-        assert (
-            str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 10 regions"
-        )
-        assert (
-            repr(io_model)
-            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=10)"
-        )
-        assert_frame_equal(
-            io_model.regional_employment, nomis_2017_10_cities_employment
-        )
-        # assert_series_equal(io_model.national_employment, nomis_2017_national_employment)
+    # @pytest.mark.skip(f"Cache currently interferes with 3 city results")
+    # def test_default_construction(
+    #    self,
+    #    tmp_path,
+    #    monkeypatch,
+    #    nomis_2017_10_cities_employment,
+    #    nomis_2017_national_employment,
+    # ) -> None:  # -> Generator[TestMetaExample, None, None]:
+    #    monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
+    #    io_model = InterRegionInputOutputUK2017()
+    #    assert (
+    #        str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 10 regions"
+    #    )
+    #    assert (
+    #        repr(io_model)
+    #        == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=10)"
+    #    )
+    #    assert_frame_equal(
+    #        io_model.regional_employment, nomis_2017_10_cities_employment
+    #    )
+    #    # assert_series_equal(io_model.national_employment, nomis_2017_national_employment)
 
     def test_3_city_construction(
         self,
@@ -66,7 +66,9 @@ class TestInputOutputModel:
         assert_frame_equal(
             three_cities_io.regional_employment, nomis_2017_3_cities_employment
         )
-        # assert_series_equal(three_cities_io.national_employment, nomis_2017_national_employment)
+        assert_series_equal(
+            three_cities_io.national_employment, nomis_2017_national_employment
+        )
 
     def test_3_city_national_employment(
         self, three_cities_io, nomis_2017_national_employment
@@ -85,15 +87,15 @@ class TestInputOutputModel:
             == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=10)"
         )
 
-    def test_3_city_construction(self, three_cities) -> None:
-        io_model = InterRegionInputOutputUK2017(regions=three_cities)
-        assert (
-            str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 3 regions"
-        )
-        assert (
-            repr(io_model)
-            == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=3)"
-        )
+    # def test_3_city_construction(self, three_cities) -> None:
+    #     io_model = InterRegionInputOutputUK2017(regions=three_cities)
+    #     assert (
+    #         str(io_model) == "UK 2017-06-01 Input-Output model: 10 sectors, 3 regions"
+    #     )
+    #     assert (
+    #         repr(io_model)
+    #         == "InterRegionInputOutputUK2017(nation='UK', date='2017-06-01', sectors=10, regions=3)"
+    #     )
 
     def test_3_city_distances(self, three_cities_io) -> None:
         CORRECT_DISTANCES = Series(
@@ -136,10 +138,10 @@ class TestInputOutputModel:
         correct_leeds_2017_imports,
     ) -> None:
         # CORRECT_X_m_national.index.name = "Area"
-        # assert_series_equal(
-        #     correct_uk_national_employment_2017,
-        #     three_cities_results.national_employment,
-        # )
+        assert_series_equal(
+            correct_uk_national_employment_2017,
+            three_cities_results.national_employment,
+        )
         assert_series_equal(
             correct_uk_ons_X_m_national, three_cities_results.X_m_national
         )
@@ -432,6 +434,19 @@ class TestInputOutputModel:
             f"{three_cities_io} loaded pre-existing e_m_model and y_ij_m_model results"
             in caplog.text
         )
+
+    def test_import_export_convergence(
+        self,
+        three_cities_io,
+        correct_three_city_e_i_m_model,
+        correct_three_city_y_ij_m_model,
+    ) -> None:
+        e_i_m, y_ij_m = three_cities_io.import_export_convergence()
+        assert (e_i_m == correct_three_city_e_i_m_model).all().all()
+        assert (y_ij_m == correct_three_city_y_ij_m_model).all().all()
+
+    def test_y_ij_m(self, three_cities_results, correct_three_city_y_ij_m) -> None:
+        assert (three_cities_results.y_ij_m == correct_three_city_y_ij_m).all()
 
 
 class TestInputOutputModelAllCities:

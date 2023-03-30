@@ -180,7 +180,7 @@ def column_to_series(
     if isinstance(column, str):
         return df[column].rename(new_series_name)
     else:
-        return df.iloc[column].rename(new_series_name)
+        return df.iloc[:, column].rename(new_series_name)
 
 
 def log_x_or_return_zero(x: float) -> Optional[float]:

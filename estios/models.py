@@ -79,6 +79,7 @@ from .utils import (
     df_set_columns,
     filter_attrs_by_substring,
     filter_by_region_name_and_type,
+    generate_i_m_index,
     generate_ij_index,
     generate_ij_m_index,
     get_df_first_row,
@@ -468,6 +469,13 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         """Return self.region x self.region MultiIndex."""
         return generate_ij_m_index(
             self.regions, self.sectors, self.national_column_name
+        )
+
+    @property
+    def _i_m_index(self) -> MultiIndex:
+        """Return self.region_names x self.sector_names MultiIndex."""
+        return generate_i_m_index(
+            self.region_names, self.sector_names, self.national_column_name
         )
 
     @property
