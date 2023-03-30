@@ -619,13 +619,7 @@ def region_and_sector_convergence(
     employment: DataFrame,
 ) -> tuple[Series, Series, Series]:
     """Enforce exogenous constraints through convergence by region and sector."""
-    exogenous_i_m_constant_df: DataFrame = (
-        F_i_m
-        + E_i_m
-        + x_i_mn_summed
-        - X_i_m
-        - M_i_m
-    )
+    exogenous_i_m_constant_df: DataFrame = F_i_m + E_i_m + x_i_mn_summed - X_i_m - M_i_m
     exogenous_i_m_constant: Series = exogenous_i_m_constant_df.stack()
 
     exogenous_i_m_constant.index.set_names(["City", "Sector"], inplace=True)

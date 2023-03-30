@@ -315,6 +315,18 @@ def nomis_2017_nation_employment_table(tmp_path_factory) -> DataFrame:
     )
 
 
+# @pytest.mark.remote_data
+# @pytest.mark.nomis
+# @pytest.fixture(scope="session")
+# def baseline_england_scenario() -> InterRegionInputOutputTimeSeries:
+
+#         (
+#             annual_projection_config,
+#             first_io_time_point,
+#         ) = baseline_england_annual_population_projection_config()
+#     return baseline_england_annual_projection()
+
+
 @pytest.fixture
 def correct_uk_ons_X_m_national(three_cities_io) -> Series:
     """Example X_m_national talies for testing.
