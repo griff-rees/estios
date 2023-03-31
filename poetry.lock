@@ -2039,14 +2039,14 @@ test = ["pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)", "ypy-we
 
 [[package]]
 name = "jupyterlab"
-version = "3.6.2"
+version = "3.6.3"
 description = "JupyterLab computational environment"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "jupyterlab-3.6.2-py3-none-any.whl", hash = "sha256:6c87c5910f886a14009352bc63f640961b206f73ed650dcf94d65f9dfcb30f95"},
-    {file = "jupyterlab-3.6.2.tar.gz", hash = "sha256:e55bc40c36c2a52b76cf301138507a5488eb769137dd39d9f31a6259a00c6b03"},
+    {file = "jupyterlab-3.6.3-py3-none-any.whl", hash = "sha256:6aba0caa771697d02fbf409f9767b2fdb4ee32ce935940e3b9a0d5d48d994d0f"},
+    {file = "jupyterlab-3.6.3.tar.gz", hash = "sha256:373e9cfb8a72edd294be14f16662563a220cecf0fb26de7aab1af9a29b689b82"},
 ]
 
 [package.dependencies]
@@ -2080,14 +2080,14 @@ files = [
 
 [[package]]
 name = "jupyterlab-server"
-version = "2.21.0"
+version = "2.22.0"
 description = "A set of server components for JupyterLab and JupyterLab like applications."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "jupyterlab_server-2.21.0-py3-none-any.whl", hash = "sha256:ff1e7a81deb2dcb433215d469000988590fd5a5733574aa2698d643a6c9b3ace"},
-    {file = "jupyterlab_server-2.21.0.tar.gz", hash = "sha256:b4f5b48eaae1be83e2fd6fb77ac49d9b639be4ca4bd2e05b5368d29632a93725"},
+    {file = "jupyterlab_server-2.22.0-py3-none-any.whl", hash = "sha256:f4a7263ada89958854631a64bed45285caeac482925233159709f643c5871490"},
+    {file = "jupyterlab_server-2.22.0.tar.gz", hash = "sha256:0f9f6752b0c534a7b22a6542b984fa6a2c18ab4d4e0a4c79f191138506a9a75f"},
 ]
 
 [package.dependencies]
@@ -2803,14 +2803,14 @@ files = [
 
 [[package]]
 name = "nbclassic"
-version = "0.5.3"
+version = "0.5.4"
 description = "Jupyter Notebook as a Jupyter Server extension."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "nbclassic-0.5.3-py3-none-any.whl", hash = "sha256:e849277872d9ffd8fe4b39a8038d01ba82d6a1def9ce11b1b3c26c9546ed5131"},
-    {file = "nbclassic-0.5.3.tar.gz", hash = "sha256:889772a7ba524eb781d2901f396540bcad41151e1f7e043f12ebc14a6540d342"},
+    {file = "nbclassic-0.5.4-py3-none-any.whl", hash = "sha256:df78e4ba143f35084ad060deec16cb1d4839dde47bfdbc4232beb7071a6d70ea"},
+    {file = "nbclassic-0.5.4.tar.gz", hash = "sha256:312b3f7d7ff2e6c261d51799bb12e6493498ab47d3469d3a01015d5533fd4d2b"},
 ]
 
 [package.dependencies]

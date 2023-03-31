@@ -657,6 +657,14 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         #     return Series(self.io_table.loc[self.import_row_names, self.sector_names])
 
     @property
+    def M_i_m_national(self) -> DataFrame | Series:
+        """Return national final demand columns.
+
+        Todo:
+            * Add a decorator to apply Series to other cases
+        """
+        return sum_if_multi_column_df(self.national_imports)
+
     #
     # @cached_property
     # def X_i_m(self) -> DataFrame:
@@ -671,6 +679,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     #     ).astype("float64")
 
     # @cached_property
+    @property
     def M_i_m(self) -> DataFrame:
         """Return the imports of sector $m$ in region $i$ and cache results.
 
@@ -700,6 +709,11 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
     def national_final_demand(self) -> DataFrame:
         """Return national final demand columns."""
         return self.io_table.loc[self.sector_names, self.final_demand_column_names]
+
+    @property
+    def F_i_m_national(self) -> Series:
+        """Aggregate self.national_final_demand."""
+        return sum_if_multi_column_df(self.national_final_demand)
 
     @property
     def F_i_m_full(self) -> DataFrame:

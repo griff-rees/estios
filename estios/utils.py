@@ -561,12 +561,14 @@ def df_dict_to_multi_index(
     return df
 
 
-def sum_if_multi_column_df(df: DataFrame) -> Series:
+def sum_if_multi_column_df(df_or_series: DataFrame | Series) -> DataFrame:
     """Sum all columns to a series, or return single column as Series."""
-    if len(df.columns) > 1:
-        return df.sum(axis="columns")
+    if isinstance(df_or_series, Series):
+        return DataFrame(df_or_series)
+    elif len(df_or_series.columns) > 1:
+        return df_or_series.sum(axis="columns")
     else:
-        return df
+        return df_or_series
 
 
 def df_set_columns(df: DataFrame, column_names: Sequence[str]) -> DataFrame:
