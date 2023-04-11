@@ -6,7 +6,7 @@ from itertools import product
 from logging import DEBUG
 
 import pytest
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 
 from estios.server.dash_app import DEFAULT_SERVER_PATH, PATH_SPLIT_CHAR
 from estios.uk.utils import THREE_UK_CITY_REGIONS, UK_NATIONAL_COLUMN_NAME
@@ -26,6 +26,8 @@ from estios.utils import (  # download_and_extract_zip_file,
     match_df_cols_rows,
     match_ordered_iters,
     name_converter,
+    human_readable_num_abbrv,
+    apply_func_to_df_var,
 )
 
 
@@ -228,9 +230,7 @@ class TestGetAttrFromAttrStr:
             f"Parameter `strict` set to False, returning 'selfa'",
         ]
 
-    def test_get_base_attr_with_self_no_dot_strict(
-        self, example_test_class, strict=True
-    ) -> None:
+    def test_get_base_attr_with_self_no_dot_strict(self, example_test_class) -> None:
         with pytest.raises(GetAttrStrictError) as err:
             get_attr_from_str(example_test_class, "selfa", strict=True)
         assert self._caplog.messages == [
@@ -249,3 +249,26 @@ class TestGetAttrFromAttrStr:
         assert self._caplog.messages == [
             f"`attr_str`: 'self' == `self_str`: 'self', returning {example_test_class}",
         ]
+
+
+def test_human_readable_num_abbrv() -> None:
+    assert human_readable_num_abbrv(10**13) == '10T'
+    assert human_readable_num_abbrv(10**10) == '10B'
+    assert human_readable_num_abbrv(10**7) == '10M'
+    assert human_readable_num_abbrv(10**4) == '10K'
+    assert human_readable_num_abbrv(10**2) == '100'
+
+
+def test_apply_human_readable(correct_three_city_y_ij_m) -> None:
+    CORRECT_AGRICULTURE_HUMAN_READABLE: Series = Series(
+        [ "187M", "-32.6M", "-24.1M", "-3.26M", "-467M", "363M", ],
+        index=correct_three_city_y_ij_m.unstack().index,
+    )
+    y_ij_m_unstack: DataFrame = correct_three_city_y_ij_m.unstack()
+    human_readable =  apply_func_to_df_var(
+        df=y_ij_m_unstack,
+        var_name="Agriculture",
+        func=human_readable_num_abbrv,
+        axis="columns",
+    )
+    assert (human_readable == CORRECT_AGRICULTURE_HUMAN_READABLE).all()

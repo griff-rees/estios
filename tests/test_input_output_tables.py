@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
+from typing import Generator, Any
 
 import pytest
 from pandas import DataFrame
@@ -43,9 +44,10 @@ def io_1841_table() -> InputOutputTable:
 
 
 @pytest.fixture
+@pytest.mark.remote_data
 def national_jobs(
     ons_jobs_meta_data=ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA,
-) -> DataFrame:
+) -> Generator[Any | None, None, None]:
     yield ons_jobs_meta_data.read()
     ons_jobs_meta_data.delete_local()
 
@@ -53,7 +55,7 @@ def national_jobs(
 @pytest.fixture(scope="module")
 def aggregated_city_sector(
     tmp_path_factory,
-    ons_jobs_meta_data=ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA,
+    # ons_jobs_meta_data=ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA,
 ) -> DataFrame:
     return aggregate_rows(NOMIS_2017_SECTOR_EMPLOYMENT_METADATA.read(), True)
 
@@ -256,11 +258,15 @@ class TestLoadingCSVIOTable:
 
 
 class TestLoadingEmploymentData:
+
+    """Test UK jobs time series data processing/managing."""
+
     DATE_1997: str = "1997-03-01"
     DATE_2021: str = "2021-03-01"
     DATE_FIRST_COVID: str = "2020-12-01"
     GREATER_MANCHESTER: str = "combauth:Greater Manchester"
 
+    @pytest.mark.remote_data
     def test_load_ons_jobs(self, national_jobs) -> None:
         """Test importing National data from an ONS export."""
         assert not national_jobs[COVID_FLAGS_COLUMN][self.DATE_1997]
@@ -294,6 +300,9 @@ class TestLoadingEmploymentData:
 
 @pytest.mark.remote_data
 class TestInputOutputOECD:
+
+    """Test importing and querying OECD Input-Output data via pymrio."""
+
     @pytest.mark.slow("default is very slow")
     def test_oecd_pymrio_wrapper_default(self) -> None:
         meta_data: MRIOMetaData = _pymrio_download_wrapper()

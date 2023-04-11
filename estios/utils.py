@@ -79,6 +79,8 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
     "Other services": ["R", "S", "T"],
 }
 
+DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS: Final[tuple[str, ...]] = ('', 'K', 'M', 'B', 'T')
+
 
 def name_converter(names: Sequence[str], name_mapper: dict[str, str]) -> list[str]:
     """Return region names with any conversions specified in name_mapper"""
@@ -651,9 +653,38 @@ def is_intable_from_str(x: str) -> bool:
 
 
 def gen_filter_by_func(
-    iterable: Iterable, func: Callable[[...], bool] = is_intable_from_str
+    iterable: Iterable, func: Callable[[Any], bool] = is_intable_from_str
 ) -> Generator[Any, None, None]:
-    return (x for x in iterable if is_intable_from_str(x))
+    return (x for x in iterable if func(x))
+
+
+def human_readable_num_abbrv(
+    num: float,
+    magnitude_labels: Sequence[str] = DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS,
+) -> str:
+    """Convert number into abbreviated str.
+
+    Note:
+        * Refactor from
+        https://stackoverflow.com/questions/68005050/b-billions-instead-of-g-giga-in-python-plotly-customdata-si-prefix-d3
+    """
+    scaled_num: float = float('{:.3g}'.format(num))
+    magnitude: int = 0
+    while abs(scaled_num) >= 1000:
+        magnitude += 1
+        scaled_num /= 1000.0
+    num_str: str = '{:f}'.format(scaled_num).rstrip('0').rstrip('.')
+    unit_str: str = magnitude_labels[magnitude]
+    return num_str + unit_str
+
+
+def apply_func_to_df_var(
+    df: DataFrame,
+    var_name: str,
+    func: Callable[[float, Any], str],
+    axis="columns",
+) -> DataFrame:
+    return df.apply(lambda vector: func(vector[var_name]), axis=axis)
 
     # return  or attr_str
     # try:

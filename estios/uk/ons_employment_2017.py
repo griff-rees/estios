@@ -59,7 +59,7 @@ CITY_SECTOR_SKIPFOOTER: Final[int] = 8
 CITY_SECTOR_USECOLS: Final[Callable[[str], bool]] = lambda x: "Unnamed" not in x
 CITY_SECTOR_INDEX_COLUMN: Final[int] = 0
 
-CITY_SECTOR_READ_KWARGS: Final[dict[str, int | Callable]] = dict(
+CITY_SECTOR_READ_KWARGS: Final[dict[str, int | str | Callable]] = dict(
     skiprows=CITY_SECTOR_SKIPROWS,
     skipfooter=CITY_SECTOR_SKIPFOOTER,
     engine=CITY_SECTOR_ENGINE,
@@ -159,7 +159,7 @@ ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA: Final[MetaData] = MetaData(
     url=ONS_CONTEMPORARY_JOBS_URL,
     path=UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
     license=OpenGovernmentLicense,
-    auto_download=True,
+    auto_download=False,
     _package_data=True,
     _reader_func=pandas_from_path_or_package,
     _reader_kwargs=dict(
