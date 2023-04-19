@@ -1,6 +1,6 @@
 # Economic Spatial Temporal Input-Output Systems: ESTIOS
 
-This package combines classic work on Input-Output economics[^leontif] to estimate trade between different different geographic regions (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)) and economic sectors, incorporating transport costs[^wilson] and extending to model changes over time.
+This package combines classic work on Input-Output economics[^leontif] with transport costs[^wilson] and changes over time to estimate trade between different geographic regions (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)).
 
 To begin we infer UK city trade from national Input-Output tables by weighting on city employment data per sector and simply the distance between cities ([as a crow flies](https://en.wikipedia.org/wiki/As_the_crow_flies)).
 
@@ -65,7 +65,7 @@ This software has been developed as part of two UK Research and Innovation (UKRI
 - [AI for Science and Governance (ASG)](https://www.turing.ac.uk/research/asg), specifically Wave 1 of ASG under the Engineering and Physical Sciences Research Council (EPSRC), specifically the *Digital Twins: Urban Analytics* theme. Grant reference: EP/W006022/1 
 - [Living with Machines](https://livingwithmachines.ac.uk), funded under the Arts and Humanities Research Council (AHRC), with The Alan Turing Institute, the British Library and the Universities of Cambridge, East Anglia, Exeter, and Queen Mary University of London. Grant reference: AH/S01179X/1
 
-We are greatful for the extensive advice and support from colleagues across both projects.
+We are grateful for the extensive advice and support from colleagues across both projects.
 
 [^leontif]: Leontief, Wassily. Input-Output Economics. Oxford, UNITED STATES: Oxford University Press, Incorporated, 1986. http://ebookcentral.proquest.com/lib/manchester/detail.action?docID=4701165.
 
