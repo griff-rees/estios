@@ -294,7 +294,7 @@ class DataLicense:
 
     name: str
     url: str
-    version: Optional[int | str]
+    version: int | str | None
 
     def __str__(self) -> str:
         if self.version:

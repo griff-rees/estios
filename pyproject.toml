@@ -8,34 +8,35 @@ readme = "README.md"
 repository = "https://github.com/griff-rees/estios"
 
 [tool.poetry.dependencies]
-python = "~3.10"
+python = "~3.11"
 geopandas = "^0.10.2"
-plotly = "^5.3.1"
-typer = {version = "^0.4.0", extras = ["all"]}
-openpyxl = "^3.0.9"
+plotly = "^5.14.1"
+typer = {version = "^0.4.2", extras = ["all"]}
+openpyxl = "^3.1.2"
 setuptools = "^62.6.0"
-numpy = "^1.23.0"
+numpy = "^1.24.2"
 xlrd = "^2.0.1"
 # GDAL = {version = "3.5.3", platform = "darwin"}
 # Fiona = "1.8.21"
 # pyogrio = "^0.4.2"
 # pyogrio = "^0.4.2"
 # pyarrow = "^10.0.1"
-Fiona = "^1.8.22"
+Fiona = "^1.9.3"
 pymrio = "^0.4.8"
 country-converter = "^0.8.0"
 poetry-dotenv-plugin = "^0.1.0"
 ukcensusapi = "^1.1.6"
+psutil = "5.9.4"
 
 [tool.poetry.group.jupyter.dependencies]
-jupyterlab = "^3.2.2"
+jupyterlab = "^3.6.3"
 
 [tool.poetry.group.server]
 optional = true
 
 [tool.poetry.group.server.dependencies]
 python-dotenv = {version = "^0.19.2", extras = ["cli"]}
-jupyter-dash = "^0.4.0"
+jupyter-dash = "^0.4.2"
 fastapi = "^0.70.1"
 uvicorn = "^0.16.0"
 dash-auth = "^1.4.1"
@@ -45,29 +46,29 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 pytest-remotedata = "^0.3.3"
-pytest = "^6.1"
-pre-commit = "^2.18.1"
+pytest = "^6.2.5"
+pre-commit = "^2.21.0"
 pytest-cov = "^3.0.0"
-pytest-sugar = "^0.9.4"
+pytest-sugar = "^0.9.7"
 mypy = "^0.982"
-pytest-xdist = "^3.1.0"
+pytest-xdist = "^3.2.1"
 pymrio = "^0.4.8"
 
 [tool.poetry.group.docs]
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^8.3.9"
+mkdocs-material = "^8.5.11"
 mkdocs-typer = "^0.0.2"
-mkdocstrings = {extras = ["python"], version = "^0.19.0"}
+mkdocstrings = {extras = ["python"], version = "^0.19.1"}
 mkdocs-literate-nav = "^0.5.0"
 mkdocs-gen-files = "^0.4.0"
-mkdocs-section-index = "^0.3.4"
-black = "^22.10.0"
-pymdown-extensions = "^9.6"
-mkdocs-bibtex = "^2.8.5"
+mkdocs-section-index = "^0.3.5"
+black = "^22.12.0"
+pymdown-extensions = "^9.11"
+mkdocs-bibtex = "^2.8.16"
 mktestdocs = "^0.2.0"
-markdown-exec = {extras = ["ansi"], version = "^1.2.0"}
+markdown-exec = {extras = ["ansi"], version = "^1.6.0"}
 tabulate = "^0.9.0"
 
 [build-system]
@@ -85,6 +86,7 @@ addopts = """
 --doctest-modules
 -m "not slow"
 --ignore=notebooks
+--ignore-glob=*PRE_MERGE.py
 """
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
