@@ -3,13 +3,11 @@
 
 from functools import wraps
 from logging import getLogger
-from typing import Callable, Final, Iterable, Optional, Sequence
+from typing import Any, Callable, Final, Iterable, Optional, Sequence
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
 
-# from .input_output_tables import SECTOR_10_CODE_DICT, TOTAL_OUTPUT_COLUMN_NAME
-# from .uk.regions import UK_CITY_REGIONS, UK_EPSG_GEO_CODE
 from .uk.regions import UK_EPSG_GEO_CODE
 from .utils import (
     CITY_COLUMN,
@@ -47,6 +45,8 @@ INITIAL_E_COLUMN_PREFIX: str = "initial "
 INITIAL_P: Final[float] = 0.1  # For initial e_m_iteration e calculation
 DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
+RESIDUAL_SERIES_NAME: str = "Residual"
+
 
 @dtype_wrapper("float64")
 def technical_coefficients(
@@ -78,38 +78,33 @@ def X_i_m_scaled(
     return total_production * employment / national_employment
 
 
-# def M_i_m_scaled(
-#     imports: Series, employment: DataFrame, national_employment: Series
-# ) -> DataFrame:
-#     """Estimate imports of sector $m$ in region $i$.
-#
-#     $M_i^m = M_*^m * Q_i^m/Q_*^m$
-#     """
-#     return imports * employment / national_employment
-#
-#
-# def F_i_m_scaled(
-#     final_demand: Series, employment: DataFrame, national_employment: Series
-# ) -> DataFrame:
-#     """Estimate the final demand of sector $m$ in region $i$.
-#
-#     $F_i^m = F_*^m * Q_i^m/Q_*^m$
-#     """
-#     return final_demand * employment / national_employment
-#
-#
-# def E_i_m_scaled(
-#     exports: Series, employment: DataFrame, national_employment: Series
-# ) -> DataFrame:
-#     """Estimate exports of sector $m$ in region $i$.
-#
-#     $E_i^m = E_*^m * Q_i^m/Q_*^m$
-#     """
-#     return exports * employment / national_employment
-#
-#
 class InputOutputBaseException(Exception):
     ...
+
+
+def set_attrs(attr_dict: dict[str, Any]):
+    def wrapper(cls):
+        for attr_name, attr_val in attr_dict.items():
+            # def getAttr(self, attr_name=attr_name):
+            #     return getattr(self, "_" + attr_name)
+            # def setAttr(self, value, attr_name=attr_name):
+            #     setattr(self, "_" + attr_name, value)
+            # prop = property(getAttr, setAttr)
+            if (
+                isinstance(attr_val, Sequence)
+                and len(attr_val) == 2
+                and callable(attr_val[0])
+            ):
+                logger.debug(f"Calling {attr_val[0]} with " f"params: {attr_val[1]}")
+                attr_val = attr_val[0](**attr_val[1])
+            logger.debug(f"Setting {cls} with params: {attr_val[1]}")
+            setattr(cls, attr_name, attr_val)
+        return cls
+
+    return wrapper
+
+
+# def set_attrs(obj: object, setters: dict[str, Any])
 
 
 def infer_sector_names(
@@ -408,18 +403,6 @@ def calc_region_distances(
     return region_distances
 
 
-# def calc_region_distances(
-#     regions_df: GeoDataFrame,
-#     regions: Iterable[str] = TEN_UK_CITY_REGIONS,
-#     other_regions: Optional[Iterable[str]] = None,
-#     distance_CRS: str = UK_EPSG_GEO_CODE,
-#     origin_region_column: str = CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
-#     destination_region_column: str = OTHER_CITY_COLUMN + DISTANCE_COLUMN_SUFFIX,
-#     final_distance_column: str = DISTANCE_COLUMN,
-#     unit_divide_conversion: float = DISTANCE_UNIT_DIVIDE,
-# ) -> GeoDataFrame:
-
-
 def centroid_distance_table(
     region_df: GeoDataFrame,
 ) -> DataFrame:
@@ -453,161 +436,6 @@ def calc_transport_table(
 
 def doubly_constrained(regions_df: DataFrame) -> DataFrame:
     pass
-
-
-# def doubly_constrained(regions_df: GeoDataFrame) -> GeoDataFrame:
-#     doubly_constrained_df = regions_df.copy()
-#     # create some Oi and Dj columns in the dataframe and store row and column totals in them:
-#     # to create O_i, take cdatasub ...then... group by origcodenew ...then... summarise by calculating the sum of Total
-#     # O_i <- cdatasub %>% group_by(OrigCodeNew) %>% summarise(O_i = sum(Total))
-#     # cdatasub$O_i <- O_i$O_i[match(cdatasub$OrigCodeNew,O_i$OrigCodeNew)]
-#     # D_j <- cdatasub %>% group_by(DestCodeNew) %>% summarise(D_j = sum(Total))
-#     # cdatasub$D_j <- D_j$D_j[match(cdatasub$DestCodeNew,D_j$DestCodeNew)]
-#     doubly_constrained_df["O_i"] = doubly_constrained_df.groupby(["Orig"])[
-#         "Total"
-#     ].transform("sum")
-#     doubly_constrained_df["D_j"] = doubly_constrained_df.groupby(["Dest"])[
-#         "Total"
-#     ].transform("sum")
-#
-#     # if(tail(names(coef(doubSim)),1)=="dist"):
-#     #     doubly_constrained_df$beta = coef(doubSim)["dist"]
-#     #     disdecay = 0
-#     # else:
-#     #     doubly_constrained_df$beta = coef(doubSim)["log(dist)"]
-#     #     disdecay = 1
-#     if not log_dist:
-#         beta = poisson_model_dist.params["dist"]
-#         disdecay = False
-#     else:
-#         beta = poisson_model_log_dist.params["log_dist"]
-#         disdecay = True
-#     # Create some new Ai and Bj columns and fill them with starting values
-#     # doubly_constrained_df$Ai <- 1
-#     # doubly_constrained_df$Bj <- 1
-#     # doubly_constrained_df$OldAi <- 10
-#     # doubly_constrained_df$OldBj <- 10
-#     # doubly_constrained_df$diff <- abs((doubly_constrained_df$OldAi-doubly_constrained_df$Ai)/boroughs_df$OldAi)
-#     doubly_constrained_df["Ai"] = 1
-#     doubly_constrained_df["Bj"] = 1
-#     doubly_constrained_df["OldAi"] = 10
-#     doubly_constrained_df["OldBj"] = 10
-#     doubly_constrained_df["Ai_diff"] = abs(
-#         (doubly_constrained_df["OldAi"] - doubly_constrained_df["Ai"])
-#         / boroughs_df["OldAi"]
-#     )
-#     # create convergence and iteration variables and give them initial values
-#     cnvg = 1
-#     its = 0
-#     # This is a while-loop which will calculate Orig and Dest balancing
-#     # factors until the specified convergence criteria is met
-#     while cnvg > 0.001:
-#         print("iteration ", its)
-#         its += 1  # increment the iteration counter by 1
-#         # First some initial calculations for Ai...
-#         if not disdecay:
-#             doubly_constrained_df["Ai"] = (
-#                 doubly_constrained_df["Bj"]
-#                 * doubly_constrained_df["D_j"]
-#                 * exp(boroughs_df["dist"] * beta)
-#             )
-#         else:
-#             doubly_constrained_df["Ai"] = (
-#                 doubly_constrained_df["Bj"]
-#                 * doubly_constrained_df["D_j"]
-#                 * exp(log(boroughs_df["log_dist"] * beta))
-#             )
-#         # aggregate the results by your Origs and store in a new dataframe
-#         # AiBF <- aggregate(Ai ~ Orig, data = cdatasub, sum)
-#         AiBF_df: DataFrame = DataFrame(
-#             data={"Ai_denom": doubly_constrained_df.groupby(["Orig"])["Ai"].sum()}
-#         )
-#         # now divide by 1
-#         # AiBF$Ai <- 1/AiBF$Ai
-#         AiBF_df["Ai"] = 1 / AiBF_df["Ai_denom"]
-#         print("AiBF_df:", AiBF_df)
-#         # and replace the initial values with the new balancing factors
-#         # cdatasub$Ai = ifelse(!is.na(updates), updates, cdatasub$Ai)
-#         updates: DataFrame = doubly_constrained_df.merge(
-#             AiBF_df, how="outer", left_on="Orig", right_index=True
-#         )["Ai_y"]
-#         if not updates.isnull().values.any():
-#             doubly_constrained_df["Ai"] = updates
-#         # now, if not the first iteration, calculate the difference between
-#         # the new Ai values and the old Ai values and once done, overwrite
-#         # the old Ai values with the new ones.
-#         # if(its==1){
-#         #    cdatasub$OldAi <- cdatasub$Ai
-#         # } else {
-#         # cdatasub$diff <- abs((cdatasub$OldAi-cdatasub$Ai)/cdatasub$OldAi)
-#         # cdatasub$OldAi <- cdatasub$Ai
-#         # }
-#         if its == 0:
-#             doubly_constrained_df["OldAi"] = doubly_constrained_df["Ai"]
-#         else:
-#             doubly_constrained_df["diff"] = abs(
-#                 (doubly_constrained_df["OldAi"] - doubly_constrained_df["Ai"])
-#                 / boroughs_df["OldAi"]
-#             )
-#             print("Ai diff:", doubly_constrained_df["diff"])
-#             doubly_constrained_df["OldAi"] = doubly_constrained_df["Ai"]
-#         # Now some similar calculations for Bj...
-#         # if(disdecay==0){
-#         #   cdatasub$Bj <- (cdatasub$Ai*cdatasub$O_i*exp(cdatasub$dist*cdatasub$beta))
-#         # } else {
-#         #   cdatasub$Bj <- (cdatasub$Ai*cdatasub$O_i*exp(log(cdatasub$dist)*cdatasub$beta))
-#         # }
-#         if not disdecay:
-#             doubly_constrained_df["Bj"] = (
-#                 doubly_constrained_df["Ai"]
-#                 * doubly_constrained_df["O_i"]
-#                 * exp(boroughs_df["dist"] * beta)
-#             )
-#         else:
-#             doubly_constrained_df["Bj"] = (
-#                 doubly_constrained_df["Ai"]
-#                 * doubly_constrained_df["O_i"]
-#                 * exp(log(boroughs_df["log_dist"] * beta))
-#             )
-#         # #aggregate the results by your Dests and store in a new dataframe
-#         # BjBF <- aggregate(Bj ~ Dest, data = cdatasub, sum)
-#         BjBF_df: DataFrame = DataFrame(
-#             data={"Bj_denom": doubly_constrained_df.groupby(["Dest"])["Bj"].sum()}
-#         )
-#         # #now divide by 1
-#         # BjBF$Bj <- 1/BjBF$Bj
-#         BjBF_df["Bj"] = 1 / BjBF_df["Bj_denom"]
-#         print("BjBF_df:", BjBF_df)
-#         # #and replace the initial values by the balancing factor
-#         # updates = BjBF[match(cdatasub$Dest,BjBF$Dest),"Bj"]
-#         # cdatasub$Bj = ifelse(!is.na(updates), updates, cdatasub$Bj)
-#         updates: DataFrame = doubly_constrained_df.merge(
-#             BjBF_df, how="outer", left_on="Dest", right_index=True
-#         )["Bj_y"]
-#         if not updates.isnull().values.any():
-#             doubly_constrained_df["Bj"] = updates
-#         # #now, if not the first iteration, calculate the difference between the new Bj values and the old Bj values and once done, overwrite the old Bj values with the new ones.
-#         # if(its==1){
-#         # cdatasub$OldBj <- cdatasub$Bj
-#         # } else {
-#         # cdatasub$diff <- abs((cdatasub$OldBj-cdatasub$Bj)/cdatasub$OldBj)
-#         # cdatasub$OldBj <- cdatasub$Bj
-#         # }
-#         if its == 1:
-#             doubly_constrained_df["OldBj"] = doubly_constrained_df["Bj"]
-#         else:
-#             doubly_constrained_df["diff"] = abs(
-#                 (doubly_constrained_df["OldBj"] - doubly_constrained_df["Bj"])
-#                 / boroughs_df["OldBj"]
-#             )
-#             doubly_constrained_df["OldBj"] = doubly_constrained_df["Bj"]
-#         # #overwrite the convergence variable with
-#         # cnvg = sum(cdatasub$diff)
-#         cnvg = sum(doubly_constrained_df["diff"])
-#         print("Converge:", cnvg)
-#
-#     print(doubly_constrained_df[["OldAi", "Ai", "OldBj", "Bj", "diff"]])
-#     return doubly_constrained_df
 
 
 def region_and_sector_convergence(
@@ -696,22 +524,6 @@ def import_export_convergence(
     return model_e_m, model_y_ij_m
 
 
-# def scale_region_var_by_national(
-#     national_var: Union[float, Series],
-#     national_sector_var: Union[float, Series],
-#     region_var: Union[float, Series],
-# ) -> Union[float, Series]:
-#     return national_sector_var * region_var / national_var
-
-
-# def scale_var_by_national(
-#     var: Union[float, Series],
-#     national_var: Union[float, Series],
-#     national_portion: Union[float, Series],
-# ) -> Union[float, Series]:
-#     return national_proportion * var / national_var
-
-
 def calc_ratio(
     a: FloatOrPandasTypes, b: FloatOrSeriesType, d: FloatOrSeriesType
 ) -> FloatOrPandasTypes:
@@ -787,6 +599,18 @@ def regional_io_projection(
     logger.warning("Using regional_io_projection, this needs testing!")
     # return technical_coefficients * diagonalise(regional_output)
     return technical_coefficients * regional_output
+
+
+@dtype_wrapper("float64")
+# @infer_sector_names(sector_var="sector_row_names")
+@set_attrs({"name": RESIDUAL_SERIES_NAME})
+def residual_X_m(
+    X_m_national: Series,
+    X_i_m: DataFrame,
+    sector_row_names: Sequence[str] | None = None,
+) -> Series:
+    """Return residual sales of `X_m_national` minus sum of `X_i_m."""
+    return X_m_national - X_i_m.sum(axis="rows")
 
 
 # def calc_full_io_table(

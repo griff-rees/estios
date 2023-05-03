@@ -129,13 +129,6 @@ def sum_for_regions_by_la_code(
     }
 
 
-THREE_UK_CITY_REGIONS: Final[dict[str, str]] = {
-    "Leeds": "Yorkshire and the Humber",
-    "Liverpool": "North West",  # LIVERPOOL & BIRKENHEAD
-    "Manchester": "North West",  # MANCHESTER & SALFORD
-}
-
-
 def load_contemporary_ons_population(
     ons_region_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
 ) -> DataFrame:

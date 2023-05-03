@@ -38,10 +38,6 @@ from .utils import (
     value_in_dict_vals,
 )
 
-# =======
-# from .utils import filter_fields_by_type
-# >>>>>>> origin/uk-model-refactor
-
 logger = getLogger(__name__)
 
 StablePathType: TypeAlias = str | PathLike[Any]
@@ -356,7 +352,6 @@ class MetaData:
     doi: Optional[str] = None
     path: Optional[FilePathType] = None
     license: Optional[str | DataLicense] = field(default_factory=lambda: CopyrightTRIPS)
-    # license: Optional[str | DataLicense] = CopyrightTRIPS
     date_time_obtained: Optional[datetime] = None
     auto_download: Optional[bool] = None
     dates: Optional[list[date] | list[int]] = None
@@ -620,14 +615,6 @@ class MetaData:
             logger.warning(f"Cannot delete {self.path} which does not exist.")
 
 
-#
-#
-# def read_meta_data(meta_source: MetaData)-> DataFrame:
-#     if not meta_source.is_local:
-#         meta_source.save_local()
-#     return meta_source.read()
-
-
 def download_and_extract_zip_file(
     url: FileOrURLType,
     local_path: Optional[PathLike] = None,
@@ -707,61 +694,7 @@ def pandas_from_path_or_package(
     return reader(url_or_path, **kwargs)
 
 
-# def pandas_from_path_or_package_csv(
-#     path: FilePathType,
-#     default_file: FilePathType,
-#     **kwargs,
-# ) -> DataFrame:
-#     """Import a csv file as a DataFrame, managing if package_data used.
-#
-#     Todo:
-#         * Replace with pandas_from_path_or_package
-#     """
-#     path = path_or_package_data(path, default_file)
-#     return read_csv(path, **kwargs)
-
 MetaFileOrDataFrameType = SupportedAttrDataTypes | FilePathType | MetaData
-
-
-# def data_frame_path_or_meta_data(
-#     source: MetaFileOrDataFrameType,
-#     parser: Callable = pandas_from_path_or_package,
-# ) -> DataFrame:
-#     if isinstance(source, DataFrame):
-#         logger.debug(f"DataFrame of size {source.size} passed")
-#         return source
-#     elif isinstance(source, MetaData):
-#         if hasattr(source, 'read') and callable(source.read):
-#             logger.debug(f"Calling MetaData read method {source.read}.")
-#             return source.read()
-#         else:
-#             logger.debug(f"MetaData without read method passed. Accessing data from {source.path} via {parser}.")
-#             return parser(source.path)
-#     else:
-#         logger.debug(f"Parsing {source} with parser {parser}.")
-#         parser(source)
-
-
-# def copy_attr_with_prefix(
-#     cls: Any,
-#     attr_name: str,
-#     new_attr_suffix: str,
-# ) -> None:
-#     setattr(cls, attr_name + new_attr_suffix, getattr(cls, attr_name))
-
-
-# def attr_path_to_data(
-#     cls: 'ModelDataSourcesHandler',
-#     data_attr_name: str,
-#     path_attr_name: str | None = None,
-#     reader_func: Callable = pandas_from_path_or_package,
-#     **kwargs: Any,
-# ) -> None:
-#     if not path_attr_name:
-#         path_attr_name = data_attr_name
-#     path: Path = Path(getattr(cls, path_attr_name))
-#     data: SupportedAttrDataTypes = reader_func(path, **kwargs)
-#     setattr(cls, data_attr_name, data)
 
 
 class OverwriteRawMetaError(Exception):
@@ -847,16 +780,6 @@ class ModelDataSourcesHandler:
     def _processed_meta_data_post_read_func_attr_names(self) -> tuple[Field, ...]:
         return tuple(attr for attr in dir(self) if attr.endswith("_post_read_func"))
 
-    # @property
-    # def _file_or_path_data_fields(self) -> tuple[Field, ...]:
-    # ===
-    # def _meta_file_or_dataframe_fields(self) -> tuple[Field, ...]:
-    #     return self._filter_fields_by_type(field_type=MetaFileOrDataFrameType)
-
-    # @property
-    # def _meta_data_fields(self) -> tuple[Field, ...]:
-    #     return self._filter_fields_by_type(field_type=MetaData)
-
     def _set_all_meta_data_fields(
         self,
         parser: Callable | None = None,
@@ -903,13 +826,6 @@ class ModelDataSourcesHandler:
             parser = self._default_data_source_parser
         meta_data: MetaData = getattr(self, meta_field.name)
         assert isinstance(meta_data, MetaData)
-        #    **kwargs,
-        # ) -> SupportedAttrDataTypes:
-        #    logger.debug(f"Processing {meta_field.name} data file for: {self}")
-        #    if not parser or force_default_parser:
-        #        parser = self._default_data_source_parser
-        #    meta_data: MetaData = getattr(self, meta_field.name)
-        # >>> origin/uk-model-refactor
         if hasattr(meta_data, "url"):
             if not meta_data.auto_download and not meta_data.is_local:
                 raise AutoDownloadPermissionError(
@@ -943,15 +859,6 @@ class ModelDataSourcesHandler:
                     f"`apply_post_read_func_within_read` set to True "
                     f"but using provided parser {parser} so not applied."
                 )
-            # setattr(self, f"_{meta_field.name}_meta_data", meta_data)
-            # assert hasattr(meta_data, "path")
-            # setattr(self, f"_{meta_field.name}_path", meta_data.path)
-            # if hasattr(meta_data, "url"):
-            #     setattr(self, f"_{meta_field.name}_url", meta_data.url)
-            # data: SupportedAttrDataTypes
-            # if meta_data.has_read_func:
-            #     data = meta_data.read()
-            # else:
             data = parser(
                 path=meta_data.path, default_file=meta_field.default, **kwargs
             )
@@ -970,10 +877,6 @@ class ModelDataSourcesHandler:
     def _gen_attr_to_original_name(self, attr_name: str) -> str:
         """Return original `attr` name assuming this pattern: _attr_name__gen_meta_attr."""
         return attr_name[1:].split("__")[0]
-
-    # def _extract_attr_name_from_param_str(self, param_str: str, self_str="self", strict=False) -> tuple[str, Any]:
-    #     """Return attr_name inferred from param_str."""
-    #     return get_attr_from_param_str(self, param_str, self_str, strict)
 
     def _set_meta_data_post_read_attr(
         self,
@@ -1046,18 +949,12 @@ class ModelDataSourcesHandler:
                     param_kwargs[name] = get_attr_from_str(
                         self, value, self_str="self", strict=True
                     )
-                    # obj = get_attr_from_str(self, value, self_str='self', strict=True) or obj
-                    # if obj is not None:
-                    #     assert False
-                    #     param_kwargs[name] = obj
         return param_kwargs
 
     def _set_all_meta_data_post_read_fields(self, **kwargs) -> None:
         """Set all `MetaData` `attrs` with `__post_read_func`."""
         for post_read_attr in self._processed_meta_data_with_post_read_func_attrs:
             self._set_meta_data_post_read_attr(post_read_attr, **kwargs)
-
-        # return data
 
     def _set_file_or_path_field(
         self,
@@ -1127,23 +1024,7 @@ class ModelDataSourcesHandler:
     ) -> None:
         if not parser:
             parser = self._default_data_source_parser
-        # < HEAD
         for meta_file_or_dataframe_field in self._meta_file_or_dataframe_fields:
-            # for meta_file_or_dataframe_field in self._meta_file_or_dataframe_attrs:
             _: SupportedAttrDataTypes = self._set_meta_file_or_data_field(
                 meta_file_or_dataframe_field, parser, force_default_parser, **kwargs
             )
-
-    # def _path_to_data(self,
-    #                   data_attr_name: str,
-    #                   path_attr_name: str | None = None,
-    #                   reader_func: Callable | None = None,
-    #                   **kwargs: Any,
-    #                   ) -> None:
-    #     if not reader_func:
-    #         reader_func = self._default_data_parser
-    #     attr_path_to_data(self, data_attr_name, path_attr_name, reader_func, **kwargs)
-
-    # if not path_attr_name:
-    #     path_attr_name = data_attr_name
-    # setattr(self, )

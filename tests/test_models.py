@@ -70,6 +70,14 @@ class TestInputOutputModel:
             three_cities_io.national_employment, nomis_2017_national_employment
         )
 
+    def test_3_city_national_sales(self, three_cities_io) -> None:
+        national_sum: Series = (
+            three_cities_io.X_m_national
+            + three_cities_io.GVA_m_national
+            + three_cities_io.S_m_national
+        )
+        assert (national_sum == three_cities_io.X_m_national).all()
+
     def test_3_city_national_employment(
         self, three_cities_io, nomis_2017_national_employment
     ) -> None:

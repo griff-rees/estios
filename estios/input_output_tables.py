@@ -63,6 +63,7 @@ COEFFICIENT_TABLE_NAME: Final[str] = "A"
 
 CPA_COLUMN_NAME: Final[str] = "CPA"
 TOTAL_PRODUCTION_ROW_NAME: Final[str] = "Intermediate Demand"
+SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
 
 
 ### Todo: resolve ambiguity in ROW/INDEX variable labels
@@ -89,9 +90,7 @@ DEFAULT_REGION: Final[str] = "Region"
 
 COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
 
-SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
 NET_SUBSIDIES_COLUMN_NAME: Final[str] = "Net subsidies"
-INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"

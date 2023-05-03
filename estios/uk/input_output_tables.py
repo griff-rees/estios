@@ -39,7 +39,6 @@ UK_EXPORT_COLUMN_NAMES: Final[list[str]] = [
     "Exports of services",
 ]
 
-SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 
 INTERMEDIATE_DEMAND_BASE_PRICE_ROW_NAME: Final[str] = "Intermediate Demand base price"

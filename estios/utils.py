@@ -79,7 +79,13 @@ SECTOR_10_CODE_DICT: Final[AggregatedSectorDictType] = {
     "Other services": ["R", "S", "T"],
 }
 
-DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS: Final[tuple[str, ...]] = ('', 'K', 'M', 'B', 'T')
+DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS: Final[tuple[str, ...]] = (
+    "",
+    "K",
+    "M",
+    "B",
+    "T",
+)
 
 
 def name_converter(names: Sequence[str], name_mapper: dict[str, str]) -> list[str]:
@@ -426,7 +432,6 @@ def conditional_type_wrapper(
     return callable_wrapper
 
 
-# <<<<<<< Updated upstream
 def df_column_to_single_value(
     df: DataFrame,
     results_column_name: str,
@@ -513,9 +518,6 @@ def df_to_trimmed_multi_index(
     ]
     trimmed_df.columns = columns
     return trimmed_df.set_index(index)
-
-
-# =======
 
 
 def series_dict_to_multi_index(
@@ -668,12 +670,12 @@ def human_readable_num_abbrv(
         * Refactor from
         https://stackoverflow.com/questions/68005050/b-billions-instead-of-g-giga-in-python-plotly-customdata-si-prefix-d3
     """
-    scaled_num: float = float('{:.3g}'.format(num))
+    scaled_num: float = float("{:.3g}".format(num))
     magnitude: int = 0
     while abs(scaled_num) >= 1000:
         magnitude += 1
         scaled_num /= 1000.0
-    num_str: str = '{:f}'.format(scaled_num).rstrip('0').rstrip('.')
+    num_str: str = "{:f}".format(scaled_num).rstrip("0").rstrip(".")
     unit_str: str = magnitude_labels[magnitude]
     return num_str + unit_str
 
@@ -681,10 +683,12 @@ def human_readable_num_abbrv(
 def apply_func_to_df_var(
     df: DataFrame,
     var_name: str,
-    func: Callable[[float, Any], str],
+    # func: Callable[[float | str, Any, ...], str],
+    func: Callable[..., str],
     axis="columns",
+    **kwargs,
 ) -> DataFrame:
-    return df.apply(lambda vector: func(vector[var_name]), axis=axis)
+    return df.apply(lambda vector: func(vector[var_name], **kwargs), axis=axis)
 
     # return  or attr_str
     # try:

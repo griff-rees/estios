@@ -10,7 +10,6 @@ import pytest
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
 
-# from estios.input_output_tables import InputOutputCPATable
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
 from estios.uk.input_output_tables import InputOutputTableUK2017
@@ -88,21 +87,6 @@ def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK201
     return InterRegionInputOutputUK2017(regions=three_cities)
 
 
-# @pytest.fixture
-# def ten_sector_aggregation_names() -> tuple[str, ...]:
-#     return tuple(SECTOR_10_CODE_DICT.keys())
-
-
-# @pytest.fixture
-# def region_geo_data() -> GeoDataFrame:
-#     return load_and_join_centre_for_cities_data()
-
-
-# @pytest.fixture(scope="session")
-# def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK2017:
-#     return InterRegionInputOutputUK2017(regions=three_cities)
-
-
 @pytest.mark.remote_data
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
@@ -148,9 +132,6 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def ons_cpa_io_table() -> InputOutputTableUK2017:
-    # =======
-    # def ons_cpa_io_table() -> InputOutputCPATable | InputOutputTableUK2017:
-    # >>>>>>> origin/uk-model-refactor
     return InputOutputTableUK2017()
 
 
@@ -329,26 +310,7 @@ def nomis_2017_nation_employment_table(tmp_path_factory) -> DataFrame:
 
 @pytest.fixture
 def correct_uk_ons_X_m_national(three_cities_io) -> Series:
-    """Example X_m_national talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return Series(
-    #     [
-    #         272997328683.096,
-    #         5564510362211.610,
-    #         2953222552470.090,
-    #         6052276697689.360,
-    #         1797685549558.830,
-    #         2350643301666.180,
-    #         3410315660836.110,
-    #         4206339454407.310,
-    #         4977015624637.480,
-    #         933480385688.2780,
-    #     ],
-    #     index=three_cities_io.sectors,
-    # )
+    """Example X_m_national talies for testing."""
     return Series(
         [
             289442470348.79114,
@@ -368,26 +330,7 @@ def correct_uk_ons_X_m_national(three_cities_io) -> Series:
 
 @pytest.fixture
 def correct_uk_ons_I_m_national(three_cities_io) -> Series:
-    """Example I_m_national talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return Series(
-    #     [
-    #         11829310350.839594,
-    #         234754157531.46796,
-    #         1623614765544.0493,
-    #         125750040000.00002,
-    #         394630091779.0043,
-    #         0.0,
-    #         86780010000.0,
-    #         415841120000.0001,
-    #         11130020000.0,
-    #         -4360010000.0,
-    #     ],
-    #     index=three_cities_io.sectors,
-    # )
+    """Example I_m_national talies for testing."""
     return Series(
         [
             1850000000.0,
@@ -407,26 +350,7 @@ def correct_uk_ons_I_m_national(three_cities_io) -> Series:
 
 @pytest.fixture
 def correct_uk_ons_S_m_national(three_cities_io) -> Series:
-    """Example S_m_national talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return Series(
-    #     [
-    #         5219879538.987354,
-    #         48726630179.360085,
-    #         65923156176.74704,
-    #         109917023800.91006,
-    #         5657846676.360364,
-    #         126155859356.99503,
-    #         15693516329.211025,
-    #         21591371070.04223,
-    #         173752907187.63373,
-    #         21733979683.75351,
-    #     ],
-    #     index=three_cities_io.sectors,
-    # )
+    """Example S_m_national talies for testing."""
     return Series(
         [
             5196999131.544732,
@@ -451,21 +375,6 @@ def correct_uk_ons_E_m_national(three_cities_io) -> DataFrame:
     Todo:
         * Check results currently commented out.
     """
-    # return Series(
-    #     [
-    #         5219879538.987354,
-    #         48726630179.360085,
-    #         65923156176.74704,
-    #         109917023800.91006,
-    #         5657846676.360364,
-    #         126155859356.99503,
-    #         15693516329.211025,
-    #         21591371070.04223,
-    #         173752907187.63373,
-    #         21733979683.75351,
-    #     ],
-    #     index=three_cities_io.sectors,
-    # )
     return DataFrame(
         {
             "Exports to EU": [
@@ -517,21 +426,6 @@ def correct_uk_gva_2017(three_cities_io) -> Series:
         * Check results currently commented out.
         * Checking column aggregation decimal points
     """
-    # return Series(
-    #     [
-    #         107415864611.57884,
-    #         2440789852881.2056,
-    #         1202628202044.299,
-    #         3390433769651.8784,
-    #         1131618902061.9211,
-    #         1162302626594.8616,
-    #         2597532933265.886,
-    #         2551229010509.971,
-    #         3229760696230.9946,
-    #         626388142147.4033,
-    #     ],
-    #     index=three_cities_io.sectors,
-    # )
     return Series(
         [
             114478795080.39958,
@@ -576,52 +470,7 @@ def correct_uk_national_employment_2017(three_cities_io) -> Series:
 
 @pytest.fixture
 def correct_leeds_2017_final_demand(three_cities_io) -> DataFrame:
-    """Example Leeds talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return DataFrame(
-    #     {
-    #         "Household Purchase": [
-    #             863824080.1922507,
-    #             12910688415.722689,
-    #             195078434.4977476,
-    #             32846833836.39243,
-    #             3897179528.8352375,
-    #             7845761753.233474,
-    #             35315069651.356255,
-    #             3942577124.0064607,
-    #             6979808493.090483,
-    #             7964555182.937662,
-    #         ],
-    #         "Government Purchase": [
-    #             243.9047716360901,
-    #             1259025829.250631,
-    #             244.6169027669075,
-    #             377444862.3125664,
-    #             405085838.6851054,
-    #             0.0,
-    #             244.616904630556,
-    #             244.616904630556,
-    #             44086204312.41963,
-    #             487766352.4502333,
-    #         ],
-    #         "Non-profit Purchase": [
-    #             121.95238581804504,
-    #             122.308452315278,
-    #             122.30845138345376,
-    #             489.233809261112,
-    #             122.308452315278,
-    #             0.0,
-    #             157411100.4382151,
-    #             308217544.45140517,
-    #             4444806206.326068,
-    #             892607207.3053511,
-    #         ],
-    #     },
-    #     index=three_cities_io.sector_names,
-    # )
+    """Example Leeds talies for testing."""
     return DataFrame(
         {
             "Household Purchase": [
@@ -667,52 +516,7 @@ def correct_leeds_2017_final_demand(three_cities_io) -> DataFrame:
 
 @pytest.fixture
 def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
-    """Example Leeds talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return DataFrame(
-    #     {
-    #         "Exports to EU": [
-    #             54415828.56237425,
-    #             9809992044.03674,
-    #             90.43701681873807,
-    #             3470227876.1839767,
-    #             176664183.2225929,
-    #             0.0,
-    #             126.2102663036619,
-    #             4525463.007579512,
-    #             246.01207030888295,
-    #             1290488.185247481,
-    #         ],
-    #         "Exports outside EU": [
-    #             21126522.775823142,
-    #             9326960784.934875,
-    #             90.43701681873807,
-    #             3276861858.4626465,
-    #             164621905.56472328,
-    #             0.0,
-    #             126.2102663036619,
-    #             3439395.3284675935,
-    #             246.01207030888295,
-    #             398456621.4053595,
-    #         ],
-    #         "Exports of services": [
-    #             5817935.754843496,
-    #             1206046904.8668356,
-    #             221477270.769351,
-    #             5254272633.270587,
-    #             4607163894.68771,
-    #             19031456130.250244,
-    #             215314966.7345798,
-    #             17394106071.604374,
-    #             1335232848.7161303,
-    #             202634018.24060616,
-    #         ],
-    #     },
-    #     index=three_cities_io.sector_names,
-    # )
+    """Example Leeds talies for testing."""
     return DataFrame(
         {
             "Exports to EU": [
@@ -758,27 +562,7 @@ def correct_leeds_2017_exports(three_cities_io) -> DataFrame:
 
 @pytest.fixture
 def correct_leeds_2017_imports(three_cities_io) -> Series:
-    """Example Leeds talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
-    # return Series(
-    #     [
-    #         108642578.11956923,
-    #         14716026243.967617,
-    #         952384699.312282,
-    #         4676870989.681791,
-    #         2212125101.231273,
-    #         2861365859.7478576,
-    #         618566915.0002943,
-    #         3004024570.375315,
-    #         2467381922.9378333,
-    #         364963704.4151428,
-    #     ],
-    #     index=three_cities_io.sector_names,
-    #     name="Imports",
-    # )
+    """Example Leeds talies for testing."""
     return Series(
         [
             112248945.77169241,
@@ -799,11 +583,7 @@ def correct_leeds_2017_imports(three_cities_io) -> Series:
 
 @pytest.fixture
 def correct_liverpool_2017_letter_sector_employment() -> Series:
-    """Example Liverpool talies for testing.
-
-    Todo:
-        * Check results currently commented out.
-    """
+    """Example Liverpool talies for testing."""
     return Series(
         {
             "A": 125.0,

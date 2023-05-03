@@ -273,7 +273,7 @@ def nomis_query(
     """Query Nomisweb for Local Authority employment data at `year`."""
     if not year in valid_years:
         raise ValueError(
-            f"`year`: {year} not available within NOMIS `valid_range`: {valid_range}"
+            f"`year`: {year} not available within NOMIS `valid_years`: {valid_years}"
         )
     api = census_api.Nomisweb(download_path)
     if not api_key and NOMIS_API_KEY:

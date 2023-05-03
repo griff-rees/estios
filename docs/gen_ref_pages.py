@@ -16,7 +16,13 @@ GEN_DOC_PATH: FilePathType = "estios"
 DOC_NAV_FILE_NAME: FilePathType = "DOC_STRINGS.md"
 DOC_NAV_FILE_PATH: Path = Path(str(GEN_DOC_PATH)) / str(DOC_NAV_FILE_NAME)
 
-IPYNB_PATH: FilePathType = ".ipynb_checkpoints"
+EXCLUDE_PATHS: tuple[str, ...] = (
+    ".ipynb_checkpoints",
+    "docs",
+    "site",
+    "tests",
+    "data",
+)
 
 nav = mkdocs_gen_files.Nav()
 
@@ -37,7 +43,7 @@ for path in sorted(Path(str(CODE_PATH)).rglob(CODE_DOC_REGEX)):
             continue
         doc_path = doc_path.with_name("index.md")
         full_doc_path = full_doc_path.with_name("index.md")
-    elif parts[-1] == "__main__" or IPYNB_PATH in parts:
+    elif parts[-1] == "__main__" or set(EXCLUDE_PATHS) & set(parts):
         logger.debug(f"Skipping module path {parts}")
         continue
 

@@ -35,7 +35,7 @@ UK_EXPORT_COLUMN_NAMES: Final[list[str]] = [
     "Exports of services",
 ]
 
-SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
+# SECTOR_DESC_COLUMN_NAME: Final[str] = "Product"
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 
 INTERMEDIATE_DEMAND_BASE_PRICE_ROW_NAME: Final[str] = "Intermediate Demand base price"
@@ -73,8 +73,6 @@ UK_GOV_INVESTMENT_COLUMN_NAMES: Final[tuple[str, ...]] = (
     "changes in inventories",
     "Acquisitions less disposals of valuables",
 )
-
-CPA_COLUMN_NAME: Final[str] = "CPA"
 
 EXCEL_FILE_NAME: Final[PathLike] = Path("nasu1719pr.xlsx")
 FIRST_CODE_ROW: Final[int] = 1
