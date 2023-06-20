@@ -3,13 +3,16 @@ site_name: 'estios: Economic Spatial and Temporal Input-Output Systems'
 nav:
 - Home: index.md
 - Installation: install.md
+- 'About': about.md
 - 'Use':
     - 'Theory': theory.md
     - 'Data': data.md
     - 'Specification': spec.md
     - 'Scenarios': scenarios.md
+- 'Contributing':
+    - 'Code of Conduct': code_of_conduct.md
+    - 'Development': contributing.md
     - 'License': license.md
-- 'About': about.md
 - '<tt>estios</tt>': estios/  # Must match GEN_DOC_PATH/ from docs/gen_ref_pages.py
 - Issues: https://github.com/griff-rees/estios/issues
 
@@ -23,6 +26,7 @@ theme:
   name: material
   features:
     - content.code.copy
+    - content.tabs.link
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -49,6 +53,7 @@ plugins:
     min_search_length: 3
     lang: en
 - markdown-exec
+- include-markdown
 - gen-files:
     scripts:
     - docs/gen_ref_pages.py
@@ -75,6 +80,7 @@ markdown_extensions:
 - attr_list
 - tables
 - footnotes
+- pymdownx.magiclink
 - pymdownx.arithmatex:
     generic: true
 - pymdownx.superfences:

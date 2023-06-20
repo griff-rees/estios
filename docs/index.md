@@ -1,5 +1,5 @@
-# Economic Spatial and Temporal Input-Output Systems
-
-A python package for input-output modelling at a regional level.
+{%
+  include-markdown  "../README.md"
+%}
 
 Please review the [project license](license.md) prior to use.
