@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies and test environment
       run: |
         pip3 install poetry
-        poetry install
+        poetry install --with dev
     - name: pre-commit
       run: |
         # stop the build if it doesn't pass pre-commit
