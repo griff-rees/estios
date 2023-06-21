@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from itertools import cycle
 from logging import getLogger
-from typing import Callable, Final, Iterable, Optional, Union, Any
+from typing import Callable, Final, Iterable, Optional, Union
 
 from dotenv import load_dotenv
 from geopandas import GeoDataFrame
@@ -16,7 +16,7 @@ from plotly.graph_objects import Figure, Scattermapbox
 
 from .calc import LATEX_e_i_m, LATEX_m_i_m, LATEX_y_ij_m
 from .uk.regions import CENTRE_FOR_CITIES_EPSG, CENTRE_FOR_CITIES_REGION_COLUMN
-from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero, human_readable_num_abbrv
+from .utils import OTHER_CITY_COLUMN, filter_y_ij_m_by_city_sector, log_x_or_return_zero
 
 logger = getLogger(__name__)
 

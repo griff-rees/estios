@@ -25,9 +25,9 @@ ONS_2017_REGION_GEOJSON_FILE_NAME: Final[str] = (
     "in_the_United_Kingdom.geojson"
 )
 
-ONS_GEOGRAPHY_LICENSE_URL: Final[str] = (
-    "https://www.ons.gov.uk/methodology/geography/licences",
-)
+ONS_GEOGRAPHY_LICENSE_URL: Final[
+    str
+] = "https://www.ons.gov.uk/methodology/geography/licences"
 
 ONSGeographyLicense: Final = DataLicense(
     name="Open Geography License",
@@ -118,7 +118,7 @@ SKIP_CITIES: Final[tuple[str, ...]] = (
     "Blackburn",  # 2 in Scotland
 )
 
-ENGLISH_CITIES: Final[tuple[str]] = (
+ENGLISH_CITIES: Final[tuple[str, ...]] = (
     "Barnsley",
     "Basildon",
     "Birmingham",
@@ -171,7 +171,7 @@ ENGLISH_CITIES: Final[tuple[str]] = (
     "York",
 )
 
-WORKING_ENGLISH_CITIES: Final[tuple[str]] = tuple(
+WORKING_ENGLISH_CITIES: Final[tuple[str, ...]] = tuple(
     city for city in ENGLISH_CITIES if city not in SKIP_CITIES
 )
 

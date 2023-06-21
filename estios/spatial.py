@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import UserDict
+from collections.abc import Sized
 from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Any, Callable, Generator, Sequence
@@ -49,7 +50,7 @@ class Region:
 
     @property
     def alternate_name_types(self) -> tuple[str, ...]:
-        return tuple(self.alternate_name_types.keys())
+        return tuple(self.alternate_names.keys())
 
     @property
     def alternate_names_count(self) -> int:
@@ -78,7 +79,8 @@ class RegionsManagerMixin:
         self.region_name = region_name
 
     def __str__(self) -> str:
-        return f"{len(self)} {self.region_name} region data from {self.meta_data}"
+        prefix: str = f"{len(self)} " if isinstance(self, Sized) else ""
+        return f"{prefix} {self.region_name} region data from {self.meta_data}"
 
     def __repr__(self) -> str:
         """Return a str indicated class type and number of sectors.
@@ -92,12 +94,14 @@ class RegionsManagerMixin:
         return repr
 
     def names_generator(self) -> Generator[str, None, None]:
+        assert isinstance(self, UserDict)
         for region_name in self:
             if not region_name:
-                raise ValueError(f"Invalid `region_name` for {self[region_name]}")
+                raise ValueError(f"Invalid `region_name`: {region_name} for {self}")
             yield region_name
 
     def codes_generator(self) -> Generator[str, None, None]:
+        assert isinstance(self, UserDict)
         for region_details in self.values():
             if isinstance(region_details.code, str):
                 yield region_details.code
@@ -169,7 +173,7 @@ def sum_for_regions_by_attr(
     set_index_to_column: str | None = None,
     ignore_key_errors: bool = False,
     strict_set_index_to_column: bool = False,
-) -> Generator[dict[str, float | Series], None, None]:
+) -> Generator[tuple[str, float | Series], None, None]:
     """Sum columns for passed pua_names from df.
 
     Todo:

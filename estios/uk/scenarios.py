@@ -12,7 +12,12 @@ from ..calc import calc_ratio
 from ..models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from ..sources import MetaData, MonthDay
 from ..temporal import annual_io_time_series, date_io_time_series
-from ..utils import AnnualConfigType, DateConfigType, gen_filter_by_func
+from ..utils import (
+    AnnualConfigType,
+    DateConfigType,
+    RegionsIterableType,
+    gen_filter_by_func,
+)
 from .gdp_projections import get_uk_gdp_ts_as_series
 from .models import InterRegionInputOutputUK2017
 from .ons_employment_2017 import EMPLOYMENT_QUARTER_JUN_2017
@@ -91,7 +96,7 @@ def date_io_time_series_ons_2017(
 def baseline_england_annual_population_projection_config(
     first_io_time: InterRegionInputOutput | None = None,
     date_check: date | None = None,  # Bowan's suggestion
-    regions: list[str] = list(THREE_UK_CITY_REGIONS.keys()),
+    regions: RegionsIterableType = list(THREE_UK_CITY_REGIONS.keys()),
     ons_population_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA,
     ons_population_history: MetaData = ONS_UK_POPULATION_HISTORY_META_DATA,
     ons_contemporary_populations: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,

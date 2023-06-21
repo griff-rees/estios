@@ -107,28 +107,6 @@ def generate_employment_quarterly_dates(
                 yield date(year, month, 1)
 
 
-def sum_for_regions_by_la_code(
-    df: DataFrame,
-    region_names: Sequence[str],
-    column_names: Sequence[str | int],
-    regions: GenericRegionsManager,
-    set_index_to_column: str | None = None,
-    ignore_key_errors: bool = False,
-) -> dict[str, float | Series]:
-    return {
-        region: value
-        for region, value in sum_for_regions_by_attr(
-            df=df,
-            region_names=region_names,
-            column_names=column_names,
-            regions=regions,
-            attr=LA_CODES_COLUMN,
-            set_index_to_column=set_index_to_column,
-            ignore_key_errors=ignore_key_errors,
-        )
-    }
-
-
 def load_contemporary_ons_population(
     ons_region_data: MetaData = ONS_CONTEMPORARY_POPULATION_META_DATA,
 ) -> DataFrame:
@@ -644,6 +622,28 @@ def get_working_cities_puas_manager(
     for region in skip_regions:
         puas_manager.pop(region, None)
     return puas_manager
+
+
+def sum_for_regions_by_la_code(
+    df: DataFrame,
+    region_names: Sequence[str],
+    column_names: Sequence[str | int],
+    regions: GenericRegionsManager | PUASManager,
+    set_index_to_column: str | None = None,
+    ignore_key_errors: bool = False,
+) -> dict[str, float | Series]:
+    return {
+        region: value
+        for region, value in sum_for_regions_by_attr(
+            df=df,
+            region_names=region_names,
+            column_names=column_names,
+            regions=regions,
+            attr=LA_CODES_COLUMN,
+            set_index_to_column=set_index_to_column,
+            ignore_key_errors=ignore_key_errors,
+        )
+    }
 
     # >>>>>>> Stashed changes
     # last_working_age_dict = {

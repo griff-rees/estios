@@ -3,7 +3,7 @@
 
 from functools import wraps
 from logging import getLogger
-from typing import Any, Callable, Final, Iterable, Optional, Sequence
+from typing import Any, Callable, Final, Iterable, Optional, Sequence, TypeAlias
 
 from geopandas import GeoDataFrame
 from pandas import DataFrame, MultiIndex, Series
@@ -25,8 +25,8 @@ from .utils import (
 
 logger = getLogger(__name__)
 
-FloatOrPandasTypes = float | Series | DataFrame
-FloatOrSeriesType = float | Series
+FloatOrPandasTypes: TypeAlias = float | Series | DataFrame
+FloatOrSeriesType: TypeAlias = float | Series
 
 DISTANCE_UNIT_DIVIDE: Final[float] = 1000
 METRES_TO_KILOMETERS: Final[float] = 0.001
@@ -171,7 +171,7 @@ def F_i_m_scaled_by_regions(
     national_population: float,
     sector_row_names: Sequence[str] | None = None,
 ) -> DataFrame:
-    region_dict: dict[str, DataFrame] = {
+    region_dict: dict[str | int, DataFrame] = {
         reg: F_i_m_scaled(
             final_demand=final_demand.loc[sector_row_names],
             regional_populations=reg_pop,
@@ -204,7 +204,7 @@ def E_i_m_scaled_by_regions(
     national_employment: Series,
     sector_row_names: Sequence[str] | None = None,
 ) -> DataFrame:
-    region_dict: dict[str, DataFrame] = {
+    region_dict: dict[str | int, DataFrame] = {
         reg: E_i_m_scaled(
             exports=exports.loc[sector_row_names],
             regional_employment=reg_emp,
@@ -239,7 +239,7 @@ def M_i_m_scaled_by_regions(
         SECTOR_COLUMN_NAME,
     ),
 ) -> DataFrame | Series:
-    region_dict: dict[str, DataFrame] = {
+    region_dict: dict[str | int, DataFrame] = {
         reg: M_i_m_scaled(
             imports=imports.loc[sector_row_names],
             regional_populations=reg_pop,

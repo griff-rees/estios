@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-from collections.abc import MutableSequence
+from collections.abc import MutableSequence, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
@@ -16,9 +16,7 @@ from typing import (
     Iterable,
     Iterator,
     Optional,
-    Sequence,
     Type,
-    Union,
     overload,
 )
 from warnings import filterwarnings
@@ -68,6 +66,7 @@ from .utils import (
     DateType,
     RegionConfigType,
     RegionNamesListType,
+    RegionsIterableType,
     SectorConfigType,
     SectorNamesListType,
     aggregate_rows,
@@ -83,6 +82,7 @@ from .utils import (
     get_df_first_row,
     iter_attr_by_key,
     len_less_or_eq,
+    regions_type_to_list,
     str_keys_of_dict,
     sum_if_multi_column_df,
     tuples_to_ordered_dict,
@@ -92,12 +92,9 @@ logger = getLogger(__name__)
 
 filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
-
-NamesListType = Union[list[str], Collection[str]]
-
 ColumnOrRowNames = str | Sequence[str]
 
-NamesListType = Union[list[str], Collection[str]]
+NamesListType = list[str] | Collection[str]
 
 
 @dataclass(kw_only=True)
@@ -117,7 +114,7 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     max_import_export_model_iterations: int = DEFAULT_IMPORT_EXPORT_ITERATIONS
     employment_by_sector_and_region: MetaFileOrDataFrameType | None = None
     raw_regions: dict[str, str] = field(default_factory=dict)
-    regions: dict[str, str] | list[str] = field(default_factory=list)
+    regions: RegionsIterableType = field(default_factory=Series)
 
     # Column, index lables etc. for formatting
     nation_name: str | None = None
@@ -217,10 +214,7 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
     @property
     def region_names(self) -> list[str]:
         """Return the region names."""
-        if isinstance(self.regions, dict):
-            return list(self.regions.keys())
-        else:
-            return self.regions
+        return regions_type_to_list(self.regions)
 
     @property
     def sectors(self) -> list[str]:
@@ -360,65 +354,65 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                     f"At least `self.date` or `self.employment_date` required"
                 )
 
-    def _set_national_employment(self) -> None:
-        """Set national_employment Series, aggregated if sector_aggregation set.
-
-        Todo:
-            * Refactor around raw_national_employment vs national_employment
-            * Potential risk the scaling is applied more times that it should be
-        """
-        if self.raw_national_employment and self.national_employment:
-            logger.warning(
-                f"Both raw_national_employment and national_employment set for {self}. national_employment used."
-            )
-        if self.national_employment is None:
-            if self.raw_national_employment is None and self.national_employment_path:
-                logger.warning(
-                    f"Loading {self.national_employment_path} with scale {self.national_employment_scale}"
-                )
-                self.raw_national_employment = load_region_employment_excel(
-                    path=self.national_employment_path
-                )
-            if self.raw_national_employment is not None:
-                if isinstance(self.raw_national_employment, Series):
-                    logger.warning(
-                        f"Setting National Employment from raw_national_employment length {len(self.raw_national_employment)}"
-                    )
-                    self.national_employment = self.raw_national_employment
-                elif isinstance(self.raw_national_employment, DataFrame):
-                    logger.warning(
-                        f"Extracting National Employment from {self} raw_national employment "
-                        f"DataFrame of length {len(self.raw_national_employment)} "
-                        f"with scaling {self.national_employment_scale}"
-                    )
-                    self.national_employment = (
-                        self.raw_national_employment.loc[str(self.employment_date)]
-                        # * self.national_employment_scale  # This was originally applied twice, hopefully fixed now
-                    )
-        logger.warning(
-            f"Setting {self} National Employment with scaling {self.national_employment_scale}"
-        )
-        assert type(self.national_employment) in (
-            Series,
-            DataFrame,
-        )  # Should be defined or error raised
-        # self.national_employment = self.national_employment*self.national_employment_scale
-        if self.sector_aggregation:
-            logger.warning(
-                f"Aggregating national employment by {len(self.sector_aggregation)} groups"
-            )
-            self.national_employment = aggregate_rows(
-                self.national_employment, sector_dict=self.sector_aggregation
-            )
-        if self.national_employment_scale:
-            logger.warning(
-                f"Scaling national_employment of {self} by {self.national_employment_scale}"
-            )
-            self.national_employment = (
-                self.national_employment * self.national_employment_scale
-            )
-        # elif self._national_employment is None:
-        #     raise TypeError("'_national_employment' attribute cannot be None.")
+    # def _set_national_employment(self) -> None:
+    #     """Set national_employment Series, aggregated if sector_aggregation set.
+    #
+    #     Todo:
+    #         * Refactor around raw_national_employment vs national_employment
+    #         * Potential risk the scaling is applied more times that it should be
+    #     """
+    #     if self.raw_national_employment and self.national_employment:
+    #         logger.warning(
+    #             f"Both raw_national_employment and national_employment set for {self}. national_employment used."
+    #         )
+    #     if self.national_employment is None:
+    #         if self.raw_national_employment is None and self.national_employment_path:
+    #             logger.warning(
+    #                 f"Loading {self.national_employment_path} with scale {self.national_employment_scale}"
+    #             )
+    #             self.raw_national_employment = load_region_employment_excel(
+    #                 path=self.national_employment_path
+    #             )
+    #         if self.raw_national_employment is not None:
+    #             if isinstance(self.raw_national_employment, Series):
+    #                 logger.warning(
+    #                     f"Setting National Employment from raw_national_employment length {len(self.raw_national_employment)}"
+    #                 )
+    #                 self.national_employment = self.raw_national_employment
+    #             elif isinstance(self.raw_national_employment, DataFrame):
+    #                 logger.warning(
+    #                     f"Extracting National Employment from {self} raw_national employment "
+    #                     f"DataFrame of length {len(self.raw_national_employment)} "
+    #                     f"with scaling {self.national_employment_scale}"
+    #                 )
+    #                 self.national_employment = (
+    #                     self.raw_national_employment.loc[str(self.employment_date)]
+    #                     # * self.national_employment_scale  # This was originally applied twice, hopefully fixed now
+    #                 )
+    #     logger.warning(
+    #         f"Setting {self} National Employment with scaling {self.national_employment_scale}"
+    #     )
+    #     assert type(self.national_employment) in (
+    #         Series,
+    #         DataFrame,
+    #     )  # Should be defined or error raised
+    #     # self.national_employment = self.national_employment*self.national_employment_scale
+    #     if self.sector_aggregation:
+    #         logger.warning(
+    #             f"Aggregating national employment by {len(self.sector_aggregation)} groups"
+    #         )
+    #         self.national_employment = aggregate_rows(
+    #             self.national_employment, sector_dict=self.sector_aggregation
+    #         )
+    #     if self.national_employment_scale:
+    #         logger.warning(
+    #             f"Scaling national_employment of {self} by {self.national_employment_scale}"
+    #         )
+    #         self.national_employment = (
+    #             self.national_employment * self.national_employment_scale
+    #         )
+    #     # elif self._national_employment is None:
+    #     #     raise TypeError("'_national_employment' attribute cannot be None.")
 
     @property
     def technical_coefficients(self) -> DataFrame:
@@ -745,16 +739,27 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @property
     def regional_total_population(self) -> float:
+        """Return the sum of all included regional populations.
+
+        Note:
+            `self.regional_total_population <= self.national_population`
+        """
         assert self.regional_populations is not None
-        self.regional_populations.sum()
+        return self.regional_populations.sum()
 
     @property
     def residual_population(self) -> float:
+        """Difference between `national_population` and `regional_total_population`.
+
+        Note:
+            This *should* be <= 0
+        """
         assert self.national_population and self.regional_total_population
         return self.national_population - self.regional_total_population
 
     @property
     def residual_X_m(self) -> Series:
+        """Return the diference between `X_m_national` and sum of `X_i_m`."""
         return self.X_m_national - self.X_i_m.sum(axis="rows")
 
     # @property

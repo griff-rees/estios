@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
-from typing import Generator, Any
+from typing import Any, Generator
 
 import pytest
 from pandas import DataFrame

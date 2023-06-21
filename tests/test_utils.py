@@ -15,6 +15,7 @@ from estios.utils import (  # download_and_extract_zip_file,
     SECTOR_10_CODE_DICT,
     SECTOR_COLUMN_NAME,
     GetAttrStrictError,
+    apply_func_to_df_var,
     enforce_end_str,
     enforce_start_str,
     gen_region_attr_multi_index,
@@ -22,12 +23,11 @@ from estios.utils import (  # download_and_extract_zip_file,
     generate_ij_index,
     generate_ij_m_index,
     get_attr_from_str,
+    human_readable_num_abbrv,
     invert_dict,
     match_df_cols_rows,
     match_ordered_iters,
     name_converter,
-    human_readable_num_abbrv,
-    apply_func_to_df_var,
 )
 
 
@@ -132,7 +132,7 @@ class TestMatchItersColsRows:
     def test_get_matched_df_cols_rows(self) -> None:
         """Test extracting matched rows and columns."""
         test_df: DataFrame = DataFrame(columns=self.test_x, index=self.test_y)
-        matches: tuple[str] = match_df_cols_rows(test_df)
+        matches: tuple[str, ...] = match_df_cols_rows(test_df)
         assert matches == self.CORRECT_MATCHES
 
 
@@ -252,20 +252,27 @@ class TestGetAttrFromAttrStr:
 
 
 def test_human_readable_num_abbrv() -> None:
-    assert human_readable_num_abbrv(10**13) == '10T'
-    assert human_readable_num_abbrv(10**10) == '10B'
-    assert human_readable_num_abbrv(10**7) == '10M'
-    assert human_readable_num_abbrv(10**4) == '10K'
-    assert human_readable_num_abbrv(10**2) == '100'
+    assert human_readable_num_abbrv(10**13) == "10T"
+    assert human_readable_num_abbrv(10**10) == "10B"
+    assert human_readable_num_abbrv(10**7) == "10M"
+    assert human_readable_num_abbrv(10**4) == "10K"
+    assert human_readable_num_abbrv(10**2) == "100"
 
 
 def test_apply_human_readable(correct_three_city_y_ij_m) -> None:
     CORRECT_AGRICULTURE_HUMAN_READABLE: Series = Series(
-        [ "187M", "-32.6M", "-24.1M", "-3.26M", "-467M", "363M", ],
+        [
+            "187M",
+            "-32.6M",
+            "-24.1M",
+            "-3.26M",
+            "-467M",
+            "363M",
+        ],
         index=correct_three_city_y_ij_m.unstack().index,
     )
     y_ij_m_unstack: DataFrame = correct_three_city_y_ij_m.unstack()
-    human_readable =  apply_func_to_df_var(
+    human_readable = apply_func_to_df_var(
         df=y_ij_m_unstack,
         var_name="Agriculture",
         func=human_readable_num_abbrv,

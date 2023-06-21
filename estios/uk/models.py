@@ -13,7 +13,7 @@ from ..input_output_tables import (  # TOTAL_PRODUCTION_ROW_NAME,; UK_EXPORT_COL
 )
 from ..models import InterRegionInputOutput
 from ..sources import MetaData, MetaFileOrDataFrameType
-from ..utils import DateConfigType, DateType
+from ..utils import DateConfigType, DateType, RegionsIterableType
 from . import ons_IO_2017
 from .input_output_tables import UK_EXPORT_COLUMN_NAMES, InputOutputTableUK2017
 from .ons_employment_2017 import (
@@ -47,7 +47,7 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
     nation_name: str = UK_NAME
     national_column_name: str = UK_NATIONAL_COLUMN_NAME
     # MetaData to be treated specially *beyond* the reader_func
-    regions: dict[str, str] | list[str] = field(
+    regions: RegionsIterableType = field(
         default_factory=lambda: deepcopy(TEN_UK_CITY_REGIONS)
     )
     raw_io_table: MetaData = field(

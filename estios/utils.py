@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from collections import Counter, OrderedDict
-from dataclasses import Field, field, fields
+from collections.abc import Sequence
+from dataclasses import Field, fields
 from datetime import date
 from functools import wraps
 from itertools import zip_longest
@@ -17,7 +18,6 @@ from typing import (
     Hashable,
     Iterable,
     Optional,
-    Sequence,
     Type,
     TypeAlias,
     Union,
@@ -36,10 +36,14 @@ YearType: TypeAlias = int
 RegionName: TypeAlias = str
 SectorName: TypeAlias = str
 
-RegionNamesListType = Union[list[RegionName], Collection[RegionName]]
-SectorNamesListType = Union[list[SectorName], Collection[SectorName]]
+RegionNamesListType: TypeAlias = Union[list[RegionName], Collection[RegionName]]
+SectorNamesListType: TypeAlias = Union[list[SectorName], Collection[SectorName]]
 
-RegionConfigType = Union[
+RegionsIterableType: TypeAlias = (
+    Sequence[RegionName] | dict[RegionName, RegionName] | Series
+)
+
+RegionConfigType: TypeAlias = Union[
     Sequence[RegionName], dict[RegionName, str], dict[RegionName, Sequence[str]]
 ]
 SectorConfigType = Union[
@@ -689,6 +693,18 @@ def apply_func_to_df_var(
     **kwargs,
 ) -> DataFrame:
     return df.apply(lambda vector: func(vector[var_name], **kwargs), axis=axis)
+
+
+def regions_type_to_list(regions: RegionsIterableType):
+    """Return list or `RegionNames` from any `RegionNamesListType."""
+    if isinstance(regions, dict):
+        return list(regions.keys())
+    elif isinstance(regions, Sequence) and not isinstance(regions, list):
+        return list(regions)
+    elif isinstance(regions, Series) and not isinstance(regions, list):
+        return regions.to_list()
+    else:
+        return regions
 
     # return  or attr_str
     # try:

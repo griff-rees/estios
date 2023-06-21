@@ -100,9 +100,9 @@ def get_regional_mid_year_populations(
 
 def series_mid_year_population(
     df: DataFrame,
+    region_names: Sequence[str],
     regions_manager: PUASManager,
     year: int = 2017,
-    region_names: Sequence[str] | str | None = None,
     set_index_to_column: str | None = "Code",
     column_prefix: str = "Mid-",
 ) -> Series:
@@ -127,9 +127,9 @@ def series_mid_year_population(
 
 
 def get_employment_by_region_by_sector(
+    region_names: Sequence[str],
+    sector_codes: Sequence[str] | None = None,
     year: int = 2017,
-    region_names: Sequence[str] | str | None = None,
-    sector_codes: Sequence[str] = None,
     nomis_employment_df: DataFrame | None = None,
     regions_manager: PUASManager | GenericRegionsManager | None = None,
     set_index_to_column: str | None = NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
@@ -137,15 +137,16 @@ def get_employment_by_region_by_sector(
 ) -> float | Sequence | DataFrame:
     if nomis_employment_df is None:
         nomis_employment_df = clean_nomis_employment_query(year)
+    assert isinstance(nomis_employment_df, DataFrame)
     if not sector_codes:
         sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
-    assert isinstance(nomis_employment_df, DataFrame)
+    assert isinstance(sector_codes, Sequence)
     if not regions_manager:
         regions_manager = get_working_cities_puas_manager()
     assert isinstance(regions_manager, PUASManager)
     if not region_names:
         region_names = regions_manager.names
-    sectors_dict: dict[tuple[str, str], DataFrame] = {}
+    sectors_dict: dict[str, DataFrame] = {}
     for sector_code in sector_codes:
         sectors_dict[sector_code] = Series(
             sum_for_regions_by_la_code(
@@ -177,13 +178,13 @@ def get_nation_employment_by_sector(
     set_index_to_column: str | None = NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
 ) -> float | Sequence | DataFrame | Series:
     if nomis_employment_df is None:
-        nomis_employment_df = national_employment_query(year=year, quarter=quarter)
+        nomis_employment_df = national_employment_query(year=year)  # , quarter=quarter
     # if not sector_codes:
     #     sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
     assert isinstance(nomis_employment_df, DataFrame)
     if set_index_to_column:
         nomis_employment_df.set_index(set_index_to_column, inplace=True)
-    if len(nation_names) == 1 or isinstance(nation_names, str):
+    if isinstance(nation_names, str) or nation_names and len(nation_names) == 1:
         nomis_employment_df = nomis_employment_df.loc[nation_names, column_names]
         return nomis_employment_df.set_index(NOMIS_INDUSTRY_CODE_COLUMN_NAME)[
             NOMIS_OBSERVATION_VALUE_COLUMN_NAME
@@ -215,10 +216,12 @@ def regional_population_projections(
     ignore_key_errors: bool = False,
 ) -> Series:
     age_range = ensure_list_of_strs(age_range)
-    if not regions_manager:
-        regions_manger = get_working_cities_puas_manager()
     if not region_names:
+        if not regions_manager:
+            regions_manger = get_working_cities_puas_manager()
+        assert isinstance(regions_manager, PUASManager)
         region_names = regions_manager.names
+    assert regions_manager
     populations_age_filtered: DataFrame = population_projections_df[
         population_projections_df[age_group_column_name].isin(age_range)
     ]
@@ -242,6 +245,8 @@ def regional_population_projections_all_ages(year: str | int, **kwargs) -> Serie
 
 
 def regional_population_projections_working_ages(year: str | int, **kwargs) -> Series:
+    if isinstance(year, str):
+        year = int(year)
     return regional_population_projections(
         year=year, age_range=list(working_ages(year)), **kwargs
     )
