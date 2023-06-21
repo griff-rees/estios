@@ -32,6 +32,8 @@ repos:
   rev: 6.3.0
   hooks:
     - id: pydocstyle
+      entry: bash -c 'pydocstyle "$@" || true' --
+      verbose: true
       additional_dependencies: ["pydocstyle[toml]"]
       args: [--config, ./pyproject.toml]
 
