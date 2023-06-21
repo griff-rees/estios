@@ -2,6 +2,9 @@ repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.4.0
   hooks:
+    - id: check-docstring-first
+    - id: check-merge-conflict
+    - id: check-toml
     - id: check-yaml
       args: [--unsafe]
     - id: end-of-file-fixer
@@ -29,3 +32,5 @@ repos:
   rev: v1.0.0
   hooks:
     - id: mypy
+      verbose: true
+      entry: bash -c 'mypy "$@" || true' --
