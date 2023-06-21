@@ -354,66 +354,6 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
                     f"At least `self.date` or `self.employment_date` required"
                 )
 
-    # def _set_national_employment(self) -> None:
-    #     """Set national_employment Series, aggregated if sector_aggregation set.
-    #
-    #     Todo:
-    #         * Refactor around raw_national_employment vs national_employment
-    #         * Potential risk the scaling is applied more times that it should be
-    #     """
-    #     if self.raw_national_employment and self.national_employment:
-    #         logger.warning(
-    #             f"Both raw_national_employment and national_employment set for {self}. national_employment used."
-    #         )
-    #     if self.national_employment is None:
-    #         if self.raw_national_employment is None and self.national_employment_path:
-    #             logger.warning(
-    #                 f"Loading {self.national_employment_path} with scale {self.national_employment_scale}"
-    #             )
-    #             self.raw_national_employment = load_region_employment_excel(
-    #                 path=self.national_employment_path
-    #             )
-    #         if self.raw_national_employment is not None:
-    #             if isinstance(self.raw_national_employment, Series):
-    #                 logger.warning(
-    #                     f"Setting National Employment from raw_national_employment length {len(self.raw_national_employment)}"
-    #                 )
-    #                 self.national_employment = self.raw_national_employment
-    #             elif isinstance(self.raw_national_employment, DataFrame):
-    #                 logger.warning(
-    #                     f"Extracting National Employment from {self} raw_national employment "
-    #                     f"DataFrame of length {len(self.raw_national_employment)} "
-    #                     f"with scaling {self.national_employment_scale}"
-    #                 )
-    #                 self.national_employment = (
-    #                     self.raw_national_employment.loc[str(self.employment_date)]
-    #                     # * self.national_employment_scale  # This was originally applied twice, hopefully fixed now
-    #                 )
-    #     logger.warning(
-    #         f"Setting {self} National Employment with scaling {self.national_employment_scale}"
-    #     )
-    #     assert type(self.national_employment) in (
-    #         Series,
-    #         DataFrame,
-    #     )  # Should be defined or error raised
-    #     # self.national_employment = self.national_employment*self.national_employment_scale
-    #     if self.sector_aggregation:
-    #         logger.warning(
-    #             f"Aggregating national employment by {len(self.sector_aggregation)} groups"
-    #         )
-    #         self.national_employment = aggregate_rows(
-    #             self.national_employment, sector_dict=self.sector_aggregation
-    #         )
-    #     if self.national_employment_scale:
-    #         logger.warning(
-    #             f"Scaling national_employment of {self} by {self.national_employment_scale}"
-    #         )
-    #         self.national_employment = (
-    #             self.national_employment * self.national_employment_scale
-    #         )
-    #     # elif self._national_employment is None:
-    #     #     raise TypeError("'_national_employment' attribute cannot be None.")
-
     @property
     def technical_coefficients(self) -> DataFrame:
         """Return the technical coefficients derived from `self.io_table`.
