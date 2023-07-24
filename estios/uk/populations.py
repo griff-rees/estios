@@ -1,4 +1,5 @@
 from copy import deepcopy
+from logging import getLogger
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -59,6 +60,8 @@ from .utils import (
 #             regions=uk_regions,
 #         )
 #     )
+
+logger = getLogger(__name__)
 
 
 def get_regional_mid_year_populations(
@@ -140,7 +143,12 @@ def get_employment_by_region_by_sector(
     assert isinstance(nomis_employment_df, DataFrame)
     if not sector_codes:
         sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
-    assert isinstance(sector_codes, Sequence)
+    try:
+        assert isinstance(sector_codes, Sequence)
+    except AssertionError:
+        logger.warning(
+            f"`sector_codes` is of type: {type(Sequence)} in `get_nation_employment_by_sector`"
+        )
     if not regions_manager:
         regions_manager = get_working_cities_puas_manager()
     assert isinstance(regions_manager, PUASManager)

@@ -218,7 +218,7 @@ class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
 
     @property
     def sectors(self) -> list[str]:
-        """A list of sectors used in the model
+        """List of sectors used in the model.
 
         Todo:
             * Manage disambiguation between sectors and sector_names.
@@ -463,7 +463,7 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @property
     def F_i_m_full(self) -> DataFrame:
-        """Return the final demand of sector $m$ in region $i$ in all categories
+        """Return final demand of all sectors $m$ in regions $i$.
 
         $F_i^{(m)} = F_*^{(m)} * P_i/P_*$
         """

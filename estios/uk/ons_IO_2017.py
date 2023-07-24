@@ -46,7 +46,8 @@ IMPORTS_ROW_NAME: Final[str] = "Imports"
 GROSS_VALUE_ADDED_ROW_NAME: Final[str] = "Gross Value Added"
 NET_SUBSIDIES_ROW_NAME: Final[str] = "Net subsidies"
 
-INTERMEDIATE_ROW_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
+# INTERMEDIATE_ROW_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
+INTERMEDIATE_ROW_NAME: Final[str] = "Total intermediate/final use at purchaser's prices"
 
 UK_FINAL_DEMAND_HOUSEHOLD_PURCHASE_CODE: Final[str] = "P3 S14"
 UK_FINAL_DEMAND_GOVERNMENT_PURCHASE_CODE: Final[str] = "P3 S13"

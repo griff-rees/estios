@@ -67,6 +67,7 @@ plugins:
         options:
           separate_signature: true
           show_signature_annotations: true
+          annotations_path: brief
   # - bibtex:
   #     bib_file: !ENV ZOTERO_BIBTEX_URL
   #     csl_file: https://raw.githubusercontent.com/citation-style-language/styles/master/environment-and-planning.csl

@@ -116,9 +116,9 @@ CPA_TAXES_NET_SUBSIDIES_ROW_NAME: Final[str] = "Taxes less subsidies on products
 CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[
     str
 ] = "Total intermediate/final use at purchaser's prices"
-CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
-    str
-] = "Total intermediate use at purchaser's prices"
+# CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
+#     str
+# ] = "Total intermediate use at purchaser's prices"
 
 
 DEFAULT_DOG_LEG_ROWS: Final[tuple[str, ...]] = (
