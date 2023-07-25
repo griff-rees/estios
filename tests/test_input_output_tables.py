@@ -10,7 +10,7 @@ from pandas.testing import assert_frame_equal
 from pymrio import MRIOMetaData
 
 from estios.input_output_tables import (
-    ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME,
+    ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME,
     COVID_FLAGS_COLUMN,
     AggregatedSectorDictType,
     InputOutputCPATable,
@@ -95,7 +95,7 @@ class TestLoadingONSIOTableData:
             in ons_io_2017_table.all_input_row_labels
         )
         assert (
-            ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME
+            ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME
             in ons_io_2017_table.all_output_column_labels
         )
 

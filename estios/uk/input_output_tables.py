@@ -5,7 +5,7 @@ from typing import Any, Callable, Final, Sequence
 from pandas import DataFrame
 
 from ..input_output_tables import (
-    ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME,
+    ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME,
     CPA_COLUMN_NAME,
     GROSS_CAPITAL_FORMATION_COLUMN_NAME,
     INVENTORY_CHANGE_COLUMN_NAME,
@@ -49,7 +49,7 @@ IMPORTS_ROW_NAME: Final[str] = "Imports"
 GROSS_VALUE_ADDED_ROW_NAME: Final[str] = "Gross Value Added"
 NET_SUBSIDIES_ROW_NAME: Final[str] = "Net subsidies"
 
-INTERMEDIATE_ROW_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
+# INTERMEDIATE_ROW_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
 
 UK_FINAL_DEMAND_HOUSEHOLD_PURCHASE_CODE: Final[str] = "P3 S14"
 UK_FINAL_DEMAND_GOVERNMENT_PURCHASE_CODE: Final[str] = "P3 S13"
@@ -81,14 +81,14 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
         "Exports of services": UK_EXPORTS_OF_SERVICES_CODE,
         GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
         INVENTORY_CHANGE_COLUMN_NAME: "P52",
-        ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
+        ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME: "P53",
         TOTAL_OUTPUT_COLUMN_NAME: UK_TOTAL_USE_AT_BASIC_PRICE,
     },
     "rows": {
         INTERMEDIATE_DEMAND_BASE_PRICE_ROW_NAME: INTERMEDIATE_DEMAND_BASE_PRICE_CODE,
         IMPORTS_ROW_NAME: "Imports",
         NET_SUBSIDIES_ROW_NAME: NET_SUBSIDIES_ROW_NAME,
-        INTERMEDIATE_DEMAND_PRICE_ROW_NAME: INTERMEDIATE_ROW_NAME,
+        INTERMEDIATE_DEMAND_PRICE_ROW_NAME: ons_IO_2017.INTERMEDIATE_ROW_NAME,
         "Employee Compensation": "D1",
         GROSS_VALUE_ADDED_ROW_NAME: "GVA",
         TOTAL_SALES_ROW_NAME: "P1",
@@ -105,7 +105,7 @@ UK_DOG_LEG_CODES: Final[dict[str, dict[str, str]]] = {
 #         "Exports of services": "P62",
 #         GROSS_CAPITAL_FORMATION_COLUMN_NAME: "P51G",
 #         INVENTORY_CHANGE_COLUMN_NAME: "P52",
-#         ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: "P53",
+#         ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME: "P53",
 #         TOTAL_OUTPUT_COLUMN_NAME: "TD",
 #     },
 #     "rows": {
@@ -186,7 +186,7 @@ class InputOutputTableUK2017(InputOutputTable):
     intermediate_demand_base_price_row_name: str | None = (
         INTERMEDIATE_DEMAND_BASE_PRICE_CODE
     )
-    intermediate_demand_row_name: str | None = INTERMEDIATE_ROW_NAME
+    intermediate_demand_row_name: str | None = ons_IO_2017.INTERMEDIATE_ROW_NAME
     dog_leg_columns: DogLegType = field(
         default_factory=lambda: UK_DOG_LEG_CODES["columns"]
     )

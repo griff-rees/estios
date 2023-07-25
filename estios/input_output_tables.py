@@ -96,7 +96,7 @@ INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's pri
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 GROSS_CAPITAL_FORMATION_COLUMN_NAME: Final[str] = "Gross fixed capital formation"
 INVENTORY_CHANGE_COLUMN_NAME: Final[str] = "changes in inventories"
-ACQUISITION_NET_VALUABLES_DISPOAL_COLUMN_NAME: Final[
+ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME: Final[
     str
 ] = "Acquisitions less disposals of valuables"
 
@@ -107,7 +107,7 @@ IMPORTS_ROW_NAME: Final[str] = "Imports"
 GROSS_VALUE_ADDED_ROW_NAME: Final[str] = "Gross Value Added"
 NET_SUBSIDIES_ROW_NAME: Final[str] = "Net subsidies"
 
-INTERMEDIATE_ROW_NAME: Final[str] = "Intermediate/final use w/purchaser's prices"
+INTERMEDIATE_ROW_NAME: Final[str] = INTERMEDIATE_COLUMN_NAME
 
 CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME: Final[
     str
@@ -116,9 +116,9 @@ CPA_TAXES_NET_SUBSIDIES_ROW_NAME: Final[str] = "Taxes less subsidies on products
 CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[
     str
 ] = "Total intermediate/final use at purchaser's prices"
-# CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
-#     str
-# ] = "Total intermediate use at purchaser's prices"
+CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
+    str
+] = "Total intermediate use at purchaser's prices"
 
 
 DEFAULT_DOG_LEG_ROWS: Final[tuple[str, ...]] = (

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from logging import getLogger
 from os import PathLike
 from pathlib import Path
 from typing import Any, Final, Union
@@ -11,6 +12,7 @@ from ..input_output_tables import (
     CPA_COLUMN_NAME,
     CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME,
     CPA_TAXES_NET_SUBSIDIES_ROW_NAME,
+    CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE,
     CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED,
     IO_TABLE_DEFAULT_COLUMNS_NAME,
     IO_TABLE_DEFAULT_INDEX_NAME,
@@ -20,6 +22,8 @@ from ..input_output_tables import (
 
 # from ..input_output_tables import IO_TABLE_NAME
 from ..sources import MetaData, OpenGovernmentLicense, pandas_from_path_or_package
+
+logger = getLogger(__name__)
 
 # Input-Output Tables sourced from
 #  https://www.ons.gov.uk/economy/nationalaccounts/supplyandusetables/datasets/inputoutputsupplyandusetables
@@ -104,7 +108,7 @@ def arrange_cpa_io_table(
     intermediate_row_name: str = INTERMEDIATE_ROW_NAME,
     cpa_import_cpa_row_name: str = CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME,
     cpa_taxes_net_subsidies_row_name: str = CPA_TAXES_NET_SUBSIDIES_ROW_NAME,
-    cpa_intermediate_at_purchase_price_row_name: str = CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED,
+    cpa_intermediate_at_purchase_price_row_name: str = CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE,
     input_index_label: str = IO_TABLE_DEFAULT_INDEX_NAME,
     output_column_label: str = IO_TABLE_DEFAULT_COLUMNS_NAME,
     return_tuple: bool = False,
@@ -125,9 +129,19 @@ def arrange_cpa_io_table(
     io_table.loc[cpa_taxes_net_subsidies_row_name][
         cpa_row_name
     ] = net_subsidies_row_name
-    io_table.loc[cpa_intermediate_at_purchase_price_row_name][
-        cpa_column_name
-    ] = intermediate_row_name
+    try:
+        io_table.loc[cpa_intermediate_at_purchase_price_row_name][
+            cpa_column_name
+        ] = intermediate_row_name
+    except:
+        logger.warning(
+            f"Using CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: "
+            f"{CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED}"
+        )
+        io_table.loc[CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED][
+            cpa_column_name
+        ] = intermediate_row_name
+
     io_table.index.name = input_index_label
     io_table.columns.name = output_column_label
     input_row_labels: Series = io_table.index
