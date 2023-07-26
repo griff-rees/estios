@@ -29,7 +29,7 @@ ukcensusapi = "^1.1.6"
 psutil = "5.9.4"
 
 [tool.poetry.group.jupyter.dependencies]
-jupyterlab = "^3.6.5"
+jupyterlab = "^4.0.3"
 
 [tool.poetry.group.server]
 optional = true
