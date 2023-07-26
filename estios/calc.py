@@ -18,6 +18,7 @@ from .utils import (
     dtype_wrapper,
     generate_i_m_index,
     generate_ij_index,
+    generate_ij_m_index,
     ordered_iter_overlaps,
     series_dict_to_multi_index,
     wrap_as_series,
@@ -46,6 +47,8 @@ INITIAL_P: Final[float] = 0.1  # For initial e_m_iteration e calculation
 DEFAULT_IMPORT_EXPORT_ITERATIONS: Final[int] = 15
 
 RESIDUAL_SERIES_NAME: str = "Residual"
+
+DEFAULT_BETA: float = 1.5
 
 
 @dtype_wrapper("float64")
@@ -629,18 +632,19 @@ def A_i_m_cal(
     city_distances: DataFrame,
     city_employment: DataFrame,
     city_population: Series,
-    B_j_m_old=1,
-    beta: float = BETA,
+    national_column_name: str,
+    national_population: Series,
+    national_distance: float,
     include_national: bool = False,
-    national_column_name: str = NATIONAL_COLUMN_NAME,
-    national_population: Series = national_population,
-    national_distance: float = UK_NATIONAL_DISTANCE,
+    beta: float = DEFAULT_BETA,
+    B_j_m_old=1,
 ) -> DataFrame:
     """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
     ijm_index: MultiIndex = generate_ij_m_index(
         city_employment.index,
         city_employment.columns,
         include_national=include_national,
+        national_column_name=national_column_name,
     )
     A_i_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
     A_i_m["Distance"] = A_i_m.apply(
@@ -651,7 +655,7 @@ def A_i_m_cal(
     )
     if include_national:
         city_population = city_population.append(
-            Series([national_population], index=[NATIONAL_COLUMN_NAME])
+            Series([national_population], index=[national_column_name])
         )
     A_i_m["P_i^m"] = A_i_m.apply(lambda row: city_population.loc[row.name[1]], axis=1)
     A_i_m["c_{ij}^-β"] = A_i_m["Distance"] ** (-1 * beta)
@@ -672,18 +676,19 @@ def A_i_m_cal(
 def B_j_m_cal(
     city_distances: DataFrame,
     city_employment: DataFrame,
+    national_column_name: str,
+    national_employment: Series,
+    national_distance: float,
     A_i_m_old=1,
-    beta: float = BETA,
+    beta: float = DEFAULT_BETA,
     include_national: bool = False,
-    national_column_name: str = NATIONAL_COLUMN_NAME,
-    national_employment: Series = national_employment,
-    national_distance: float = UK_NATIONAL_DISTANCE,
 ) -> DataFrame:
     """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
     ijm_index: MultiIndex = generate_ij_m_index(
         city_employment.index,
         city_employment.columns,
         include_national=include_national,
+        national_column_name=national_column_name,
     )
     B_j_m: DataFrame = DataFrame({"Q_i^m": None}, index=ijm_index)
     B_j_m["Distance"] = B_j_m.apply(
@@ -716,11 +721,12 @@ def iteration_for_AiBj(
     city_distances: DataFrame,
     city_employment: DataFrame,
     city_population: Series,
-    beta: float = BETA,
+    national_column_name: str,
+    national_employment: Series,
+    national_distance: float,
+    national_population: Series,
+    beta: float = DEFAULT_BETA,
     include_national: bool = True,
-    national_column_name: str = NATIONAL_COLUMN_NAME,
-    national_employment: Series = national_employment,
-    national_distance: float = UK_NATIONAL_DISTANCE,
     iteration_number: float = 20,
 ):
     A_i_m_init = A_i_m_cal(
@@ -730,6 +736,9 @@ def iteration_for_AiBj(
         B_j_m_old=1,
         beta=beta,
         include_national=include_national,
+        national_column_name=national_column_name,
+        national_population=national_population,
+        national_distance=national_distance,
     )
     A_i_m_res = A_i_m_init["A_i^m"]
     B_j_m_init = B_j_m_cal(
@@ -738,10 +747,13 @@ def iteration_for_AiBj(
         A_i_m_old=A_i_m_res,
         beta=beta,
         include_national=include_national,
+        national_column_name=national_column_name,
+        national_employment=national_employment,
+        national_distance=national_distance,
     )
     B_j_m_res = B_j_m_init["B_j^m"]
 
-    for i in range(0, iteration_number):
+    for i in range(iteration_number):
         old_value = A_i_m_res * B_j_m_res
         A_i_m = A_i_m_cal(
             city_distances=city_distances,
@@ -750,6 +762,9 @@ def iteration_for_AiBj(
             B_j_m_old=B_j_m_res,
             beta=beta,
             include_national=include_national,
+            national_column_name=national_column_name,
+            national_population=national_population,
+            national_distance=national_distance,
         )
         A_i_m_res = A_i_m["A_i^m"]
         B_j_m = B_j_m_cal(
@@ -758,6 +773,9 @@ def iteration_for_AiBj(
             A_i_m_old=A_i_m_res,
             beta=beta,
             include_national=include_national,
+            national_column_name=national_column_name,
+            national_employment=national_employment,
+            national_distance=national_distance,
         )
         B_j_m_res = B_j_m["B_j^m"]
         new_value = A_i_m_res * B_j_m_res
@@ -773,18 +791,19 @@ def b_ij_m_cal(
     city_population: Series,
     A_i_m: DataFrame,
     B_j_m: DataFrame,
-    beta: float = BETA,
+    national_column_name: str,
+    national_population: Series,
+    national_employment: Series,
+    national_distance: float,
+    beta: float = DEFAULT_BETA,
     include_national: bool = False,
-    national_column_name: str = NATIONAL_COLUMN_NAME,
-    national_population: Series = national_population,
-    national_employment: Series = national_employment,
-    national_distance: float = UK_NATIONAL_DISTANCE,
 ) -> DataFrame:
     """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
     ijm_index: MultiIndex = generate_ij_m_index(
         city_employment.index,
         city_employment.columns,
         include_national=include_national,
+        national_column_name=national_column_name,
     )
     b_ij_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
     b_ij_m["Distance"] = b_ij_m.apply(
@@ -796,7 +815,7 @@ def b_ij_m_cal(
     b_ij_m["c_{ij})^-β"] = b_ij_m["Distance"] ** (-1 * beta)
     if include_national:
         city_population = city_population.append(
-            Series([national_population], index=[NATIONAL_COLUMN_NAME])
+            Series([national_population], index=[national_column_name])
         )
     b_ij_m["P_i^m"] = b_ij_m.apply(lambda row: city_population.loc[row.name[1]], axis=1)
     b_ij_m["Q_i^m"] = b_ij_m.apply(
