@@ -9,6 +9,7 @@ from functools import wraps
 from itertools import zip_longest
 from logging import getLogger
 from operator import attrgetter
+from os import PathLike
 from typing import (
     Any,
     Callable,
@@ -25,7 +26,7 @@ from typing import (
 
 # from networkx import DiGraph
 from numpy import log
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Index, MultiIndex, Series, read_csv
 
 # from .uk.employment import CITY_SECTOR_REGION_PREFIX
 
@@ -65,7 +66,13 @@ CITY_COLUMN: Final[str] = "City"
 OTHER_CITY_COLUMN: Final[str] = "Other_City"
 SECTOR_COLUMN_NAME: Final[str] = "Sector"
 
-FINAL_Y_IJ_M_COLUMN_NAME: Final[str] = "y_ij_m"
+IJ_M_INDEX_NAMES: Final[list[str]] = [
+    CITY_COLUMN,
+    OTHER_CITY_COLUMN,
+    SECTOR_COLUMN_NAME,
+]
+
+FINAL_Y_IJ_M_COLUMN_NAME: Final[str] = "y_ij^m"
 
 # high-level SNA/ISIC aggregation A*10/11
 # See https://ec.europa.eu/eurostat/documents/1965800/1978839/NACEREV.2INTRODUCTORYGUIDELINESEN.pdf/f48c8a50-feb1-4227-8fe0-935b58a0a332
@@ -751,3 +758,90 @@ def regions_type_to_list(regions: RegionsIterableType):
 #     flows.add_nodes_from(y_ij_m_to_networkx.index.get_level_values(city_column))
 #     y_ij_m.apply(lambda row: flows.add_edge())
 #     flows.add_edges([])
+
+
+def df_columns_to_index(
+    df: DataFrame, column_names: Sequence[str] | str
+) -> Index | MultiIndex:
+    """Filter columns from a `DataFrame` to an `Index` or `MultiIndex`.
+
+    Examples:
+
+        >>> df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
+        >>> str_index: Index = df_columns_to_index(
+        ...     df,
+        ...     FINAL_Y_IJ_M_COLUMN_NAME)
+        >>> str_index[:2]
+        Index([434.205483722981, 3719952.537031151], dtype='float64', name='y_ij^m')
+        >>> one_column_list_index: Index = df_columns_to_index(
+        ...     df,
+        ...     [FINAL_Y_IJ_M_COLUMN_NAME])
+        >>> assert (one_column_list_index == str_index).all()
+        >>> two_columns_list_index: MultiIndex = df_columns_to_index(
+        ...     df,
+        ...     [FINAL_Y_IJ_M_COLUMN_NAME, 'b_ij^m'])
+        >>> two_columns_list_index[:2]
+        MultiIndex([( 434.205483722981, 0.0023450336299189),
+                    (3719952.537031151, 0.0200601727671955)],
+                   names=['y_ij^m', 'b_ij^m'])
+        >>> two_columns_list_index: MultiIndex = df_columns_to_index(
+        ...     df,
+        ...     [])  # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+        ...
+        ValueError: `column_names` [] invalid: at least 1 required
+    """
+    if isinstance(column_names, str):
+        column_names = [column_names]
+    if len(column_names) == 1:
+        return Index(df[column_names[0]])
+    elif len(column_names) > 1:
+        return MultiIndex.from_frame(df[column_names])
+    else:
+        raise ValueError(
+            f"`column_names` {column_names} invalid: " f"at least 1 required"
+        )
+
+
+def load_series_from_csv(
+    path: PathLike,
+    column_name: str,
+    index: MultiIndex | Index | None = None,
+    index_column_names: Sequence[str] | str | None = None,
+) -> Series:
+    """Load a column of results for re-use (visualisation etc.)
+
+    Examples:
+
+        >>> flows: Series = load_series_from_csv(
+        ...     path='tests/test_3_city_yijm.csv',
+        ...     column_name=FINAL_Y_IJ_M_COLUMN_NAME,
+        ...     index_column_names=IJ_M_INDEX_NAMES,
+        ... )
+        >>> assert flows.name == FINAL_Y_IJ_M_COLUMN_NAME
+        >>> flows.dtype
+        dtype('float64')
+        >>> three_city_df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
+        >>> three_city_df.set_index(IJ_M_INDEX_NAMES, inplace=True)
+        >>> assert (flows == three_city_df[FINAL_Y_IJ_M_COLUMN_NAME]).all()
+    """
+    df: DataFrame = read_csv(path)
+    if isinstance(index_column_names, str):
+        index_column_names = [index_column_names]
+    if not index:
+        index = (
+            df_columns_to_index(df, index_column_names)
+            if index_column_names
+            else Index(df.index)
+        )
+    elif index_column_names:
+        f"Both `index` and `index_columns` passed, using `index`"
+        if isinstance(index_column_names, str):
+            index_column_names = [index_column_names]
+        if len(index_column_names) > 1:
+            assert index.names == index_column_names
+        else:
+            assert index.name == index_column_names[0]
+    series: Series = df[column_name]
+    series.index = index
+    return series

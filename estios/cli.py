@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date
+from pathlib import Path
+from typing import Annotated, Optional
 
-from typer import Typer, echo, secho
+from pandas import Series
+from typer import Option, Typer, echo, secho
 from typer.colors import GREEN, RED
 
 from .models import InterRegionInputOutputTimeSeries
@@ -20,7 +23,14 @@ from .uk.ons_employment_2017 import (
 )
 from .uk.regions import EXAMPLE_UK_CITIES_LIST
 from .uk.scenarios import baseline_england_annual_projection
-from .utils import DateConfigType, enforce_end_str, enforce_start_str
+from .utils import (
+    FINAL_Y_IJ_M_COLUMN_NAME,
+    IJ_M_INDEX_NAMES,
+    DateConfigType,
+    enforce_end_str,
+    enforce_start_str,
+    load_series_from_csv,
+)
 
 app = Typer()
 
@@ -56,9 +66,10 @@ def server(
     auth: bool = True,
     host: str = DEFAULT_SERVER_HOST_IP,
     port: int = DEFAULT_SERVER_PORT,
-    path: str = DEFAULT_SERVER_PATH,
-    io_table: bool = False,
+    url_prefix: str = DEFAULT_SERVER_PATH,
+    render_io_table: bool = False,
     scenario: bool = False,
+    y_ij_m_path: Annotated[Optional[Path], Option(None, readable=True)] = None,
 ) -> None:
     """Run default dash input-output time series."""
     input_output_ts: InterRegionInputOutputTimeSeries | None = None
@@ -69,17 +80,33 @@ def server(
     if public:
         host = "0.0.0.0"
         port = 443
-    path = enforce_start_str(path, "/", True)
-    path = enforce_end_str(path, "/", False)
-    secho(f"Starting dash server with port {port} and ip {host} at {path}", fg=GREEN)
-    secho(f"Server running on: http://{host}:{port}{path}", fg=GREEN)
-    if io_table:
+    url_prefix = enforce_start_str(url_prefix, "/", True)
+    url_prefix = enforce_end_str(url_prefix, "/", False)
+    secho(
+        f"Starting dash server with port {port} and ip {host} at {url_prefix}", fg=GREEN
+    )
+    secho(f"Server running on: http://{host}:{port}{url_prefix}", fg=GREEN)
+    if render_io_table:
         secho(f"Including interactive io_table.", fg=RED)
     else:
         secho(f"Not including interactive io_table.", fg=GREEN)
     if not auth:
         secho(f"Warning: publicly viewable without authentication.", fg=RED)
-    if scenario and not input_output_ts:
+    if y_ij_m_path:
+        # Best if init_b_ij^m is also loaded if available
+
+        y_ij_m_series: Series = load_series_from_csv(
+            path=y_ij_m_path,
+            column_name=FINAL_Y_IJ_M_COLUMN_NAME,
+            index_column_names=IJ_M_INDEX_NAMES,
+        )
+        secho(f"Warning: y_ij_m parameter not available.", fg=RED)
+        input_output_ts = InterRegionInputOutputTimeSeries()
+        input_output_ts[0]._load_convergence_results(
+            None,
+            y_ij_m_series,
+        )
+    elif scenario and not input_output_ts:
         input_output_ts = baseline_england_annual_projection(regions=scenario_cities)
     else:
         config_data = CONFIG_2015_TO_2017_QUARTERLY
@@ -90,8 +117,8 @@ def server(
         port=port,
         all_cities=all_cities,
         auth=auth,
-        path_prefix=path,
-        io_table=io_table,
+        path_prefix=url_prefix,
+        io_table=render_io_table,
         default_date=default_date,
     )
 
