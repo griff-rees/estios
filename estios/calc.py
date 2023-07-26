@@ -623,3 +623,200 @@ def residual_X_m(
 #     if not dog_leg_rows:
 #         dog_leg_rows = {}
 #     raise NotImplementedError
+
+
+def A_i_m_cal(
+    city_distances: DataFrame,
+    city_employment: DataFrame,
+    city_population: Series,
+    B_j_m_old=1,
+    beta: float = BETA,
+    include_national: bool = False,
+    national_column_name: str = NATIONAL_COLUMN_NAME,
+    national_population: Series = national_population,
+    national_distance: float = UK_NATIONAL_DISTANCE,
+) -> DataFrame:
+    """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
+    ijm_index: MultiIndex = generate_ij_m_index(
+        city_employment.index,
+        city_employment.columns,
+        include_national=include_national,
+    )
+    A_i_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
+    A_i_m["Distance"] = A_i_m.apply(
+        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
+        if national_column_name not in row.name
+        else national_distance,
+        axis=1,
+    )
+    if include_national:
+        city_population = city_population.append(
+            Series([national_population], index=[NATIONAL_COLUMN_NAME])
+        )
+    A_i_m["P_i^m"] = A_i_m.apply(lambda row: city_population.loc[row.name[1]], axis=1)
+    A_i_m["c_{ij}^-β"] = A_i_m["Distance"] ** (-1 * beta)
+    A_i_m["P_i^m * c_{ij}^-β"] = A_i_m["P_i^m"] * A_i_m["c_{ij}^-β"]
+    A_i_m["P_i^m * c_{ij}^-β"] = A_i_m.groupby(["City", "Sector"])[
+        "P_i^m * c_{ij}^-β"
+    ].transform("sum")
+    A_i_m["B_j^m"] = B_j_m_old
+    A_i_m["B_j^m * sum P_i^m *  c_{ij}^-β"] = (
+        A_i_m["P_i^m * c_{ij}^-β"] * A_i_m["B_j^m"]
+    )
+
+    # Equation 16
+    A_i_m["A_i^m"] = 1 / A_i_m["B_j^m * sum P_i^m *  c_{ij}^-β"]
+    return A_i_m
+
+
+def B_j_m_cal(
+    city_distances: DataFrame,
+    city_employment: DataFrame,
+    A_i_m_old=1,
+    beta: float = BETA,
+    include_national: bool = False,
+    national_column_name: str = NATIONAL_COLUMN_NAME,
+    national_employment: Series = national_employment,
+    national_distance: float = UK_NATIONAL_DISTANCE,
+) -> DataFrame:
+    """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
+    ijm_index: MultiIndex = generate_ij_m_index(
+        city_employment.index,
+        city_employment.columns,
+        include_national=include_national,
+    )
+    B_j_m: DataFrame = DataFrame({"Q_i^m": None}, index=ijm_index)
+    B_j_m["Distance"] = B_j_m.apply(
+        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
+        if national_column_name not in row.name
+        else national_distance,
+        axis=1,
+    )
+    B_j_m["Q_i^m"] = B_j_m.apply(
+        lambda row: city_employment.loc[row.name[0]][row.name[2]]
+        if f"{national_column_name}" != row.name[0]
+        else national_employment[row.name[2]],
+        axis=1,
+    )
+    B_j_m["c_{ij}^-β"] = B_j_m["Distance"] ** (-1 * beta)
+    B_j_m["Q_i^m * c_{ij}^-β"] = B_j_m["Q_i^m"] * B_j_m["c_{ij}^-β"]
+    B_j_m["sum Q_i^m * c_{ij}^-β"] = B_j_m.groupby(["Other_City", "Sector"])[
+        "Q_i^m * c_{ij}^-β"
+    ].transform("sum")
+    B_j_m["A_i^m"] = A_i_m_old
+    B_j_m["A_i^m * sum Q_i^m * c_{ij}^-β"] = (
+        B_j_m["sum Q_i^m * c_{ij}^-β"] * B_j_m["A_i^m"]
+    )
+
+    B_j_m["B_j^m"] = 1 / B_j_m["A_i^m * sum Q_i^m * c_{ij}^-β"]
+    return B_j_m
+
+
+def iteration_for_AiBj(
+    city_distances: DataFrame,
+    city_employment: DataFrame,
+    city_population: Series,
+    beta: float = BETA,
+    include_national: bool = True,
+    national_column_name: str = NATIONAL_COLUMN_NAME,
+    national_employment: Series = national_employment,
+    national_distance: float = UK_NATIONAL_DISTANCE,
+    iteration_number: float = 20,
+):
+    A_i_m_init = A_i_m_cal(
+        city_distances=city_distances,
+        city_employment=city_employment,
+        city_population=city_population,
+        B_j_m_old=1,
+        beta=beta,
+        include_national=include_national,
+    )
+    A_i_m_res = A_i_m_init["A_i^m"]
+    B_j_m_init = B_j_m_cal(
+        city_distances=city_distances,
+        city_employment=city_employment,
+        A_i_m_old=A_i_m_res,
+        beta=beta,
+        include_national=include_national,
+    )
+    B_j_m_res = B_j_m_init["B_j^m"]
+
+    for i in range(0, iteration_number):
+        old_value = A_i_m_res * B_j_m_res
+        A_i_m = A_i_m_cal(
+            city_distances=city_distances,
+            city_employment=city_employment,
+            city_population=city_population,
+            B_j_m_old=B_j_m_res,
+            beta=beta,
+            include_national=include_national,
+        )
+        A_i_m_res = A_i_m["A_i^m"]
+        B_j_m = B_j_m_cal(
+            city_distances=city_distances,
+            city_employment=city_employment,
+            A_i_m_old=A_i_m_res,
+            beta=beta,
+            include_national=include_national,
+        )
+        B_j_m_res = B_j_m["B_j^m"]
+        new_value = A_i_m_res * B_j_m_res
+        # print(abs(new_value-old_value).sum()/new_value.sum())
+        # print(A_i_m_res[0])
+
+    return A_i_m, B_j_m
+
+
+def b_ij_m_cal(
+    city_distances: DataFrame,
+    city_employment: DataFrame,
+    city_population: Series,
+    A_i_m: DataFrame,
+    B_j_m: DataFrame,
+    beta: float = BETA,
+    include_national: bool = False,
+    national_column_name: str = NATIONAL_COLUMN_NAME,
+    national_population: Series = national_population,
+    national_employment: Series = national_employment,
+    national_distance: float = UK_NATIONAL_DISTANCE,
+) -> DataFrame:
+    """Calculate B_j^m via the singly constrained import flow anchor (equation 16)."""
+    ijm_index: MultiIndex = generate_ij_m_index(
+        city_employment.index,
+        city_employment.columns,
+        include_national=include_national,
+    )
+    b_ij_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
+    b_ij_m["Distance"] = b_ij_m.apply(
+        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
+        if national_column_name not in row.name
+        else national_distance,
+        axis=1,
+    )
+    b_ij_m["c_{ij})^-β"] = b_ij_m["Distance"] ** (-1 * beta)
+    if include_national:
+        city_population = city_population.append(
+            Series([national_population], index=[NATIONAL_COLUMN_NAME])
+        )
+    b_ij_m["P_i^m"] = b_ij_m.apply(lambda row: city_population.loc[row.name[1]], axis=1)
+    b_ij_m["Q_i^m"] = b_ij_m.apply(
+        lambda row: city_employment.loc[row.name[0]][row.name[2]]
+        if f"{national_column_name}" != row.name[0]
+        else national_employment[row.name[2]],
+        axis=1,
+    )
+    b_ij_m["A_i^m"] = A_i_m["A_i^m"]
+    b_ij_m["B_j^m"] = B_j_m["B_j^m"]
+    b_ij_m["init_b_ij^m"] = (
+        b_ij_m["A_i^m"]
+        * b_ij_m["B_j^m"]
+        * b_ij_m["Q_i^m"]
+        * b_ij_m["P_i^m"]
+        * b_ij_m["c_{ij})^-β"]
+    )
+    b_ij_m["sum_j b_ij^m"] = b_ij_m.groupby(["Other_City", "Sector"])[
+        "init_b_ij^m"
+    ].transform("sum")
+    b_ij_m["K"] = 1 / b_ij_m["sum_j b_ij^m"]
+    b_ij_m["b_ij^m"] = b_ij_m["init_b_ij^m"] * b_ij_m["K"]
+    return b_ij_m

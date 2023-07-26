@@ -347,3 +347,41 @@ def time_series_line(
         time_series = time_series.T
     return line(time_series, labels=labels, **kwargs)
     # return line(time_series, labels=labels)
+
+
+def flow_plot_pe(flow_result_list, geolist, year=None, color="red", save=False):
+    color_index = 0
+    for i in flow_result_list.Sector.unique():
+        fig, ax = plt.subplots(figsize=(20, 30))
+        Sector_df_temp = flow_result_list[flow_result_list["Sector"] == i]
+        Sector_df_temp.loc[:, "Linewidth"] = (
+            Sector_df_temp["yij_pe"] / (Sector_df_temp["yij_pe"].max())
+        ) * 5
+        Sector_df_temp.plot(
+            linewidths=Sector_df_temp["Linewidth"],
+            ax=ax,
+            color=color[color_index],
+            alpha=0.8,
+        )
+        color_index = color_index + 1
+        text_size_temp = (Sector_df_temp.groupby("City")["Linewidth"].agg("sum")) + (
+            Sector_df_temp.groupby("Other_City")["Linewidth"].agg("sum")
+        )
+        Marker_size = (np.log(Markek_size / Markek_size.min()) + 2) * 3
+        geolist_IO_temp = geolist.join(Marker_size, on="NAME1")
+        boundary[boundary["CTRY22NM"] == "England"].boundary.plot(
+            color="black", alpha=0.3, linestyle="-.", ax=ax
+        )
+        geolist_IO_temp.apply(
+            lambda x: ax.annotate(
+                text=x["NAME1"],
+                xy=x.geometry.coords[0],
+                ha="right",
+                size=x.Linewidth,
+                alpha=0.8,
+            ),
+            axis=1,
+        )
+        plt.title(i + " Per Employment", size=20)
+        if save:
+            plt.savefig("fig/" + i + "per_employment.jpg")
