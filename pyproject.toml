@@ -10,18 +10,18 @@ repository = "https://github.com/griff-rees/estios"
 [tool.poetry.dependencies]
 python = "~3.11"
 geopandas = "^0.10.2"
-plotly = "^5.14.1"
+plotly = "^5.15.0"
 typer = {version = "^0.4.2", extras = ["all"]}
 openpyxl = "^3.1.2"
 setuptools = "^62.6.0"
-numpy = "^1.24.2"
+numpy = "^1.25.1"
 xlrd = "^2.0.1"
 # GDAL = {version = "3.5.3", platform = "darwin"}
 # Fiona = "1.8.21"
 # pyogrio = "^0.4.2"
 # pyogrio = "^0.4.2"
 # pyarrow = "^10.0.1"
-Fiona = "^1.9.3"
+Fiona = "^1.9.4.post1"
 pymrio = "^0.4.8"
 country-converter = "^0.8.0"
 poetry-dotenv-plugin = "^0.1.0"
@@ -29,7 +29,7 @@ ukcensusapi = "^1.1.6"
 psutil = "5.9.4"
 
 [tool.poetry.group.jupyter.dependencies]
-jupyterlab = "^3.6.3"
+jupyterlab = "^3.6.5"
 
 [tool.poetry.group.server]
 optional = true
