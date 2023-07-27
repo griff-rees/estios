@@ -24,7 +24,7 @@ xlrd = "^2.0.1"
 Fiona = "^1.9.4.post1"
 pymrio = "^0.4.8"
 country-converter = "^0.8.0"
-poetry-dotenv-plugin = "^0.1.0"
+poetry-dotenv-plugin = "^0.2.0"
 ukcensusapi = "^1.1.6"
 psutil = "5.9.4"
 
