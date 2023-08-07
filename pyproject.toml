@@ -13,8 +13,8 @@ geopandas = "^0.10.2"
 plotly = "^5.15.0"
 typer = {version = "^0.4.2", extras = ["all"]}
 openpyxl = "^3.1.2"
-setuptools = "^65.5.1"
-numpy = "^1.25.1"
+setuptools = "^65.7.0"
+numpy = "^1.25.2"
 xlrd = "^2.0.1"
 # GDAL = {version = "3.5.3", platform = "darwin"}
 # Fiona = "1.8.21"
@@ -29,7 +29,7 @@ ukcensusapi = "^1.1.6"
 psutil = "5.9.4"
 
 [tool.poetry.group.jupyter.dependencies]
-jupyterlab = "^4.0.3"
+jupyterlab = "^4.0.4"
 
 [tool.poetry.group.server]
 optional = true
@@ -83,6 +83,7 @@ profile = "black"
 addopts = """
 --cov=estios
 --cov-report=term:skip-covered
+--cov-append
 --pdbcls=IPython.terminal.debugger:TerminalPdb
 --doctest-modules
 -m "not slow"
