@@ -64,7 +64,7 @@ mkdocstrings = {extras = ["python"], version = "^0.19.1"}
 mkdocs-literate-nav = "^0.5.0"
 mkdocs-gen-files = "^0.4.0"
 mkdocs-section-index = "^0.3.5"
-black = "^22.12.0"
+black = "^23.9.1"
 pymdown-extensions = "^10.0"
 mkdocs-bibtex = "^2.11.0"
 mktestdocs = "^0.2.1"
