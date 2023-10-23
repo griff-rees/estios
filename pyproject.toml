@@ -37,7 +37,7 @@ optional = true
 [tool.poetry.group.server.dependencies]
 python-dotenv = {version = "^0.19.2", extras = ["cli"]}
 jupyter-dash = "^0.4.2"
-fastapi = "^0.70.1"
+fastapi = "^0.104.0"
 uvicorn = "^0.16.0"
 dash-auth = "^1.4.1"
 
