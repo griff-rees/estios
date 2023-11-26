@@ -26,6 +26,7 @@ from .centre_for_cities_puas import (
 from .ons_population_estimates import ONS_CONTEMPORARY_POPULATION_META_DATA
 from .ons_population_projections import (
     NATIONAL_RETIREMENT_AGE,
+    ONS_AREA_CODE_COLUMN_NAME,
     RETIREMENT_AGE_INCREASE_YEAR,
     WORKING_AGE_MINIMUM,
 )
@@ -43,7 +44,7 @@ UK_NATION_NAMES: Final[tuple[str, ...]] = (
     "United Kingdom",
     "Wales",
 )
-ONS_AREA_CODE_COLUMN_NAME: Final[str] = "AREA_CODE"
+ONS_AREA_CODE_COLUMN_NAME: Final[str] = ONS_AREA_CODE_COLUMN_NAME
 ONS_AGES_COLUMN_NAME: Final[str] = "AGE_GROUP"
 
 RegionInfoTypes = str | bool | int
@@ -330,46 +331,6 @@ def region_by_name_or_alt(
         return regions[names_match.canonical]
 
 
-# def match_name_or_alt_names(
-#     name: str,
-#     other_dataset_names: Sequence[str],
-#     alt_names: AltNamesMapperType = REGION_ALTERNATE_NAMES,
-#     alt_names_key: str | None = None,
-# ) -> NamesMatchedTuple | None:
-#     if name in other_dataset_names:
-#         return NamesMatchedTuple(pua=name)
-#     else:
-#         # for canonical_name, other_names in alt_names.items():
-#         #     if name in other_names:
-#         #         if canonical_name in other_dataset_names:
-#         #             return canonical_name
-#
-#         # if name in alt_names.keys() and name in other_dataset_names:
-#         #
-#         for canonical_name, other_names in alt_names.items():
-#             if alt_names_key:
-#                 assert isinstance(other_names, dict)
-#                 other_names = tuple(other_names[alt_names_key])
-#             matched_name: set[str] = set((canonical_name, *other_names)) & {name}
-#             if matched_name:  # Return final version
-#                 assert len(matched_name) == 1
-#                 assert not canonical_name == "Aberdeen"
-#                 return NamesMatchedTuple(pua=name, alt=matched_name.pop())
-#             # if name in set(canonical_name, *alt_names):
-#             # if name in other_names or name == canonical_name:
-#             #     if canonical_name in other_dataset_names:
-#             #         return canonical_name
-#             #     else:
-#             #         logger.error(
-#             #             f"{canonical_name} match but not in provided `match_list`."
-#             #         )
-#             #         assert False
-#             #         return None
-#     logger.error(f"No match for {name} found.")
-#     assert False
-#     return None
-
-
 def region_from_alt_names(
     region_name: str,
     alt_names: RegionInfoMapper,
@@ -388,7 +349,7 @@ def region_from_alt_names(
         and NO_CONTEMPORARY_KEY in alt_names[region_name]
         and alt_names[region_name][NO_CONTEMPORARY_KEY]
     ):
-        logger.warning(f"No ONS data directly available on {region_name}")
+        logger.debug(f"No ONS data directly available on {region_name}")
         code = (
             alt_names[region_name]["code"]
             if "code" in alt_names[region_name].keys()
@@ -406,7 +367,7 @@ def region_from_alt_names(
         ):  # Check if any FLAG_KEYS included
             for key in FLAG_KEYS:
                 if key in alt_names[region_name].keys():
-                    logger.warning(f"Adding {key} flag to {alt_names[region_name]}")
+                    logger.debug(f"Adding {key} flag to {alt_names[region_name]}")
                     region.flags[key] = alt_names[region_name][key]
     else:
         region = region_by_name_or_alt(region_names_tuple, regions_manager)
@@ -450,41 +411,6 @@ def generate_uk_puas(
             # alt_name_keys=CONTMEPORARY_KEY,
             geography_type=PUA_GEOGRAPHY_TYPE,
         )
-        # regions[region] = region_from_alt_names(
-        #         region_name=region,
-        #         alt_names=region_alt_names,
-        #         regions_manager=uk_regions,
-        # )
-        # pua_re#         gion: Region
-        # pua_names_tuple: NamesMatchedTuple = name_or_alt(
-        #     name=pua, alt_names=pua_alt_names, alt_name_key=CONTMEPORARY_KEY
-        # )
-        # if (
-        #     pua in pua_alt_names
-        #     and NO_CONTEMPORARY_KEY in pua_alt_names[pua]
-        #     and pua_alt_names[pua][NO_CONTEMPORARY_KEY]
-        # ):
-        #     logger.error(f"No ONS data directly available on {pua}")
-        #     pua_region = Region(
-        #         name=pua,
-        #         code=None,
-        #         geography_type=PUA_GEOGRAPHY_TYPE,
-        #         flags={NO_CONTEMPORARY_KEY: True},
-        #     )
-        # else:
-        #     # pua_names_match: NamesMatchedTuple | None = match_name_or_alt_names(
-        #     #     pua, list(uk_regions.keys()), regional_alt_names, alt_names_key="pua"
-        #     # )
-        #     # assert pua_names_match
-        #     pua_region = region_by_name_or_alt(pua_names_tuple, uk_regions)
-        #     if pua_names_tuple.alt:
-        #         pua_region.alternate_names = pua_alt_names[pua]
-        # pua_data = uk_regions[pua_names_match.alt] if pua_names_match.alt else uk_regions[pua_names_match.pua]
-        # if names_match and names_match.alt:
-        #     pua_data: Region = uk_regions[pua_name]
-        # else:
-        #     logger.error(f"No match for Primary Urban Area (PUA) {pua}. Skipping...")
-        #     continue
         regions = RegionsManager()
         for region in local_authorities:
             regions[region] = region_from_alt_names(
@@ -492,65 +418,6 @@ def generate_uk_puas(
                 alt_names=region_alt_names,
                 regions_manager=uk_regions,
             )
-            # region_names_tuple: NamesMatchedTuple = name_or_alt(
-            #     name=region,
-            #     alt_names=region_alt_names,
-            #     alt_name_key=CONTMEPORARY_KEY,
-            # )
-            # if (
-            #     region in region_alt_names
-            #     and NO_CONTEMPORARY_KEY in region_alt_names[region]
-            #     and region_alt_names[region][NO_CONTEMPORARY_KEY]
-            # ):
-            #     logger.error(f"No ONS data directly available on {region}")
-            #     code = (
-            #         region_alt_names[region]["code"]
-            #         if "code" in region_alt_names[region].keys()
-            #         else None
-            #     )
-            #     assert code is None or isinstance(code, str)
-            #     regions[region] = Region(
-            #         name=region, code=code, geography_type=LAD_GEOGRAPHY_TYPE
-            #     )
-            #     # matched_name: set[str] = set((canonical_name, *other_names)) & {name}
-            #     if (
-            #         set(FLAG_KEYS) & region_alt_names[region].keys()
-            #     ):  # Check if any FLAG_KEYS included
-            #         for key in FLAG_KEYS:
-            #             if key in region_alt_names[region].keys():
-            #                 logger.warning(
-            #                     f"Adding {key} flag to {region_alt_names[region]}"
-            #                 )
-            #                 regions[region].flags[key] = region_alt_names[region][key]
-            # else:
-            #     regions[region] = region_by_name_or_alt(region_names_tuple, uk_regions)
-            #     if region_names_tuple.alt:
-            #         regions[region].alternate_names = region_alt_names[region]
-            # region_names_match: NamesMatchedTuple | None = match_name_or_alt_names(
-            #     region, list(uk_regions.keys()), regional_alt_names, alt_names_key="pua"
-            # )
-            # region_name: str | None = region if region in uk_region_df.index else None
-            # if not region_name:
-            #     for alt_name in regional_alt_names[region]:
-            #         if alt_name in uk_region_df.index:
-            #             region_name = alt_name
-            #             break
-            # regions[region] = uk_regions[region_names_match.alt] if region_names_match.alt else uk_regions[region_names_match.pua]
-            # if not region_names_match:
-            #     logger.error(f"{region} not found in")
-            #     continue
-            # else:
-            #     regions[region] = uk_regions[region_names_match.alt] if region_names_match.alt else uk_regions[region_names_match.pua]
-            # region_data: Series = uk_regions[region_name]
-            # regions[region] = Region(
-            #     name=region,
-            #     code=region_data[code_col],
-            #     geography_type=region_data[geo_col],
-            # )
-        # alt_names_tuple: tuple[str, ...] = filled_or_empty_tuple(alternate_names, pua)
-        # if alt_names_tuple:
-        #     assert len(alt_names_tuple) == 1
-        #     alt_names: AltNameType = {'pua': alt_names_tuple[0]}
         puas_manager[pua] = PrimaryUrbanArea(
             name=pua,
             code=pua_region.code,
@@ -585,12 +452,6 @@ def generate_base_regions(
             alternate_names=alt_names,
         )
     return regions_manager
-
-
-# <<<<<<< HEAD
-
-# <<<<<<< Updated upstream
-# =======
 
 
 def working_ages(
@@ -644,26 +505,3 @@ def sum_for_regions_by_la_code(
             ignore_key_errors=ignore_key_errors,
         )
     }
-
-    # >>>>>>> Stashed changes
-    # last_working_age_dict = {
-    #     region: ons_2017_pop_df.loc[uk_regions[region].la_codes,
-    #                                 working_age_columns].sum()
-    #     for region in regions
-    # }
-
-    # def __init__(self, mapping=None, /, **kwargs):
-    #     for
-    #     if mapping is not None:
-    #         mapping = {
-    #             str(key).upper(): value for key, value in mapping.items()
-    #         }
-    #     else:
-    #         mapping = {}
-    #     if kwargs:
-    #         mapping.update(
-    #             {str(key).upper(): value for key, value in kwargs.items()}
-    #         )
-    #     super().__init__(mapping)
-
-    # def _load_

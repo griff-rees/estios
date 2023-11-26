@@ -27,6 +27,8 @@ from .region_names import METROPOLITAN_COUNTIES_ENGLAND
 
 logger = getLogger(__name__)
 
+ONS_AREA_CODE_COLUMN_NAME: Final[str] = "AREA_CODE"
+
 ONS_ENGLAND_POPULATIONS_PROJECTION_2018_ZIP_URL: Final[str] = (
     "https://www.ons.gov.uk/"
     "file?uri=/peoplepopulationandcommunity/populationandmigration/"
@@ -112,8 +114,32 @@ def aggregate_region_by_age_range(
     youngest_age_number: int = YOUNGEST_AGE_INT,
     oldest_age_number: int = OLDEST_AGE_INT,
     # regions: Optional[list[str]] = None,
+    numeric_only: bool = True,
 ) -> DataFrame:
     """Return a dataframe aggregating population counts between min and max ages.
+
+    Args:
+        df:
+            `DataFrame` of age projections, where columns are years
+            and rows are UK regions
+        age_range:
+            `list` of ages, either as `str` or `int`
+        region_column_name:
+            `column` of names to index regions
+        age_column_name:
+            `column` for indexing ages
+        additional_filter_str:
+            other columns to filter with respect to
+        youngest_age_number:
+            Youngest age to aggregate from (eg. youngest working age)
+        oldest_age_number:
+            Oldest age to aggregate to (eg. oldest working age)
+        numeric_only:
+            Ensure only numeric columns (not `str`) are aggregated
+
+    Note:
+        - This default to indexing by region name *rather* than `AREA_CODE`
+        - `additional_filter_str` should be optional
 
     Todo:
         * Consider replacing with other aggregation method
@@ -127,7 +153,7 @@ def aggregate_region_by_age_range(
     return (
         df.query(f"{age_column_name} in {age_range} {additional_filter_str}")
         .groupby(region_column_name)
-        .sum()
+        .sum(numeric_only=numeric_only)
     )
 
 

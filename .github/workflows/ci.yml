@@ -22,6 +22,7 @@ jobs:
       #       mkdocs-material-
       - run: pip install poetry
       - run: poetry install --with docs --with dev --with jupyter --with server
+      # - run: poetry pytest -n auto
       - name: Python Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v2.2.0
 

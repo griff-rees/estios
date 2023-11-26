@@ -271,7 +271,7 @@ def download_and_save_file(
             # and a `sheet` needs to be specified, otherwise it defaults to the first
             # available sheet in the spreadsheet
             if "sheet_name" not in kwargs:
-                logger.warning(
+                logger.info(
                     "`sheet_name` parameter not provided, "
                     "defaulting to excel sheet "
                     f"to load: {local_path}"
@@ -550,7 +550,7 @@ class MetaData:
         data: SupportedAttrDataTypes | None
         if self.is_local:
             if not force_overwrite:
-                logger.warning(
+                logger.info(
                     f"{self.path} already exists. To force set 'force_overwrite' to True"
                 )
                 if ensure_data_returned:
@@ -558,7 +558,7 @@ class MetaData:
                         f"With `force_overwrite` False and `is_local` True, cannot return already saved {self}"
                     )
             else:
-                logger.info(
+                logger.debug(
                     f"{self.path} already exists. Overwriting as 'force_overwrite' set to True"
                 )
         if self._api_func:
@@ -691,6 +691,9 @@ def pandas_from_path_or_package(
         except KeyError as error:
             logger.error(f"No reader provided or available {error}")
             return None
+    if "skipfooter" in kwargs:
+        # `skipfooters` not allowed for default pandas reader `c` engine
+        kwargs["engine"] = None
     return reader(url_or_path, **kwargs)
 
 

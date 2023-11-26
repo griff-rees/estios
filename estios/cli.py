@@ -85,7 +85,6 @@ def server(
     secho(
         f"Starting dash server with port {port} and ip {host} at {url_prefix}", fg=GREEN
     )
-    secho(f"Server running on: http://{host}:{port}{url_prefix}", fg=GREEN)
     if render_io_table:
         secho(f"Including interactive io_table.", fg=RED)
     else:
@@ -100,6 +99,14 @@ def server(
             column_name=FINAL_Y_IJ_M_COLUMN_NAME,
             index_column_names=IJ_M_INDEX_NAMES,
         )
+        # y_ij_m: DataFrame = read_csv(y_ij_m_path)
+        # # Diff
+        # new_index = y_ij_m[['City', 'Other_City', 'Sector']]
+        # y_ij_m_series: Series = Series(
+        #     y_ij_m['y_ij^m'].to_list(),
+        #     index=new_index,
+        # #Stashed changes
+        # )
         secho(f"Warning: y_ij_m parameter not available.", fg=RED)
         input_output_ts = InterRegionInputOutputTimeSeries()
         input_output_ts[0]._load_convergence_results(

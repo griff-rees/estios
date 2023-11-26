@@ -651,6 +651,8 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     @property
     def y_ij_m(self) -> Series:
+        if isinstance(self.y_ij_m_model, Series):
+            return self.y_ij_m_model
         try:
             return column_to_series(self.y_ij_m_model, -1)
         except:

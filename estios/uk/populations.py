@@ -130,7 +130,7 @@ def series_mid_year_population(
 
 
 def get_employment_by_region_by_sector(
-    region_names: Sequence[str],
+    region_names: Sequence[str] | dict[str, str],
     sector_codes: Sequence[str] | None = None,
     year: int = 2017,
     nomis_employment_df: DataFrame | None = None,
@@ -140,20 +140,24 @@ def get_employment_by_region_by_sector(
 ) -> float | Sequence | DataFrame:
     if nomis_employment_df is None:
         nomis_employment_df = clean_nomis_employment_query(year)
+    assert nomis_employment_df is not None  # helps type checking
     assert isinstance(nomis_employment_df, DataFrame)
     if not sector_codes:
         sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
+    assert sector_codes is not None
     try:
         assert isinstance(sector_codes, Sequence)
     except AssertionError:
         logger.warning(
-            f"`sector_codes` is of type: {type(Sequence)} in `get_nation_employment_by_sector`"
+            f"`sector_codes` is of type: {type(sector_codes)} in `get_nation_employment_by_sector`"
         )
     if not regions_manager:
         regions_manager = get_working_cities_puas_manager()
     assert isinstance(regions_manager, PUASManager)
     if not region_names:
         region_names = regions_manager.names
+    if isinstance(region_names, dict):
+        region_names = tuple(region_names)
     sectors_dict: dict[str, DataFrame] = {}
     for sector_code in sector_codes:
         sectors_dict[sector_code] = Series(

@@ -127,7 +127,7 @@ OECD_GDP_LONG_TERM_FORCASTS: Final[MetaData] = MetaData(
     # license=OpenGovernmentLicense,
     path="oecd_long_term_forcasts.csv",
     file_name_from_url=False,
-    auto_download=True,
+    auto_download=False,
     needs_scaling=False,
     _package_data=True,
     # _save_func=download_and_extract_zip_file,  # type: ignore
@@ -174,7 +174,7 @@ OECD_PPP_CONVERTER: MetaData = MetaData(
     ),
     # path=ONS_UK_2018_FILE_NAME,
     license=OECDTermsAndConditions,
-    auto_download=True,
+    auto_download=False,
     # auto_download=False,
     file_name_from_url=False,
     needs_scaling=False,

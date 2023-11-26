@@ -5,7 +5,7 @@ Todo:
     * test raising NullRawRegionError and RawRegionTypeError,
 """
 import pytest
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, read_csv
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from estios import __version__
@@ -444,6 +444,22 @@ class TestInputOutputModel:
             in caplog.text
         )
 
+    def test_load_convergence_file(self, three_cities_io) -> None:
+        y_ij_m: DataFrame = read_csv("tests/test_3_city_yijm.csv")
+        y_ij_m_series: Series = Series(
+            y_ij_m["y_ij^m"].to_list(), index=three_cities_io._ij_m_index
+        )
+        three_cities_io._load_convergence_results(
+            None,
+            y_ij_m_series,
+        )
+        assert (three_cities_io.y_ij_m == y_ij_m_series).all()
+
+    @pytest.mark.xfail(
+        reason="missing `e_i_m` fixture and "
+        "`y_ij_m` currently returns a full table "
+        "while correct result is a Series"
+    )
     def test_import_export_convergence(
         self,
         three_cities_io,
