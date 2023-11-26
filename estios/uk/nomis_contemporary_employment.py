@@ -219,6 +219,20 @@ def gen_year_query(
     modify_str: str = "MINUS",
     valid_year_range: tuple[int, ...] = NOMIS_LOCAL_AUTHORITY_EMPLOYMENT_YEAR_RANGE,
 ) -> str:
+    """Generate a `NOMIS` year query `str`.
+
+    Args:
+        year: year to generate `query` `str` for.
+        default_str: query `str` to use for current time.
+        modify_str: query `str` to prefix date change.
+        valid_year_range: which years are valid to query.
+
+    Returns:
+        Query `str` for given year, or `latest` if current.
+
+    Raises:
+        ValueError: If `year` is not within `valid_year_range`.
+    """
     logger.info(f"Running `gen_year_query` for {year}, assuming annual releases.")
     if year not in valid_year_range:
         raise ValueError(
@@ -286,6 +300,23 @@ def gen_date_query(
     valid_year_range: tuple[int, ...] = NOMIS_LOCAL_AUTHORITY_EMPLOYMENT_YEAR_RANGE,
     latest_quarter: str = NOMIS_LATEST_AVAILABLE_QUARTER_STR,
 ) -> str:
+    """Generate a `NOMIS` date query `str`.
+
+    Args:
+        year: year to generate `query` `str` for.
+        quarter: which of `valid_quarters` to get date of.
+        default_str: query `str` to use for current time.
+        modify_str: query `str` to prefix date change.
+        valid_quarters: `str` of quarter names.
+        valid_year_range: which years are valid to query.
+        latest_quarter: latest quarter at time code is run.
+
+    Returns:
+        Query `str` for given date.
+
+    Raises:
+        ValueError: If `year` is not within `valid_year_range`.
+    """
     if not quarter:
         return gen_year_query(
             year=year,
@@ -325,7 +356,18 @@ def trim_df_for_employment_count(
     second_column_name: str = NOMIS_EMPLOYMENT_STATUS_COLUMN_NAME,
     second_value: str = NOMIS_EMPLOYMENT_COUNT_VALUE,
 ) -> DataFrame:
-    """Trim rows to just incude Employment Count rather than Employees Count"""
+    """Trim rows for Employment (rather than Employees) Count.
+
+    Args:
+        df: `DataFrame` to trim employment records from.
+        first_column_name: first `df` column query by `first_value`.
+        first_value: value to filter `df` `first_column_name` by.
+        second_column_name: second `df` column query by `second_value`.
+        second_value: value to filter `df` `second_column_name` by.
+
+    Return:
+        `df` filtered by `first_column_name` and `second_column_name`.
+    """
     return df[
         (df[first_column_name] == first_value)
         & (df[second_column_name] == second_value)

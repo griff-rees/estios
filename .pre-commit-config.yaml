@@ -48,3 +48,5 @@ repos:
     - id: mypy
       verbose: true
       entry: bash -c 'mypy "$@" || true' --
+      additional_dependencies:
+        - types-python-dateutil
