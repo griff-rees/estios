@@ -2,7 +2,7 @@ name: ci
 on:
   push:
     branches:
-      - main
+      - ['main', '41-set-up-test-coverage-ci']
 permissions:
   contents: write
 jobs:
@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.x
+          python-version: 3.11.x
       # - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       # - uses: actions/cache@v3
       #   with:
