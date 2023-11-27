@@ -100,7 +100,7 @@ DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS: Final[tuple[str, ...]] = (
 
 
 def name_converter(names: Sequence[str], name_mapper: dict[str, str]) -> list[str]:
-    """Return region names with any conversions specified in name_mapper"""
+    """Return region names with any conversions specified in name_mapper."""
     return [name if not name in name_mapper else name_mapper[name] for name in names]
 
 
@@ -171,6 +171,20 @@ def filter_y_ij_m_by_city_sector(
     column_index: Union[str, int] = -1,  # Default is last column/iteration
     final_column_name: str = FINAL_Y_IJ_M_COLUMN_NAME,
 ) -> Series:
+    """Filter `y_ij_m_results` `DataFrame` by `city` and `sector`.
+
+    Args:
+        y_ij_m_results: `DataFrame` of Input-Output convergance results.
+        city: city name.
+        sector: sector name.
+        city_column_name: name of `y_ij_m_results` column to index by `city`.
+        sector_column_name: name of `y_ij_m_results` column to index by `sector`.
+        column_index: column to index by.
+        final_column_name: column name of saved results.
+
+    Returns:
+        `Series` of queried `city` and `sector`.
+    """
     return (
         y_ij_m_results.query(
             f"{city_column_name} == @city & {sector_column_name} == @sector"
@@ -203,6 +217,14 @@ def column_to_series(
 
 
 def log_x_or_return_zero(x: float) -> Optional[float]:
+    """Return max of `log` of `x` or 0, or `None` if `x` < 0.
+
+    Args:
+        x: number to take `log` of if >= 0.
+
+    Returns:
+        $log(x)$ if $log(x)> 0$ else $0.0$, or `None` if $x < 0$.
+    """
     if x < 0:
         logger.error(f"Cannot log {x} < 0")
         return None
@@ -245,7 +267,6 @@ def aggregate_rows(
     sector_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT,
 ) -> DataFrame | Series:
     """Aggregate DataFrame rows to reflect aggregated sectors."""
-
     if isinstance(pre_agg_data, DataFrame):
         if pre_agg_data.columns.to_list() == list(sector_dict.keys()):
             logger.warning(
