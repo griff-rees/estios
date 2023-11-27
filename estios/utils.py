@@ -325,10 +325,32 @@ def iter_attr_by_key(
 
 
 def tuples_to_ordered_dict(tuple_iter: Iterable[tuple[Hashable, Any]]) -> OrderedDict:
+    """Convert an iterable of `tuples` to an `OrderedDict`.
+
+    Args:
+        tuple_iter: Iterable of `tuples` of two values:
+            fist is to be `key`, second `value`.
+
+    Returns:
+        `OrderedDict` from `tuple_iter`.
+    """
     return OrderedDict([(key, val) for key, val in tuple_iter])
 
 
 def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
+    """Return value from `dict` indexed from `key, else an exmpty `dict`.
+
+    Args:
+        indexable: `dict` to index from.
+        key: key to index `indexable` with.
+
+    Returns:
+        Either the value of `key` in `indexable` or {}
+
+    Todo:
+        Check if it should expect a `dict` of `dicts`.
+    """
+
     return indexable[key] if key in indexable else {}
 
 
@@ -351,7 +373,18 @@ def ordered_iter_overlaps(
 
 def filter_df_by_strs_or_sequences(
     rows: str | Sequence[str], columns: str | Sequence[str], df: DataFrame
-) -> Sequence:
+) -> Series | DataFrame:
+    """Wrapper to ease filtering a `DataFrame` by a `str` or a `Sequence`.
+
+    Args:
+        rows: either a `str` of row index, or a `Sequence` to index rows by.
+        columns: either a `str` of a column name, or a `Sequence` filter columns by.
+        df: `DataFrame` to filter.
+
+    Returns:
+        A `Series` or `DataFrame` filtered from `df`.
+
+    """
     if isinstance(rows, str):
         rows = [rows]
     if isinstance(columns, str):
@@ -374,6 +407,7 @@ def ensure_type(
 def ensure_series(
     var: str | Sequence[Any] | Series | DataFrame,
 ) -> Series:
+    """Ensure `var` is returned as a `Series` type."""
     return ensure_type(var, Series, Series)
 
 
@@ -399,10 +433,13 @@ def wrap_as_series(
 
 
 def ensure_dtype(series_or_df: Series | DataFrame, dtype: str) -> Series | DataFrame:
+    """Convert `series_or_df` to specified `dtype`."""
     return series_or_df.astype(dtype)
 
 
 def dtype_wrapper(final_type: str):
+    """Decorator to ensuring `final_type` from function wrapped."""
+
     def callable_wrapper(func: Callable):
         @wraps(func)
         def ensure_dtype_wrapper(*args, **kwargs) -> Series | DataFrame:
@@ -414,14 +451,17 @@ def dtype_wrapper(final_type: str):
 
 
 def len_less_or_eq(sequence: Sequence, count: int = 1) -> bool:
+    """Check if `len` of `sequence` is <= to `count`."""
     return len(sequence) <= count
 
 
 def get_df_nth_row(df: DataFrame, index: int = 0) -> Series:
+    """Get index location of `df`."""
     return df.iloc[index]
 
 
 def get_df_first_row(df: DataFrame) -> Series:
+    """Get first row from `df`."""
     return get_df_nth_row(df)
 
 
@@ -429,6 +469,8 @@ def conditional_type_wrapper(
     condition_func: Callable[[Any], bool],
     type_wrapper: Callable[[Any], Any],
 ):
+    """Decorator for applying `type_wrapper` if `condition_func` returns `True`."""
+
     def callable_wrapper(func: Callable):
         @wraps(func)
         def ensure_type_wrapper(*args, **kwargs) -> Any:
@@ -523,6 +565,17 @@ def df_to_trimmed_multi_index(
     index: MultiIndex,
     multi_index_level: int = 1,
 ) -> DataFrame:
+    """Trim and index `df`.
+
+    Args:
+        df: `DataFrame` to trim and index.
+        columns: which columns to keep.
+        index: which rows to keep.
+        multi_index_level: which level of multi index to use.
+
+    Returns:
+        Trimmed and indexed `df`.
+    """
     trimmed_df: DataFrame = df.loc[
         index.get_level_values(multi_index_level),
         columns.get_level_values(multi_index_level),
@@ -563,6 +616,16 @@ def df_dict_to_multi_index(
     column_names: Sequence[str],
     invert: bool = True,
 ) -> DataFrame:
+    """Join a `dict` of `DataFames` into one.
+
+    Args:
+        nested_df: A `dict` with `DataFrame` values to join together.
+        column_names: column names to set for returned `DataFrame`.
+        invert: whether to invert the final `DataFrame`
+
+    Returns:
+        `DataFrame` from initial `nested_df`.
+    """
     df: DataFrame = DataFrame.from_dict(
         {
             (group, row[0]): row[1:]
@@ -699,6 +762,7 @@ def apply_func_to_df_var(
     axis="columns",
     **kwargs,
 ) -> DataFrame:
+    """Apply `func` to `df` `var_name`, specifying which `axis`."""
     return df.apply(lambda vector: func(vector[var_name], **kwargs), axis=axis)
 
 
@@ -712,52 +776,6 @@ def regions_type_to_list(regions: RegionsIterableType):
         return regions.to_list()
     else:
         return regions
-
-    # return  or attr_str
-    # try:
-    # except:
-    #     if strict:
-    #         raise AttributeError(f"Attribute {attr_str} not part of {cls}")
-    #     else:
-    #         logger.debug(f"Attribute {attr_str} not part of {cls}")
-
-    # if param_str.startswith(f"{self_str}"):
-    #     param_str = param_str[len(f"{self_str}."):]
-    # param_attr_tuple: tuple[str, ...] =  param_str.split('.')
-    # obj: Any = cls
-
-    # for i, attr_name in enumerate(param_attr_tuple):
-    #     if self_str and attr_name == self_str and i == 0:
-    #         obj = cls
-    #     # if  guessed_attr_name: str = param_str.split('.')
-    #     if hasattr(obj, attr_name):
-    #         obj = getattr(cls, attr_name)
-    #         assert False
-    #     else:
-    #         if strict:
-    #             raise AttributeError(f"Attribute {attr_name} not part of {obj}")
-    #         else:
-    #             logger.debug(f"Attribute {attr_name} not part of {obj}")
-    #             continue
-    # if obj is not None:
-    #     return param_str
-    # raise AttributeError(f"Failed to extract {param_str} from {obj}.")
-
-
-# def expand_df_dict_to_multi_index(df, )
-
-
-# def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
-#     return indexable[key] if key in indexable else {}
-# >>>>>>> Stashed changes
-
-
-# def y_ij_m_to_networkx(y_ij_m_results: Series,
-#                        city_column: str = CITY_COLUMN) -> DiGraph:
-#     flows: DiGraph()
-#     flows.add_nodes_from(y_ij_m_to_networkx.index.get_level_values(city_column))
-#     y_ij_m.apply(lambda row: flows.add_edge())
-#     flows.add_edges([])
 
 
 def df_columns_to_index(

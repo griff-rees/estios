@@ -289,7 +289,7 @@ class PopulationProjection:
 
     @property
     def converted_regions(self) -> RegionConfigType:
-        """Return region names with any conversions specified in _region_name_mapper"""
+        """Return any region names to convert via `_region_name_mapper`."""
         if self._region_name_mapper:
             return name_converter(self.regions, self._region_name_mapper)
         else:

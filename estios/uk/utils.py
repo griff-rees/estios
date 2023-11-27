@@ -45,7 +45,6 @@ UK_NATION_NAMES: Final[tuple[str, ...]] = (
     "Wales",
 )
 ONS_AREA_CODE_COLUMN_NAME: Final[str] = ONS_AREA_CODE_COLUMN_NAME
-ONS_AGES_COLUMN_NAME: Final[str] = "AGE_GROUP"
 
 RegionInfoTypes = str | bool | int
 RegionInfoMapper = dict[str, dict[str, RegionInfoTypes]]
@@ -339,6 +338,20 @@ def region_from_alt_names(
     alt_name_keys: tuple[str, ...] = REGION_MAPPER_KEYS,
     geography_type: str = LAD_GEOGRAPHY_TYPE,
 ) -> Region:
+    """Return `Region` from potential alternate names.
+
+    Args:
+        region_name: name to request alternates of.
+        alt_names: config of alternate region names to query from.
+        regions_manager: config of additional data beyond names.
+        region_class: what `type` of `Region` instance to create.
+        alt_name_keys: `keys` to include to index `alt_names`.
+        geography_type: what type of `geography` for returned `Region`.
+
+    Returns:
+        An instance of passed `region_class` type from `region_name`
+        and matched `alt_name_keys`.
+    """
     region_names_tuple: NamesMatchedTuple = name_or_alt(
         name=region_name,
         alt_names=alt_names,
@@ -390,7 +403,7 @@ def generate_uk_puas(
     # geo_col: str = "Geography",
     # alternate_names: AltNamesMapperType = PUA_ALTERNATE_NAMES,
 ) -> GenericRegionsManager:
-    """Return a PUARegionManager using definitions of UK Public Urban Areas
+    """Return a PUARegionManager using definitions of UK Public Urban Areas.
 
     Todo:
         * Refactor for better ways to manage specific flags
@@ -434,6 +447,26 @@ def generate_base_regions(
     regions_date: DateType | int | None = None,
     alternate_names: RegionInfoMapper = REGION_ALTERNATE_NAMES,
 ) -> GenericRegionsManager:
+    """Return a `RegionsManager` from passed `ons_region_df`.
+
+    Args:
+        ons_region_df: `DataFrame` resembling `ONS_CONTEMPORARY_POPULATION`
+            structure, or `None`, in which case
+            `load_contemporary_ons_population` is called.
+        ons_region_meta_data: `MetaData` on the `ons_region_df` data source.
+        regions_date: what date the `ons_region_df` refers to.
+        alternate_names: Alternate names for regions in `ons_region_df`.
+
+    Returns:
+        A populated `GenericRegionsManager` instance, meaning of type
+        `RegionsManager` or `PUASManager` etc.
+
+    Raises:
+        AssertionError: if `ons_region_df` is not a `DataFrame`
+        (including if originally `None` and `load_contemporary_ons_population`
+        fails to return a `DataFrame`).
+
+    """
     if not ons_region_df:
         ons_region_df = load_contemporary_ons_population(
             ons_region_data=ons_region_meta_data
@@ -460,6 +493,21 @@ def working_ages(
     max_working_age: int = NATIONAL_RETIREMENT_AGE,
     retirement_age_increase_year: int = RETIREMENT_AGE_INCREASE_YEAR,
 ) -> Generator[int, None, None]:
+    """Yield the range of ages legally set for working.
+
+    Args:
+        year: what year to queary working age for.
+        min_working_age: youngest working age to iterate from.
+        max_working_age: oldest working age prior to retirement.
+        retirement_age_increase_year: future year when retirement age is
+            scheduled to increase by 1 year.
+
+    Yields:
+        Integers of working ages for given `year`.
+
+    Raises:
+        AssertionError: if `year` is before 2000
+    """
     assert year > 2000
     if (
         max_working_age == NATIONAL_RETIREMENT_AGE
@@ -478,6 +526,16 @@ def get_working_cities_puas_manager(
     puas_manager: PUASManager | GenericRegionsManager | None = None,
     skip_regions: Iterable = SKIP_CITIES,
 ) -> PUASManager | GenericRegionsManager:
+    """Return a `RegionsManager` filtered by `skip_regions`.
+
+    Args:
+        puas_manager: set of cities to filter from.
+        skip_regions: what regions to skip from `puas_manager`
+            (likely due to issues with data processing).
+
+    Returns:
+        A populated `GenericRegionsManager` excluding `skip_regions`.
+    """
     if not puas_manager:
         puas_manager = generate_uk_puas()
     for region in skip_regions:
@@ -493,6 +551,20 @@ def sum_for_regions_by_la_code(
     set_index_to_column: str | None = None,
     ignore_key_errors: bool = False,
 ) -> dict[str, float | Series]:
+    """Sum `Region` attributes by Local Authority `la_code`.
+
+    Args:
+        df: `DataFrame` of attributes to fit `regions`.
+        region_names: names of regions to `sum` attributes of.
+        column_names: names of attributes to `sum` per region.
+        regions: `RegionsManager` to iterate over/index with.
+        set_index_to_column: Which column to use for indexing `region_names`.
+        ignore_key_errors: Whether to fail or ignore `key` indexing errors.
+
+    Returns:
+        A `dict` of `regions` to `floats` if one column, or `Series` if
+        multiple `column_names`.
+    """
     return {
         region: value
         for region, value in sum_for_regions_by_attr(
