@@ -6,7 +6,7 @@ from typing import Callable, Sequence
 from pandas import DataFrame, Series
 
 from ..sources import FilePathType, pandas_from_path_or_package
-from ..utils import SECTOR_10_CODE_DICT, aggregate_rows, ensure_list_of_strs
+from ..utils import AREA_LABEL, SECTOR_10_CODE_DICT, aggregate_rows, ensure_list_of_strs
 from .nomis_contemporary_employment import (
     NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
     NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
@@ -21,7 +21,6 @@ from .ons_population_estimates import (
     ONS_CONTEMPORARY_POPULATION_META_DATA,
 )
 from .utils import (
-    ONS_AGES_COLUMN_NAME,
     ONS_AREA_CODE_COLUMN_NAME,
     UK_NAME,
     UK_NATION_NAMES,
@@ -253,7 +252,7 @@ def regional_population_projections(
     population_projections_df: DataFrame = None,
     region_names: Sequence[str] | None = None,
     regions_manager: PUASManager | GenericRegionsManager | None = None,
-    age_group_column_name: str = ONS_AGES_COLUMN_NAME,
+    age_group_column_name: str = AREA_LABEL,
     set_index_to_column: str | None = ONS_AREA_CODE_COLUMN_NAME,
     ignore_key_errors: bool = False,
 ) -> Series:

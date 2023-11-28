@@ -65,9 +65,13 @@ plugins:
       python:
         paths: [.]
         options:
+          docstring_style: google
           separate_signature: true
           show_signature_annotations: true
+          line_length: 80
           annotations_path: brief
+          signature_crossrefs: true
+          merge_init_into_class: true
   # - bibtex:
   #     bib_file: !ENV ZOTERO_BIBTEX_URL
   #     csl_file: https://raw.githubusercontent.com/citation-style-language/styles/master/environment-and-planning.csl
