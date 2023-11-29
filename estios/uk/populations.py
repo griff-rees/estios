@@ -6,7 +6,7 @@ from typing import Callable, Sequence
 from pandas import DataFrame, Series
 
 from ..sources import FilePathType, pandas_from_path_or_package
-from ..utils import SECTOR_10_CODE_DICT, aggregate_rows, ensure_list_of_strs
+from ..utils import AREA_LABEL, SECTOR_10_CODE_DICT, aggregate_rows, ensure_list_of_strs
 from .nomis_contemporary_employment import (
     NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
     NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
@@ -20,10 +20,7 @@ from .ons_population_estimates import (
     ONS_2017_ALL_AGES_COLUMN_NAME,
     ONS_CONTEMPORARY_POPULATION_META_DATA,
 )
-
-# from ..temporal import MonthDay
 from .utils import (
-    ONS_AGES_COLUMN_NAME,
     ONS_AREA_CODE_COLUMN_NAME,
     UK_NAME,
     UK_NATION_NAMES,
@@ -35,32 +32,6 @@ from .utils import (
     working_ages,
 )
 
-# def get_contemporary_regional_full_population_history(
-#     # years: Sequence[int] | None = TWO_YEARS,
-#     ons_population_df: DataFrame | MetaData = ONS_2017_POPULATION_META_DATA,
-#     uk_regions: GenericRegionsManager | PUASManager | None = None,
-#     region_names: Sequence[str] | None = tuple(THREE_UK_CITY_REGIONS.keys()),
-#     # month_day: MonthDay | None = None,
-#     # working_age_columns: Sequence[int] = WORKING_AGE_LIST,
-#     all_ages_column: str = ONS_2017_ALL_AGES_COLUMN_NAME,
-#
-#     ):
-#     if isinstance(ons_population_df, MetaData):
-#         ons_population_df = ons_population_df.read()
-#     if not uk_regions:
-#         uk_regions = get_working_cities_puas_manager()
-#     assert isinstance(uk_regions, PUASManager)
-#     if not region_names:
-#         region_names = uk_regions.names
-#     return Series(
-#         sum_for_regions_by_la_code(
-#             df=ons_population_df,
-#             region_names=region_names,
-#             column_names=all_ages_column,
-#             regions=uk_regions,
-#         )
-#     )
-
 logger = getLogger(__name__)
 
 
@@ -71,7 +42,25 @@ def get_regional_mid_year_populations(
     regions_manager: PUASManager | GenericRegionsManager | None = None,
     column_prefix: str = "Mid-",
     set_index_to_column: str | None = "Code",
-) -> float | Sequence | DataFrame:
+) -> Series:
+    """A wrapper to manage errors before calling `series_mid_year_population`.
+
+    Args:
+        year: Year of population requested.
+        region_names: Names of regions to query populations of.
+        ons_population_df: Population time series `DataFrame`
+            (will load via `load_contemporary_ons_population` if `None`).
+        regions_manager: `PUASManager` instance to match `region_names`.
+        column_prefix: Optional `str` prefix for indexing `year` columns.
+        set_index_to_column: Which column to use for indexing `region_names`.
+
+    Returns:
+        A `Series` from calling `series_mid_year_population`.
+
+    Raises:
+        AssertionError: If `ons_population_df`, `regions_manager` or
+            `region_names` do not load correctly .
+    """
     if not ons_population_df:
         ons_population_df = load_contemporary_ons_population()
     assert isinstance(ons_population_df, DataFrame)
@@ -90,17 +79,6 @@ def get_regional_mid_year_populations(
     )
 
 
-# Series(
-#         sum_for_regions_by_la_code(
-#             df=ons_population_df,
-#             region_names=region_names,
-#             column_names=[f"{column_prefix}{year}"],
-#             regions=regions_manager,
-#             set_index_to_column=set_index_to_column,
-#         )
-#     )
-
-
 def series_mid_year_population(
     df: DataFrame,
     region_names: Sequence[str],
@@ -109,6 +87,19 @@ def series_mid_year_population(
     set_index_to_column: str | None = "Code",
     column_prefix: str = "Mid-",
 ) -> Series:
+    """Return a `DataFrame` of mid-year popluations for `region_names`.
+
+    Args:
+        df: `DataFrame` with mid-year population records.
+        region_names: Names of regions to query populations of.
+        regions_manager: `PUASManager` instance to match `region_names`.
+        year: Year of population requested.
+        set_index_to_column: Which column to use for indexing `region_names`.
+        column_prefix: Optional `str` prefix for indexing `year` columns.
+
+    Returns:
+        A `Series` of populations for given `year` for `region_names`.
+    """
     return Series(
         sum_for_regions_by_la_code(
             df=df,
@@ -119,41 +110,54 @@ def series_mid_year_population(
         )
     )
 
-    # for region in regions_manager:
-    #     code: str = regions_manager[region].code
-    #     assert code
-    #     regional_populations[region] = ons_population_df.loc[
-    #         ons_population_df['Code'] == code
-    #     ]
-    #     assert False
-    # return ons_population_df.loc[regions, f"{column_prefix}{year}"]
-
 
 def get_employment_by_region_by_sector(
-    region_names: Sequence[str],
+    region_names: Sequence[str] | dict[str, str],
     sector_codes: Sequence[str] | None = None,
     year: int = 2017,
     nomis_employment_df: DataFrame | None = None,
     regions_manager: PUASManager | GenericRegionsManager | None = None,
     set_index_to_column: str | None = NOMIS_GEOGRAPHY_CODE_COLUMN_NAME,
     ignore_key_errors: bool = False,
-) -> float | Sequence | DataFrame:
+) -> DataFrame:
+    """Return a `DataFrame` of sector employment per region at `year`.
+
+    Args:
+        region_names: Names of regions to query populations of.
+        sector_codes: Names of sectors to include.
+        year: Year of population requested.
+        nomis_employment_df: `DataFrame` of NOMIS regional employment estimates.
+        regions_manager: `PUASManager` instance to match `region_names`.
+        set_index_to_column: Which column to use for indexing `region_names`.
+        ignore_key_errors: Whether to fail or ignore `key` indexing errors.
+
+    Returns:
+        A `DataFrame` of populations for given `year` for `region_names`.
+
+    Raises:
+        AssertionError: Raised if `nomis_employment_df`, `sector_codes`,
+            `regions_manager` or `region_names` are not valid.
+    """
     if nomis_employment_df is None:
         nomis_employment_df = clean_nomis_employment_query(year)
+    assert nomis_employment_df is not None  # helps type checking
     assert isinstance(nomis_employment_df, DataFrame)
     if not sector_codes:
         sector_codes = nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME].unique()
+    assert sector_codes is not None
     try:
         assert isinstance(sector_codes, Sequence)
     except AssertionError:
         logger.warning(
-            f"`sector_codes` is of type: {type(Sequence)} in `get_nation_employment_by_sector`"
+            f"`sector_codes` is of type: {type(sector_codes)} in `get_nation_employment_by_sector`"
         )
     if not regions_manager:
         regions_manager = get_working_cities_puas_manager()
     assert isinstance(regions_manager, PUASManager)
     if not region_names:
         region_names = regions_manager.names
+    if isinstance(region_names, dict):
+        region_names = tuple(region_names)
     sectors_dict: dict[str, DataFrame] = {}
     for sector_code in sector_codes:
         sectors_dict[sector_code] = Series(
@@ -185,6 +189,24 @@ def get_nation_employment_by_sector(
     nomis_employment_df: DataFrame | None = None,
     set_index_to_column: str | None = NOMIS_GEOGRAPHY_NAME_COLUMN_NAME,
 ) -> float | Sequence | DataFrame | Series:
+    """Return a national employment by sector by `year`.
+
+    Args:
+        region_names: Names of regions to query populations of.
+        sector_codes: Names of sectors to include.
+        year: Year of population requested.
+        nomis_employment_df: `DataFrame` of NOMIS regional employment estimates.
+        regions_manager: `PUASManager` instance to match `region_names`.
+        set_index_to_column: Which column to use for indexing `region_names`.
+        ignore_key_errors: Whether to fail or ignore `key` indexing errors.
+
+    Returns:
+        A `DataFrame` of populations for given `year` for `region_names`.
+
+    Raises:
+        AssertionError: Raised if `nomis_employment_df`, `sector_codes`,
+            `regions_manager` or `region_names` are not valid.
+    """
     if nomis_employment_df is None:
         nomis_employment_df = national_employment_query(year=year)  # , quarter=quarter
     # if not sector_codes:
@@ -208,6 +230,17 @@ def meta_data_reader_wrapper(
     df_kwarg: str = "nomis_employment_df",
     **kwargs,
 ) -> DataFrame | Series:
+    """Wrapper to return data from `path`, and potentially download if necessary.
+
+    Args:
+        path: `Path` to original file.
+        local_path: `Path` file is saved to.
+        data_filter_func: `Callable` to convert data to `DataFrame` or `Series`.
+        df_kwargs: Arguments to pass to `data_filter_func`.
+
+    Returns:
+        A `DataFrame` or `Series` from processing `path` via copy at `local_path`.
+    """
     loaded_df = pandas_from_path_or_package(path, local_path)
     kwargs[df_kwarg] = loaded_df
     return data_filter_func(**kwargs)
@@ -219,14 +252,33 @@ def regional_population_projections(
     population_projections_df: DataFrame = None,
     region_names: Sequence[str] | None = None,
     regions_manager: PUASManager | GenericRegionsManager | None = None,
-    age_group_column_name: str = ONS_AGES_COLUMN_NAME,
+    age_group_column_name: str = AREA_LABEL,
     set_index_to_column: str | None = ONS_AREA_CODE_COLUMN_NAME,
     ignore_key_errors: bool = False,
 ) -> Series:
+    """Return region level population projection for given `year`.
+
+    Args:
+        year: year of population projections.
+        age_range: what ages to get population projections of.
+        population_projections_df: `DataFrame` of population projections.
+        region_names: Names of regions to query populations of.
+        regions_manager: `PUASManager` instance to match `region_names`.
+        age_group_column_name: Column name to query age groups from
+            `population_projections_df`.
+        set_index_to_column: Which column to use for indexing `region_names`.
+        ignore_key_errors: Whether to fail or ignore `key` indexing errors.
+
+    Returns:
+        A `Series` of `region_names` populations projected for `year`.
+
+    Raises:
+        AssertionError: If `regions_manager` is not valid.
+    """
     age_range = ensure_list_of_strs(age_range)
     if not region_names:
         if not regions_manager:
-            regions_manger = get_working_cities_puas_manager()
+            regions_manager = get_working_cities_puas_manager()
         assert isinstance(regions_manager, PUASManager)
         region_names = regions_manager.names
     assert regions_manager
@@ -247,28 +299,33 @@ def regional_population_projections(
 
 
 def regional_population_projections_all_ages(year: str | int, **kwargs) -> Series:
+    """Return a `Series` of populations for `year` for all ages.
+
+    Args:
+        year: year of population projections.
+
+    Returns:
+        A `Series` of `region_names` all age populations projected for `year`.
+    """
     return regional_population_projections(
         year=year, age_range=ONS_2017_ALL_AGES_COLUMN_NAME, **kwargs
     )
 
 
 def regional_population_projections_working_ages(year: str | int, **kwargs) -> Series:
+    """Return a `Series` of working age populations for `year`.
+
+    Args:
+        year: year of population projections.
+
+    Returns:
+        A `Series` of `region_names` indexed, working age population `Series` for `year`.
+    """
     if isinstance(year, str):
         year = int(year)
     return regional_population_projections(
         year=year, age_range=list(working_ages(year)), **kwargs
     )
-
-
-# def national_employment_by_sector_meta_data_wrapper(
-#     path: FilePathType,
-#     local_path: FilePathType,
-#     **kwargs,
-# ) -> DataFrame | Series:
-#     nomis_employment_df = pandas_from_path_or_package(path, local_path)
-#     return get_nation_employment_by_sector(nomis_employment_df=nomis_employment_df,
-#                                            **kwargs)
-#
 
 
 NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA = deepcopy(NOMIS_METADATA)
@@ -310,10 +367,6 @@ NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._post_read_kwargs = dict(
     sector_dict=SECTOR_10_CODE_DICT,
 )
 NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA.path = "nomis_regional_employment.csv"
-# NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA._package_data = True
-
-#             if not self.raw_regional_employment:
-#                 self.raw_regional_employment = get_employment_by_region_by_sector(year=self.year,
 
 
 ONS_MID_YEAR_POPULATIONS_2017_METADATA = deepcopy(ONS_CONTEMPORARY_POPULATION_META_DATA)
@@ -326,26 +379,3 @@ ONS_MID_YEAR_POPULATIONS_2017_METADATA._post_read_kwargs = dict(
     region_names="self.region_names",
 )
 ONS_MID_YEAR_POPULATIONS_2017_METADATA._package_data = True
-# ONS_MID_YEAR_POPULATIONS_2017_METADATA.set_path = 'nomis_2017_mid_year_populations.csv'
-
-# ONS_MID_YEAR_POPULATIONS_2017_METADATA._package_data = True
-
-#     df: DataFrame,
-#     regions_manager: PUASManager,
-#     year: int = 2017,
-#     region_names: Sequence[str] | str | None = None,
-#     set_index_to_column: str | None = 'Code',
-#     column_prefix: str = 'Mid-',
-
-# for sector_code in sector_codes:
-#     sectors_dict[sector_code] = nomis_employment_df.loc[Series(
-#         sum_for_regions_by_la_code(
-#             df=nomis_employment_df[nomis_employment_df[NOMIS_INDUSTRY_CODE_COLUMN_NAME] == sector_code],
-#             region_names=region_names,
-#             column_names=[NOMIS_OBSERVATION_VALUE_COLUMN_NAME],
-#             regions=regions_manager,
-#             set_index_to_column=set_index_to_column,
-#             ignore_key_errors=ignore_key_errors,
-#         )
-#     )
-# return DataFrame(sectors_dict)

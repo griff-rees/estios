@@ -48,6 +48,7 @@ def io_1841_table() -> InputOutputTable:
 def national_jobs(
     ons_jobs_meta_data=ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA,
 ) -> Generator[Any | None, None, None]:
+    ons_jobs_meta_data.auto_download = True
     yield ons_jobs_meta_data.read()
     ons_jobs_meta_data.delete_local()
 

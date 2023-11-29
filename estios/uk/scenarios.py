@@ -76,6 +76,7 @@ TWO_YEARS: tuple[int, int] = (2020, 2025)
 def annual_io_time_series_ons_2017(
     annual_config: AnnualConfigType, **kwargs
 ) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputTimeSeries` from 2017 annual configuration."""
     return annual_io_time_series(
         annual_config=annual_config,
         input_output_model_cls=InterRegionInputOutputUK2017,
@@ -86,6 +87,7 @@ def annual_io_time_series_ons_2017(
 def date_io_time_series_ons_2017(
     date_conf: DateConfigType, **kwargs
 ) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputTimeSeries` from 2017 date configuration."""
     return date_io_time_series(
         date_conf=date_conf,
         input_output_model_cls=InterRegionInputOutputUK2017,
@@ -289,6 +291,7 @@ def baseline_england_annual_projection(
     years: Sequence[int] | None = TWO_YEARS,
     input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutputUK2017,
 ) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputTimeSeries` with annual configuration."""
     time_series_config, first_io = baseline_england_annual_population_projection_config(
         first_io_time=first_io_time, date_check=date_check, regions=regions, years=years
     )

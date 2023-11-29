@@ -1,6 +1,8 @@
 # Local cache of remote sources
 estios/data*
 estios/uk/data*
+!estios/uk/data/oecd_long_term_forecasts.csv
+!estios/uk/data/oecd_ppp_currency_converter.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

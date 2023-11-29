@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import json
 from copy import deepcopy
 from logging import getLogger
 from string import ascii_uppercase
-from typing import Generator, Sequence
+from typing import Any, Callable, Generator, Sequence
 
 import pytest
+from filelock import FileLock
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Series
 
 from estios.models import InterRegionInputOutput, InterRegionInputOutputTimeSeries
 from estios.sources import MetaData, MonthDay
+from estios.spatial import GenericRegionsManager
 from estios.uk.input_output_tables import InputOutputTableUK2017
 from estios.uk.models import InterRegionInputOutputUK2017
 from estios.uk.nomis_contemporary_employment import (
     NOMIS_API_KEY,
     NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT,
     NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
-    APIKeyNommisError,
+    APIKeyNomisError,
     clean_nomis_employment_query,
     national_employment_query,
     nomis_query,
@@ -52,38 +55,103 @@ from estios.utils import SECTOR_10_CODE_DICT
 logger = getLogger(__name__)
 
 
+def xdist_session_data_wrapper(
+    tmp_path_factory: pytest.TempPathFactory,
+    worker_id: str,
+    func: Callable[..., Generator | Any],
+    is_generator: bool = True,
+    include_fixture_path: bool = True,
+    *args,
+    **kwargs,
+) -> Any:
+    """A wrapper to ensure `pytest` `session` `fixtures` run once under `xdist`.
+
+    This is derived from the instruction:
+    https://pytest-xdist.readthedocs.io/en/latest/how-to.html#making-session-scoped-fixtures-execute-only-once
+
+    Args:
+        tmp_path_factory:
+            `pytest` temporary path provided from caller needed for
+            *at least* saving parallel results
+        worker_id:
+            a `str` to distinguish which worker called `func`
+        func:
+            a `Generator` that `yield` the fixture
+        is_generator:
+            whether the `func` is a `Generator` or a normal function
+        include_fixture_path:
+            whether to pass the `tmp_path_factory` to `func`
+
+    Yields:
+        A `Generator` of fixture data
+
+    Returns:
+        A fixture data object
+    """
+    if include_fixture_path:
+        kwargs["tmp_path_factory"] = tmp_path_factory
+    if worker_id == "master":
+        yield from func(*args, **kwargs)
+
+    # get the temp directory shared by all workers
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+
+    fn = root_tmp_dir / "data.json"
+    with FileLock(str(fn) + ".lock"):
+        if fn.is_file():
+            data = json.loads(fn.read_text())
+        else:
+            data = (
+                yield from func(*args, **kwargs)
+                if is_generator
+                else func(*args, **kwargs)
+            )
+            fn.write_text(json.dumps(data))
+    if is_generator:
+        yield data
+    else:
+        return data
+
+
 @pytest.fixture
 def uk_sector_letter_codes() -> tuple[str, ...]:
+    """Return a tuple of uppercase UK sector code `strs`."""
     return tuple(ascii_uppercase[:21])
 
 
 @pytest.fixture(scope="session")
 def three_cities() -> dict[str, str]:
+    """Return a `dict` of cities to regions they occupy."""
     return THREE_UK_CITY_REGIONS
 
 
 @pytest.fixture(scope="session")
 def three_city_names(three_cities) -> tuple[str, ...]:
+    """The a tuple of the names of the `three_cities` fixtures."""
     return tuple(three_cities.keys())
 
 
 @pytest.fixture
 def ten_sector_aggregation_dict() -> dict[str, Sequence[str]]:
+    """Return a `dict` of aggregation names to relevant sectors."""
     return SECTOR_10_CODE_DICT
 
 
 @pytest.fixture
 def ten_sector_aggregation_names() -> tuple[str, ...]:
+    """Return a `tuple` of sector aggregation names."""
     return tuple(SECTOR_10_CODE_DICT.keys())
 
 
 @pytest.fixture
 def region_geo_data() -> GeoDataFrame:
+    """Return import and return spatial date from Centre for Cities."""
     return load_and_join_centre_for_cities_data()
 
 
 @pytest.fixture(scope="session")
 def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK2017:
+    """Return an `InterRegionInputOutputUK2017` from `three_cities` fixture."""
     return InterRegionInputOutputUK2017(regions=three_cities)
 
 
@@ -92,13 +160,24 @@ def three_cities_io(three_cities: dict[str, str]) -> InterRegionInputOutputUK201
 @pytest.fixture(scope="session")
 def three_cities_results(
     three_cities_io: InterRegionInputOutputUK2017,
+    tmp_path_factory: pytest.TempPathFactory,
+    worker_id: str,
 ) -> InterRegionInputOutput:
+    """Three cities convergence results fixture."""
+    # three_cities_io.import_export_convergence()
+    # xdist_session_data_wrapper(
+    #     tmp_path_factory=tmp_path_factory,
+    #     worker_id=worker_id,
+    #     func=
+    #
+    # )
     three_cities_io.import_export_convergence()
     return three_cities_io
 
 
 @pytest.fixture
 def quarterly_2017_employment_dates():
+    """Return example employment config for all quarters of 2017."""
     return generate_employment_quarterly_dates(
         [
             2017,
@@ -108,16 +187,19 @@ def quarterly_2017_employment_dates():
 
 @pytest.fixture
 def all_cities() -> dict[str, str]:
+    """Return example config of all enabled Centre for Cities spec."""
     return get_all_centre_for_cities_dict()
 
 
 @pytest.fixture
 def all_cities_io(all_cities: dict[str, str]) -> InterRegionInputOutput:
+    """Return `InterRegionInputOutputUK2017` for all enabled Centre for Cities spec."""
     return InterRegionInputOutputUK2017(regions=all_cities)
 
 
 @pytest.fixture
 def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputUK2017` for `three_cities` 2018-2043 projections."""
     return annual_io_time_series_ons_2017(
         annual_config=ONS_PROJECTION_YEARS, regions=three_cities
     )
@@ -125,6 +207,7 @@ def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputUK2017` for `three_cities` 2018-2021 projections."""
     return annual_io_time_series_ons_2017(
         annual_config=range(2018, 2021), regions=three_cities
     )
@@ -132,17 +215,17 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def ons_cpa_io_table() -> InputOutputTableUK2017:
+    """Return default `InputOutputTableUK2017` configuration instance."""
     return InputOutputTableUK2017()
 
 
 @pytest.fixture
 def month_day() -> MonthDay:
+    """Return a `MondayDay` instance for date configuration."""
     return MonthDay()
 
 
-# @pytest.fixture(scope="session") doesn't seem to speed up...
-@pytest.fixture(scope="session")
-def pop_projection(tmp_path_factory) -> Generator[MetaData, None, None]:
+def _pop_projection_fixture(tmp_path_factory) -> Generator[MetaData, None, None]:
     """Extract ONS population projection for testing and remove when concluded."""
     pop_projection: MetaData = ONS_ENGLAND_POPULATION_META_DATA
     # pop_projection.auto_download = True
@@ -154,35 +237,66 @@ def pop_projection(tmp_path_factory) -> Generator[MetaData, None, None]:
 
 
 @pytest.fixture(scope="session")
+def pop_projection(tmp_path_factory, worker_id):
+    """Yield population projections from `_pop_projection_fixture`."""
+    yield from xdist_session_data_wrapper(
+        tmp_path_factory=tmp_path_factory,
+        worker_id=worker_id,
+        func=_pop_projection_fixture,
+        is_generator=True,
+        include_fixture_path=True,
+    )
+
+
+@pytest.fixture(scope="session")
 def english_pop_projections(pop_projection) -> Generator[MetaData, None, None]:
     """Extract ONS population projection as DataFrame."""
+    assert isinstance(pop_projection, MetaData)
     yield pop_projection.read()
 
 
 @pytest.fixture(scope="session")
-def uk_pua_manager() -> PUASManager:
-    return generate_uk_puas()
+def uk_pua_manager(tmp_path_factory, worker_id) -> PUASManager:
+    """Return default `PUASManager` for working UK cities."""
+    puas_manager: Generator[
+        PUASManager | GenericRegionsManager, None, None
+    ] = xdist_session_data_wrapper(
+        tmp_path_factory=tmp_path_factory,
+        func=generate_uk_puas,
+        worker_id=worker_id,
+        is_generator=False,
+        include_fixture_path=False,
+    )
+    if isinstance(puas_manager, Generator):
+        assert False
+        yield from puas_manager
+    else:
+        return puas_manager
 
 
 @pytest.fixture(scope="session")
 def working_puas_manager() -> PUASManager:
+    """Return a `PUASManager` for all cities categorised as `working`."""
     return get_working_cities_puas_manager()
 
 
 @pytest.fixture
 def ons_2018_projection(pop_projection, three_cities) -> ONSPopulationProjection:
+    """Return `ONSPopulationProjection` for `three_cities` from 2018."""
     return ONSPopulationProjection(regions=three_cities, meta_data=pop_projection)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def york_leeds_bristol() -> list[str]:
+    """Return list of `York`, `Leeds` and `Bristol` city names."""
     return ["York", "Leeds", "Bristol"]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def ons_york_leeds_bristol_projection(
     pop_projection, york_leeds_bristol
 ) -> ONSPopulationProjection:
+    """Return `ONSPopulationProjection` for York, Leeds and Bristol."""
     return ONSPopulationProjection(regions=york_leeds_bristol, meta_data=pop_projection)
 
 
@@ -198,6 +312,7 @@ def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
 
 @pytest.fixture
 def pop_recent() -> DataFrame:
+    """Return contemporary `ONS` populations."""
     return load_contemporary_ons_population()
 
 
@@ -220,6 +335,7 @@ def correct_three_cities_pop_2017() -> Series:
 @pytest.mark.remote_data
 @pytest.fixture(scope="session")
 def nomis_2017_regional_employment_raw(tmp_path_factory) -> DataFrame:
+    """Return `NOMIS` 2017 population estimates."""
     return nomis_query(
         2017,
         nomis_table_code=NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
@@ -232,11 +348,12 @@ def nomis_2017_regional_employment_raw(tmp_path_factory) -> DataFrame:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_regional_employment_filtered(tmp_path_factory) -> DataFrame:
+    """Return `NOMIS` 2017 regional population estimates filtered."""
     try:
         api_key = NOMIS_API_KEY
         assert api_key
     except KeyError:
-        raise APIKeyNommisError(
+        raise APIKeyNomisError(
             f"To run these tests a `NOMIS_API_KEY` is required in `.env`"
         )
     return clean_nomis_employment_query(
@@ -246,6 +363,7 @@ def nomis_2017_regional_employment_filtered(tmp_path_factory) -> DataFrame:
 
 @pytest.fixture(scope="session")
 def ten_city_names(ten_regions: dict = TEN_UK_CITY_REGIONS) -> tuple[str, ...]:
+    """Return a `tuple` of all the `TEN_UK_CITY_REGIONS` names."""
     return tuple(ten_regions.keys())
 
 
@@ -253,6 +371,7 @@ def ten_city_names(ten_regions: dict = TEN_UK_CITY_REGIONS) -> tuple[str, ...]:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_10_cities_employment(tmp_path_factory, ten_city_names) -> DataFrame:
+    """Return a `DataFrame` of `TEN_UK_CITY_REGIONS` from 2017 NOMIS employment tables."""
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
     regional_employment_nomis_2017.path = "10-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
@@ -264,6 +383,7 @@ def nomis_2017_10_cities_employment(tmp_path_factory, ten_city_names) -> DataFra
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_3_cities_employment(tmp_path_factory, three_city_names) -> DataFrame:
+    """Return a `DataFrame` of `TEN_CITIES` from 2017 NOMIS employment tables."""
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
     regional_employment_nomis_2017.path = "3-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
@@ -275,6 +395,7 @@ def nomis_2017_3_cities_employment(tmp_path_factory, three_city_names) -> DataFr
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_national_employment(tmp_path_factory) -> DataFrame:
+    """Return 2017 national employment from a NOMIS query saved locally."""
     national_nomis_2017 = deepcopy(NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA)
     national_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
     return national_nomis_2017.read()
@@ -284,11 +405,12 @@ def nomis_2017_national_employment(tmp_path_factory) -> DataFrame:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_nation_employment_table(tmp_path_factory) -> DataFrame:
+    """Return a `DataFrame` of 2017 national employment from NOMIS."""
     try:
         api_key = NOMIS_API_KEY
         assert api_key
     except KeyError:
-        raise APIKeyNommisError(
+        raise APIKeyNomisError(
             f"To run these tests a `NOMIS_API_KEY` is required in `.env`"
         )
     return national_employment_query(
@@ -780,16 +902,23 @@ def correct_three_cities_convergence_by_region(three_cities_io) -> Series:
 
 @pytest.fixture(scope="session")
 def correct_three_city_e_i_m_model(three_cities_results) -> DataFrame:
+    """Return correct `three_cities_results` of $e_i^{(m)}."""
     return three_cities_results.e_m_model
 
 
 @pytest.fixture(scope="session")
 def correct_three_city_y_ij_m_model(three_cities_results) -> DataFrame:
+    """Return correct `three_cities_results` `model` results of $y_{ij}^{(m)}$.
+
+    Note:
+        This assumes the `three_cities_results` model has no errors.
+    """
     return three_cities_results.y_ij_m_model
 
 
 @pytest.fixture
 def correct_three_city_y_ij_m(three_cities_results) -> Series:
+    """Return correct `three_cities_results` of $y_{ij}^{(m)}$."""
     return Series(
         [
             187110052.03173688,

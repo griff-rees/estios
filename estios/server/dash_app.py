@@ -164,6 +164,33 @@ def get_dash_app(
     font_config: FontConfig = FontConfig(),
     **kwargs,
 ) -> Dash:
+    """Generate `dash` web app for visualisation.
+
+    Args:
+        input_output_ts: `InterRegionInputOutputTimeSeries` to visualise.
+        external_stylesheets: `list` of `urls` to extra stylesheets (`.css`)
+        colour_options: Settings for colouring city icons by demographics (education etc.)
+        default_date: Which date to render `input_output_ts` when initially loaded
+        default_top_sectors: How man top sectors to reder by default.
+        default_sectors_marker_hops: How many sectors to hop markers between.
+        default_region: region to select on when loaded.
+        default_sector: sector to select when loaded.
+        default_colour: default config for city colours.
+        date_fmt: format `str` for dates
+        fullscreen: whether to render in full screen mode
+        colour_scale: which `plotly` colour scheme to apply
+        map_title: title to display over map
+        minimum_sector_markers: minimum number of top sectors to display by default
+        io_table: whether to also show the estimated Input-Output table
+        axis_colour: colour for flow chart axis
+        plot_background_colour: background colour for overlayed plots
+        region_colour_palette: colour pallet for English regions
+        font_config: what fonts to use
+        **kwargs: args to pass to `Dash` or `JupyterDash`
+
+    Returns:
+        A `Dash` or `JupyterDash` instance configured by passed parameters.
+    """
     if not input_output_ts.is_calculated:
         logger.warning(
             "Running all InputOutput models due to no provided cached results"
@@ -443,6 +470,15 @@ def get_dash_app(
 def get_jupyter_app(
     input_output_ts: InterRegionInputOutputTimeSeries, **kwargs
 ) -> JupyterDash:
+    """Wrapper for running `get_dash_app` as a `JupyterDash` instance.
+
+    Args:
+        input_output_ts: `InterRegionInputOutputTimeSeries` to visualise.
+        **kwargs: parameters to add to `JupyterDash` config.
+
+    Returns:
+        `JupyterDash` instance
+    """
     app: JupyterDash = get_dash_app(input_output_ts, **kwargs)
     # app.run_server(mode='jupyterlab', port = 8090, dev_tools_ui=True, #debug=True,
     #                dev_tools_hot_reload =True, threaded=True)
@@ -466,6 +502,23 @@ def get_server_dash(
     input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutputUK2017,
     **kwargs,
 ) -> tuple[Dash, InterRegionInputOutputTimeSeries]:
+    """Wrapper for running `get_dash_app` with authentication.
+
+    Args:
+        input_output_ts: `InterRegionInputOutputTimeSeries` to visualise.
+        config_data: Configuration to use is `input_output_ts` is `None`.
+        auth: whether to require a password to access the visualisation.
+        auth_db_path: path to authetication credentials file.
+        all_cities: whether to use all known, available cities.
+        path_prefix: url path to to app.
+        input_output_model_cls: exact config of `InterRegionInputOutput`
+            (inheritance etc.) to use
+        **kwargs: parameters to add to `get_dash_app` call.
+
+    Returns:
+        `tuple` of `Dash` app instance and `InterRegionInputOutputTimeSeries`
+        (or `subclass`) config.
+    """
     path_prefix = enforce_start_str(path_prefix, PATH_SPLIT_CHAR, True)
     if not input_output_ts:
         if not config_data:
@@ -517,6 +570,15 @@ def run_server_dash(
     host: str = DEFAULT_SERVER_HOST_IP,
     **kwargs,
 ) -> None:
+    """Run `get_server_dash` as a `FastAPI` app via `uvicorn`.
+
+    Args:
+        port: what port app is run on.
+        host: `IP` address of app server.
+
+    Returns:
+        None
+    """
     # dash_app: Dash = get_server_dash(input_output_ts,**kwargs)
     app: FastAPI
     io_time_series: InterRegionInputOutputTimeSeries

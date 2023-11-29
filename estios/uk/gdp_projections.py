@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Use OECD projections as a baseline for scenarios.
-"""
+"""Use OECD projections as a baseline for scenarios."""
 
 from datetime import datetime
 from logging import getLogger
@@ -41,6 +39,23 @@ def oecd_query_to_float(
     | Callable[[DataFrame, str], DataFrame] = df_column_to_single_value,
     results_column_name: str = VALUE_COLUMN_NAME,
 ) -> DataFrame | float:
+    """Convert returns from an `OECD` query to `float`.
+
+    Args:
+        df: `DataFrame` of `OECD` query results.
+        year: what year of results to convert.
+        query_str: query to run on `df`.
+        currency_abbrev: what currency abbreviation to check is in `query_str`.
+        post_processing: `Callable` to apply to `query` result before returning.
+        results_column_name: name of column to use if `post_processing`.
+
+    Returns:
+        Query results converted to `float`.
+
+    Raises:
+        AssertionError: If `year`, `currency_abbrev` are not curret types and
+            if they aren't included in `query_str`
+    """
     assert isinstance(year, int)
     assert isinstance(currency_abbrev, str)
     assert "year" and "currency_abbrev" in query_str
@@ -81,6 +96,16 @@ def oecd_query_to_float(
 def gen_oecd_cite_str(
     cite_date: datetime, prefix_str: str, time_template: str = OECD_DATE_CITATION_FORMAT
 ) -> str:
+    """Return a citation record from accessing `OECD` data.
+
+    Args:
+        cite_date: `datetime` of data query for citation.
+        prefix_str: Summary of what is queried.
+        time_template: Format for `strftime` applied to `cite_date` for log.
+
+    Returns:
+        Citation `str` of OECD query, including time.
+    """
     return f"{prefix_str} (Accessed on {cite_date.strftime(time_template)})"
 
 
@@ -127,7 +152,7 @@ OECD_GDP_LONG_TERM_FORCASTS: Final[MetaData] = MetaData(
     # license=OpenGovernmentLicense,
     path="oecd_long_term_forcasts.csv",
     file_name_from_url=False,
-    auto_download=True,
+    auto_download=False,
     needs_scaling=False,
     _package_data=True,
     # _save_func=download_and_extract_zip_file,  # type: ignore
@@ -144,10 +169,26 @@ OECD_GDP_LONG_TERM_FORCASTS: Final[MetaData] = MetaData(
 
 
 def gen_oecd_ppp_citation(date_obtained: datetime) -> str:
+    """Return a citation record from accessing Purchasing Poser Parity `OECD` data.
+
+    Args:
+        date_obtained: date and time of query.
+
+    Returns:
+        Citation `str` for time of Purchasing Power Parities (PPP) query.
+    """
     return gen_oecd_cite_str(cite_date=date_obtained, prefix_str=OECD_PPP_CITE_PREFIX)
 
 
 def gen_oecd_forcast_citation(date_obtained: datetime) -> str:
+    """Return a citation record from accessing forcast data.
+
+    Args:
+        date_obtained: date and time of query.
+
+    Returns:
+        Citation `str` for time of forecast query.
+    """
     return gen_oecd_cite_str(
         cite_date=date_obtained, prefix_str=OECD_GDP_LONG_TERM_CITE_PREFIX
     )
@@ -174,7 +215,7 @@ OECD_PPP_CONVERTER: MetaData = MetaData(
     ),
     # path=ONS_UK_2018_FILE_NAME,
     license=OECDTermsAndConditions,
-    auto_download=True,
+    auto_download=False,
     # auto_download=False,
     file_name_from_url=False,
     needs_scaling=False,
@@ -196,6 +237,21 @@ def gdp_projection(
     use_approximation_for_missing_years: bool = True,
     use_constant_rate: bool = False,
 ) -> float:
+    """Return `OECD` Gross Domestic Product (GDP) in US Dollars.
+
+    Args:
+        year: which year of projection to query.
+        gdp_df: Gross Domestic Product (GDP) projections.
+        ppp_df: Purchasing Power Parity (PPP) projections.
+        approximation_year: exchange rate year to base conversions on.
+        use_approximation_for_missing_years: whether to replace missing
+            data with approximation_year rates.
+        use_constant_rate: Whether to use same conversion rate as constant
+            for all years.
+
+    Returns:
+        Returns GDP projection for `year` in US dollars.
+    """
     if not approximation_year:
         approximation_year = ppp_df["Time"].max()
     assert approximation_year
@@ -222,6 +278,16 @@ def get_uk_gdp_ts(
     # ppp_converter_metadata: MetaData = OECD_PPP_CONVERTER,
     **kwargs,
 ) -> Generator[tuple[int, float], None, None]:
+    """Generate `OECD` GDP and PPP for `years` time series.
+
+    Args:
+        years: years to iterate over.
+        gdp_df: Gross Domestic Product (GDP) forecasts.
+        ppp_df: Purchasing Power Parity (PPP) forecasts.
+
+    Yields:
+        Tuple of `year` and GDP projection.
+    """
     # gdp_df: DataFrame = gdp_metadata.read()
     # ppp_df: DataFrame = ppp_converter_metadata.read()
     for year in years:
@@ -234,6 +300,17 @@ def get_uk_gdp_ts_as_series(
     ppp_df: DataFrame = OECD_PPP_CONVERTER.read(),
     **kwargs,
 ) -> Series:
+    """A time `Series` of `OECD` Gross Domestic Product projections.
+
+    Args:
+        years: years to iterate over.
+        gdp_df: Gross Domestic Product (GDP) forecasts.
+        ppp_df: Purchasing Power Parity (PPP) forecasts.
+        **kwargs: Passed to `get_uk_gdp_ts`.
+
+    Returns:
+        A `Series` of `year` and GDP projections.
+    """
     return Series(
         {
             year: gdp

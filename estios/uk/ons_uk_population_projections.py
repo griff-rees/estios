@@ -44,6 +44,7 @@ ONS_UK_POPULATION_META_DATA: Final[MetaData] = MetaData(
 def get_uk_pop_unscaled_projection(
     ons_uk_pop_projections: MetaData = ONS_UK_POPULATION_META_DATA,
 ) -> DataFrame:
+    """Ensure `ons_uk_pop_projections` is saved locally."""
     ons_uk_pop_projections.save_local()
     return ons_uk_pop_projections.read()
 
@@ -55,6 +56,7 @@ def scale_nth_of_row_name(
     ons_uk_pop_meta_data: MetaData = ONS_UK_POPULATION_META_DATA,
     n: int = 0,
 ) -> Series:
+    """Multiply row `n` of `pop_projection` by `scaling_factor`."""
     if pop_projection is None:
         pop_projection = get_uk_pop_unscaled_projection(ons_uk_pop_meta_data)
     assert pop_projection is not None
@@ -65,6 +67,7 @@ def get_uk_pop_scaled_all_ages_ts(
     pop_projection: Optional[DataFrame] = None,
     all_ages_column_name: str = ONS_2017_ALL_AGES_COLUMN_NAME,
 ) -> Series:
+    """Return a scaled row of `pop_projection` via the `all_ages_column_name` column."""
     return scale_nth_of_row_name(pop_projection, all_ages_column_name)
 
 
@@ -72,4 +75,5 @@ def get_uk_pop_scaled_working_ages_ts(
     pop_projection: Optional[DataFrame] = None,
     working_age_col_name: str = WORKING_AGE_COLUMN_NAME,
 ) -> Series:
+    """Return a scaled row of `pop_projection` via the `working_age_col_name` column."""
     return scale_nth_of_row_name(pop_projection, working_age_col_name)

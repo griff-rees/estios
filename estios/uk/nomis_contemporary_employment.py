@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""This module is a wrapper of queries using the `ukcensusapi.Nomisweb` package."""
 
+from collections import deque
+from datetime import date
 from logging import getLogger
 from os import environ
 from pathlib import Path
 from pprint import pformat
-from typing import Callable, Final, Sequence
+from typing import Callable, Final, Literal, Sequence, overload
 
 import ukcensusapi.Nomisweb as census_api
+from dateutil.parser import parse
 from dotenv import load_dotenv
 from pandas import DataFrame
 
@@ -21,7 +25,7 @@ load_dotenv()
 NOMIS_API_KEY: str = ""
 
 
-class APIKeyNommisError(Exception):
+class APIKeyNomisError(Exception):
     ...
 
 
@@ -129,7 +133,84 @@ NOMIS_UK_QUARTER_STRS: Final[tuple[str, ...]] = (
     "September",
     "December",
 )
-NOMIS_LATEST_AVAILABLE_QUARTER_STR: Final[str] = NOMIS_UK_QUARTER_STRS[2]
+
+NOMIS_FINANCIAL_QUARTER_ORDER: deque[str] | tuple[str] = deque(NOMIS_UK_QUARTER_STRS)
+
+NOMIS_FINANCIAL_QUARTER_ORDER.rotate()
+"""Quarter name order for Nomis where December quarter covers Jan + Feb"""
+
+
+@overload
+def uk_quarter_indexing(
+    month_or_date: date | str | int, quarter_names: Sequence[str], as_str: Literal[True]
+) -> str:
+    ...
+
+
+@overload
+def uk_quarter_indexing(
+    month_or_date: date | str | int,
+    quarter_names: Sequence[str],
+    as_str: Literal[False],
+) -> int:
+    ...
+
+
+def uk_quarter_indexing(
+    month_or_date: date | str | int,
+    quarter_names: Sequence[str] = NOMIS_FINANCIAL_QUARTER_ORDER,
+    as_str: bool = True,
+) -> str | int:
+    """Return NOMIS quarter `str` or `int` from a `date` `int` or month `str`.
+
+    Args:
+        month_or_date: convert to an 1 <= int <= 12 if a `date` or `str`
+        quarter_names: `Seuqence` of `str` of length 4 for quarter names
+        as_str: Whether to return a `str` or an index `int`
+
+    Return:
+        Quarter name (months by default) for `month_or_date` or index (0-3).
+
+    Example:
+        ```pycon
+        >>> uk_quarter_indexing("March")
+        'March'
+        >>> uk_quarter_indexing("Feb")
+        'December'
+        >>> uk_quarter_indexing(2)  # Equivalent of Feb
+        'December'
+        >>> uk_quarter_indexing(date(2017,12,1))
+        'December'
+        >>> uk_quarter_indexing(date(2017,11,1))
+        'September'
+        >>> uk_quarter_indexing(date(2017,11,1), as_str=False)
+        3
+        >>> uk_quarter_indexing(date(2017,12,1), as_str=False)
+        0
+
+        ```
+    """
+    if isinstance(month_or_date, date):
+        month_or_date = month_or_date.month
+    elif isinstance(month_or_date, str):
+        month_or_date = parse(month_or_date).month
+    elif month_or_date < 1 or month_or_date > 12:
+        raise ValueError(
+            f"`month_or_date` as `int` must be 0 < `month_or_date` "
+            f"<= 12, recieved: {month_or_date} "
+        )
+    month_index: int = (month_or_date) // 3 if month_or_date < 12 else 0
+    if as_str:
+        return quarter_names[month_index]
+    else:
+        return month_index
+
+
+DATE_OF_MODULE_IMPORT: Final[date] = date.today()
+
+NOMIS_LATEST_AVAILABLE_QUARTER_STR: Final[str] = uk_quarter_indexing(
+    month_or_date=DATE_OF_MODULE_IMPORT, as_str=True
+)
 
 
 def gen_year_query(
@@ -138,10 +219,25 @@ def gen_year_query(
     modify_str: str = "MINUS",
     valid_year_range: tuple[int, ...] = NOMIS_LOCAL_AUTHORITY_EMPLOYMENT_YEAR_RANGE,
 ) -> str:
+    """Generate a `NOMIS` year query `str`.
+
+    Args:
+        year: year to generate `query` `str` for.
+        default_str: query `str` to use for current time.
+        modify_str: query `str` to prefix date change.
+        valid_year_range: which years are valid to query.
+
+    Returns:
+        Query `str` for given year, or `latest` if current.
+
+    Raises:
+        ValueError: If `year` is not within `valid_year_range`.
+    """
     logger.info(f"Running `gen_year_query` for {year}, assuming annual releases.")
     if year not in valid_year_range:
         raise ValueError(
-            f"`year`: {year} not available within NOMIS `valid_year_range`: {valid_year_range}"
+            f"`year`: {year} not available within NOMIS "
+            f"`valid_year_range`: {valid_year_range}"
         )
     if year < max(valid_year_range):
         years_prior_to_latest: int = max(valid_year_range) - year
@@ -204,6 +300,23 @@ def gen_date_query(
     valid_year_range: tuple[int, ...] = NOMIS_LOCAL_AUTHORITY_EMPLOYMENT_YEAR_RANGE,
     latest_quarter: str = NOMIS_LATEST_AVAILABLE_QUARTER_STR,
 ) -> str:
+    """Generate a `NOMIS` date query `str`.
+
+    Args:
+        year: year to generate `query` `str` for.
+        quarter: which of `valid_quarters` to get date of.
+        default_str: query `str` to use for current time.
+        modify_str: query `str` to prefix date change.
+        valid_quarters: `str` of quarter names.
+        valid_year_range: which years are valid to query.
+        latest_quarter: latest quarter at time code is run.
+
+    Returns:
+        Query `str` for given date.
+
+    Raises:
+        ValueError: If `year` is not within `valid_year_range`.
+    """
     if not quarter:
         return gen_year_query(
             year=year,
@@ -243,7 +356,18 @@ def trim_df_for_employment_count(
     second_column_name: str = NOMIS_EMPLOYMENT_STATUS_COLUMN_NAME,
     second_value: str = NOMIS_EMPLOYMENT_COUNT_VALUE,
 ) -> DataFrame:
-    """Trim rows to just incude Employment Count rather than Employees Count"""
+    """Trim rows for Employment (rather than Employees) Count.
+
+    Args:
+        df: `DataFrame` to trim employment records from.
+        first_column_name: first `df` column query by `first_value`.
+        first_value: value to filter `df` `first_column_name` by.
+        second_column_name: second `df` column query by `second_value`.
+        second_value: value to filter `df` `second_column_name` by.
+
+    Return:
+        `df` filtered by `first_column_name` and `second_column_name`.
+    """
     return df[
         (df[first_column_name] == first_value)
         & (df[second_column_name] == second_value)
@@ -318,7 +442,7 @@ NOMIS_METADATA: Final[MetaData] = MetaData(
     ),
     # path=ONS_UK_2018_FILE_NAME,
     license=OpenGovernmentLicense,
-    auto_download=True,
+    auto_download=False,
     needs_scaling=True,
     _package_data=False,
     # _save_func=download_and_extract_zip_file,  # type: ignore

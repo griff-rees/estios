@@ -6,6 +6,7 @@ from .input_output_tables import InputOutputTableUK2017
 
 
 def get_uk_io_codes() -> tuple[dict[str, str], dict[str, str]]:
+    """Return tuple of dicts: code and label for input sectors and output sectors."""
     io_table_2017 = InputOutputTableUK2017()
 
     UK_INPUT_CODES: Final[Series] = io_table_2017.all_input_rows

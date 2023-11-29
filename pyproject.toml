@@ -2,34 +2,41 @@
 name = "estios"
 version = "0.1.0"
 description = "Economic Spatial Temporal Input-Output Systems"
-authors = ["Dr Griffith Rees <grees@turing.ac.uk>"]
+authors = [
+  "Dr Griffith Rees <grees@turing.ac.uk>",
+  "Bowan Zhang <bzhang@turing.ac.uk>",
+  "Dr Guy Solomon <guy.solomon@glasgow.ac.uk>",
+]
 maintainers = ["Dr Griffith Rees <grees@turing.ac.uk>"]
 readme = "README.md"
 repository = "https://github.com/griff-rees/estios"
+license = "BSD-3-Clause"
+documentation = "https://griff-rees.github.io/estios"
+homepage = "https://griff-rees.github.io/estios"
 
 [tool.poetry.dependencies]
 python = "~3.11"
-geopandas = "^0.10.2"
-plotly = "^5.15.0"
+geopandas = "^0.13.2"
+plotly = "^5.18.0"
 typer = {version = "^0.4.2", extras = ["all"]}
 openpyxl = "^3.1.2"
-setuptools = "^65.5.1"
-numpy = "^1.25.1"
+setuptools = "^69.0.2"
+numpy = "^1.26.2"
 xlrd = "^2.0.1"
 # GDAL = {version = "3.5.3", platform = "darwin"}
 # Fiona = "1.8.21"
 # pyogrio = "^0.4.2"
 # pyogrio = "^0.4.2"
 # pyarrow = "^10.0.1"
-Fiona = "^1.9.4.post1"
+Fiona = "^1.9.5"
 pymrio = "^0.4.8"
-country-converter = "^0.8.0"
+country-converter = "^1.1.1"
 poetry-dotenv-plugin = "^0.1.0"
 ukcensusapi = "^1.1.6"
 psutil = "5.9.4"
 
 [tool.poetry.group.jupyter.dependencies]
-jupyterlab = "^4.0.3"
+jupyterlab = "^4.0.9"
 
 [tool.poetry.group.server]
 optional = true
@@ -46,31 +53,32 @@ optional = true
 
 [tool.poetry.group.dev.dependencies]
 pytest-remotedata = "^0.3.3"
-pytest = "^6.2.5"
-pre-commit = "^3.3.3"
-pytest-cov = "^3.0.0"
+pytest = "^7.4.3"
+pre-commit = "^3.5.0"
+pytest-cov = "^4.1.0"
 pytest-sugar = "^0.9.7"
-mypy = "^1.4"
-pytest-xdist = "^3.3.1"
+mypy = "^1.7.1"
+pytest-xdist = "^3.5.0"
 pymrio = "^0.4.8"
+filelock = "^3.13.1"
 
 [tool.poetry.group.docs]
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^8.5.11"
-mkdocs-typer = "^0.0.2"
-mkdocstrings = {extras = ["python"], version = "^0.19.1"}
-mkdocs-literate-nav = "^0.5.0"
-mkdocs-gen-files = "^0.4.0"
-mkdocs-section-index = "^0.3.5"
-black = "^22.12.0"
-pymdown-extensions = "^10.0"
+mkdocs-material = "^9.4.14"
+mkdocs-typer = "^0.0.3"
+mkdocs-literate-nav = "^0.6.1"
+mkdocs-gen-files = "^0.5.0"
+mkdocs-section-index = "^0.3.8"
+black = "^23.11.0"
+pymdown-extensions = "^10.5"
 mkdocs-bibtex = "^2.11.0"
 mktestdocs = "^0.2.1"
-markdown-exec = {extras = ["ansi"], version = "^1.6.0"}
+markdown-exec = {extras = ["ansi"], version = "^1.7.0"}
 tabulate = "^0.9.0"
-mkdocs-include-markdown-plugin = "^4.0.4"
+mkdocs-include-markdown-plugin = "^6.0.4"
+mkdocstrings-python = "^1.7.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -83,14 +91,16 @@ profile = "black"
 addopts = """
 --cov=estios
 --cov-report=term:skip-covered
+--cov-append
 --pdbcls=IPython.terminal.debugger:TerminalPdb
 --doctest-modules
--m "not slow"
 --ignore=notebooks
 --ignore-glob=*PRE_MERGE.py
 --strict-config
 --strict-markers
 """
+# --dist=loadfile  # Ensure consisten test order per file
+# -n 2
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "nomis: requires a nomis api key in .env to run",
@@ -110,5 +120,5 @@ convention = "google"
 match = '(?!test_).*\.py'
 add-ignore = [
   "D100", "D101", "D102", "D104", "D105", "D106", "D107", "D203",
-  "D204", "D211", "D213"
+  "D204", "D211", "D213", "D301"
 ]

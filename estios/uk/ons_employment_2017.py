@@ -66,12 +66,6 @@ CITY_SECTOR_READ_KWARGS: Final[dict[str, int | str | Callable]] = dict(
     usecols=CITY_SECTOR_USECOLS,
     index_col=CITY_SECTOR_INDEX_COLUMN,
 )
-#     path: FilePathType = CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
-#     skiprows: int = CITY_SECTOR_SKIPROWS,
-#     skipfooter: int = CITY_SECTOR_SKIPFOOTER,
-#     engine: str = CITY_SECTOR_ENGINE,
-#     usecols: Callable[[str], bool] = CITY_SECTOR_USECOLS,
-#     index_col: int = CITY_SECTOR_INDEX_COLUMN,
 
 ONS_AGGREGATE_SECTOR_COLUMNS: Final[tuple[str, ...]] = ("G-T", "A-T")
 
@@ -83,6 +77,18 @@ def add_covid_flags_and_drop_agg_sector_columns(
     agg_sector_columns: tuple[str, ...] = ONS_AGGREGATE_SECTOR_COLUMNS,
     date_index_name: str = "Date",
 ) -> DataFrame:
+    """Add flags for covid affected years and drop ONS aggregated sector columns.
+
+    Args:
+        df: `DataFrame` of employment per sector over time.
+        date_column_name: name of `df` column for dates.
+        covid_flags_column: name of column for COVID flags in returned `DataFrame`.
+        agg_sector_columns: which aggregated sector columns to drop.
+        date_index_name: name to set for index (index will be of date type).
+
+    Returns:
+        `DataFrame` without `agg_sector_columns` and added `covid_flags_column`.
+    """
     df[covid_flags_column] = df[date_column_name].apply(
         lambda cell: cell.strip().endswith(")")
     )
@@ -120,37 +126,6 @@ ONS_CONTEMPORARY_JOBS_URL: str = (
     "current/previous/v26/jobs05jul2021.xls"
 )
 
-#     region[covid_flags_column] = region[date_column_name].apply(
-#         lambda cell: cell.strip().endswith(")")
-#     )
-#     region.index = region[date_column_name].apply(enforce_date_format)
-#     return region.drop([date_column_name], axis=1)
-
-# def load_employment_by_region_and_sector_csv(
-#     path: FilePathType = CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME,
-#     skiprows: int = CITY_SECTOR_SKIPROWS,
-#     skipfooter: int = CITY_SECTOR_SKIPFOOTER,
-#     engine: str = CITY_SECTOR_ENGINE,
-#     usecols: Callable[[str], bool] = CITY_SECTOR_USECOLS,
-#     index_col: int = CITY_SECTOR_INDEX_COLUMN,
-#     **kwargs,
-# ) -> DataFrame:
-#     """Import region level sector employment data as a DataFrame.
-#
-#     Todo:
-#         * Replace with sources MetaData options
-#     """
-#     path = path_or_package_data(path, CITY_SECTOR_EMPLOYMENT_CSV_FILE_NAME)
-#     return read_csv(
-#         path,
-#         skiprows=skiprows,
-#         skipfooter=skipfooter,
-#         engine=engine,
-#         usecols=usecols,
-#         index_col=index_col,
-#         **kwargs,
-#     )
-#
 
 ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA: Final[MetaData] = MetaData(
     name="ONS Region Employment Time Series",
@@ -176,35 +151,6 @@ ONS_CONTEMPORARY_JOBS_TIME_SERIES_METADATA: Final[MetaData] = MetaData(
         covid_flags_column=COVID_FLAGS_COLUMN,
     ),
 )
-#
-# def load_region_employment_excel(
-#     sheet: str = UK_NATIONAL_EMPLOYMENT_SHEET,
-#     path: FilePathType = UK_JOBS_BY_SECTOR_XLS_FILE_NAME,
-#     date_column_name: str = DATE_COLUMN_NAME,
-#     covid_flags_column: str = COVID_FLAGS_COLUMN,
-#     **kwargs,
-# ) -> DataFrame:
-#     """Load regional employment data from https://www.nomisweb.co.uk/ excel exports.
-#
-#     Todo:
-#         * Replace with sources MetaData options
-#     """
-#     path = path_or_package_data(path, UK_JOBS_BY_SECTOR_XLS_FILE_NAME)
-#     region: DataFrame = read_excel(
-#         path,
-#         sheet_name=sheet,
-#         skiprows=5,
-#         skipfooter=4,
-#         usecols=lambda x: "Unnamed" not in x,
-#         dtype={date_column_name: str},
-#         **kwargs,
-#     )
-#     logger.warning(f"Applying NOMIS fixes loading sheet {sheet} from {path}")
-#     region[covid_flags_column] = region[date_column_name].apply(
-#         lambda cell: cell.strip().endswith(")")
-#     )
-#     region.index = region[date_column_name].apply(enforce_date_format)
-#     return region.drop([date_column_name], axis=1)
 
 
 CONFIG_2017_QUARTERLY: Final[OrderedDict[date, dict["str", date]]] = OrderedDict(

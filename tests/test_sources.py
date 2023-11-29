@@ -92,8 +92,10 @@ class TestDownloadingDataFiles:
     def test_download_file_no_local_path(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)  # Enforce location to fit tmp_path
         download_and_save_file(self.jpg_url)
-        assert (
-            Path(extract_file_name_from_url(self.jpg_url)).stat().st_size == 63337
+        assert Path(
+            extract_file_name_from_url(self.jpg_url)
+        ).stat().st_size == pytest.approx(
+            63337, rel=0.1
         )  # Previous result: 63388
 
     def test_extract_file_name_from_url_query_path(self, caplog) -> None:
@@ -123,6 +125,7 @@ class TestDownloadingDataFiles:
         )
 
     def test_register_and_read_file(self, caplog) -> None:
+        caplog.set_level(DEBUG)
         if ONS_UK_POPULATION_META_DATA.is_local:
             ONS_UK_POPULATION_META_DATA.delete_local()
         assert not ONS_UK_POPULATION_META_DATA.is_local
@@ -137,7 +140,7 @@ class TestDownloadingDataFiles:
             f"defaulting to excel sheet to load: "
             f"{ONS_UK_POPULATION_META_DATA.absolute_save_path}"
         )
-        assert caplog.messages == [caplog_message]
+        assert caplog_message in caplog.messages
         ONS_UK_POPULATION_META_DATA.delete_local()
 
 

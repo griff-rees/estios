@@ -174,7 +174,7 @@ def sum_for_regions_by_attr(
     ignore_key_errors: bool = False,
     strict_set_index_to_column: bool = False,
 ) -> Generator[tuple[str, float | Series], None, None]:
-    """Sum columns for passed pua_names from df.
+    """Sum columns for passed `region_names` from `df`.
 
     Todo:
         * Basic unit tests
@@ -346,6 +346,11 @@ class DoublyConstrained(SpatialInteractionBaseClass):
         self.b_ij_m["exp(-β c_{ij})"] = self.b_ij_m["-β c_{ij}"].apply(lambda x: exp(x))
 
     def doubly_constrained(self) -> DataFrame:
+        """Apply `doubly_constrained` `func` to `self` and return as `DataFrame`.
+
+        Todo:
+            * Import `iteration_for_AiBj` for application here
+        """
         pass
 
 

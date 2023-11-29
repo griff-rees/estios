@@ -100,7 +100,7 @@ DEFAULT_NUM_ABBREVIATION_MAGNITUDE_LABELS: Final[tuple[str, ...]] = (
 
 
 def name_converter(names: Sequence[str], name_mapper: dict[str, str]) -> list[str]:
-    """Return region names with any conversions specified in name_mapper"""
+    """Return region names with any conversions specified in name_mapper."""
     return [name if not name in name_mapper else name_mapper[name] for name in names]
 
 
@@ -171,6 +171,20 @@ def filter_y_ij_m_by_city_sector(
     column_index: Union[str, int] = -1,  # Default is last column/iteration
     final_column_name: str = FINAL_Y_IJ_M_COLUMN_NAME,
 ) -> Series:
+    """Filter `y_ij_m_results` `DataFrame` by `city` and `sector`.
+
+    Args:
+        y_ij_m_results: `DataFrame` of Input-Output convergance results.
+        city: city name.
+        sector: sector name.
+        city_column_name: name of `y_ij_m_results` column to index by `city`.
+        sector_column_name: name of `y_ij_m_results` column to index by `sector`.
+        column_index: column to index by.
+        final_column_name: column name of saved results.
+
+    Returns:
+        `Series` of queried `city` and `sector`.
+    """
     return (
         y_ij_m_results.query(
             f"{city_column_name} == @city & {sector_column_name} == @sector"
@@ -203,6 +217,14 @@ def column_to_series(
 
 
 def log_x_or_return_zero(x: float) -> Optional[float]:
+    """Return max of `log` of `x` or 0, or `None` if `x` < 0.
+
+    Args:
+        x: number to take `log` of if >= 0.
+
+    Returns:
+        $log(x)$ if $log(x)> 0$ else $0.0$, or `None` if $x < 0$.
+    """
     if x < 0:
         logger.error(f"Cannot log {x} < 0")
         return None
@@ -245,7 +267,6 @@ def aggregate_rows(
     sector_dict: AggregatedSectorDictType = SECTOR_10_CODE_DICT,
 ) -> DataFrame | Series:
     """Aggregate DataFrame rows to reflect aggregated sectors."""
-
     if isinstance(pre_agg_data, DataFrame):
         if pre_agg_data.columns.to_list() == list(sector_dict.keys()):
             logger.warning(
@@ -287,22 +308,57 @@ def aggregate_rows(
 
 
 def trim_year_range_generator(
-    years: Iterable[Union[str, int]], first_year: int, last_year: int
+    years: Iterable[str | int], first_year: int, last_year: int
 ) -> Generator[int, None, None]:
+    """Trim `years` from earlier than `first_year` and older than `last_year`.
+
+    Args:
+        years: `Iterable` of `str` (of `int`) or `int`
+        first_year: `int` of earliest year to keep.
+        last_year: `int` of latest year to keep.
+
+    Yields:
+        Years in range as `int`s.
+    """
     for year in years:
         if first_year <= int(year) <= last_year:
             yield int(year)
 
 
-def iter_ints_to_list_strs(labels: Iterable[Union[str, int]]) -> list[str]:
+def iter_ints_to_list_strs(labels: Iterable[str | int]) -> list[str]:
+    """Return a list of `strs`, primarily intended to use as plot labels.
+
+    Args:
+        labels: `Iterable` of labels as `str` or `int`.
+
+    Returns:
+        `list` of `labels` as `strs`.
+    """
     return [str(label) for label in labels]
 
 
 def collect_dupes(sequence: Iterable) -> dict[Any, int]:
+    """Collect cases of duplicate values in passed `Iterable`.
+
+    Args:
+        sequence: `Iterable` of values to count dupes of.
+
+    Returns:
+        `dict` with keys as values from `sequence` which appear at least
+        twice and value for count of duplications of paired value.
+    """
     return {key: count for key, count in Counter(sequence).items() if count > 1}
 
 
 def str_keys_of_dict(dict_to_stringify) -> dict[str, Any]:
+    """Ensure passed `dict` keys are `strs`.
+
+    Args:
+        dict_to_stringify: `dict` instance to enforce `key` are `str`.
+
+    Returns:
+        `dict` with all keys now `strs`.
+    """
     return {str(key): val for key, val in dict_to_stringify.items()}
 
 
@@ -325,10 +381,31 @@ def iter_attr_by_key(
 
 
 def tuples_to_ordered_dict(tuple_iter: Iterable[tuple[Hashable, Any]]) -> OrderedDict:
+    """Convert an iterable of `tuples` to an `OrderedDict`.
+
+    Args:
+        tuple_iter: Iterable of `tuples` of two values:
+            fist is to be `key`, second `value`.
+
+    Returns:
+        `OrderedDict` from `tuple_iter`.
+    """
     return OrderedDict([(key, val) for key, val in tuple_iter])
 
 
 def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
+    """Return value from `dict` indexed from `key, else an exmpty `dict`.
+
+    Args:
+        indexable: `dict` to index from.
+        key: key to index `indexable` with.
+
+    Returns:
+        Either the value of `key` in `indexable` or {}
+
+    Todo:
+        Check if it should expect a `dict` of `dicts`.
+    """
     return indexable[key] if key in indexable else {}
 
 
@@ -346,12 +423,31 @@ def sum_by_rows_cols(
 def ordered_iter_overlaps(
     iter_a: Iterable, iter_b: Iterable
 ) -> Generator[Any, None, None]:
+    """Generator of equal instances in the sampe postions of `iter_a` and `iter_b`.
+
+    Args:
+        iter_a: an iterable.
+        iter_b: an iterable with the same length as `iter_a`.
+
+    Yields:
+        Elements that are the same and in the same position of `iter_a` an `iter_b`.
+    """
     return (x for x, y in zip(iter_a, iter_b) if x == y)
 
 
 def filter_df_by_strs_or_sequences(
     rows: str | Sequence[str], columns: str | Sequence[str], df: DataFrame
-) -> Sequence:
+) -> Series | DataFrame:
+    """Wrapper to ease filtering a `DataFrame` by a `str` or a `Sequence`.
+
+    Args:
+        rows: either a `str` of row index, or a `Sequence` to index rows by.
+        columns: either a `str` of a column name, or a `Sequence` filter columns by.
+        df: `DataFrame` to filter.
+
+    Returns:
+        A `Series` or `DataFrame` filtered from `df`.
+    """
     if isinstance(rows, str):
         rows = [rows]
     if isinstance(columns, str):
@@ -374,6 +470,7 @@ def ensure_type(
 def ensure_series(
     var: str | Sequence[Any] | Series | DataFrame,
 ) -> Series:
+    """Ensure `var` is returned as a `Series` type."""
     return ensure_type(var, Series, Series)
 
 
@@ -399,10 +496,13 @@ def wrap_as_series(
 
 
 def ensure_dtype(series_or_df: Series | DataFrame, dtype: str) -> Series | DataFrame:
+    """Convert `series_or_df` to specified `dtype`."""
     return series_or_df.astype(dtype)
 
 
 def dtype_wrapper(final_type: str):
+    """Decorator to ensuring `final_type` from function wrapped."""
+
     def callable_wrapper(func: Callable):
         @wraps(func)
         def ensure_dtype_wrapper(*args, **kwargs) -> Series | DataFrame:
@@ -414,14 +514,17 @@ def dtype_wrapper(final_type: str):
 
 
 def len_less_or_eq(sequence: Sequence, count: int = 1) -> bool:
+    """Check if `len` of `sequence` is <= to `count`."""
     return len(sequence) <= count
 
 
 def get_df_nth_row(df: DataFrame, index: int = 0) -> Series:
+    """Get index location of `df`."""
     return df.iloc[index]
 
 
 def get_df_first_row(df: DataFrame) -> Series:
+    """Get first row from `df`."""
     return get_df_nth_row(df)
 
 
@@ -429,6 +532,8 @@ def conditional_type_wrapper(
     condition_func: Callable[[Any], bool],
     type_wrapper: Callable[[Any], Any],
 ):
+    """Decorator for applying `type_wrapper` if `condition_func` returns `True`."""
+
     def callable_wrapper(func: Callable):
         @wraps(func)
         def ensure_type_wrapper(*args, **kwargs) -> Any:
@@ -447,7 +552,7 @@ def df_column_to_single_value(
     df: DataFrame,
     results_column_name: str,
 ) -> float:
-    """Apply query_str to df and extract the first elements"""
+    """Apply query_str to df and extract the first elements."""
     return df[results_column_name].values[0]
 
 
@@ -489,6 +594,16 @@ def field_names(field_sequence: Sequence[Field]) -> tuple[str, ...]:
 def filter_attrs_by_substring(
     cls: Any, substring: str
 ) -> Generator[tuple[str, Any], None, None]:
+    """Yield attributes of `cls` whose names include `substring`.
+
+    Args:
+        cls: an object.
+        substring: a `str` that might be inclued in `cls` attribute names.
+
+    Yields:
+        A `tuple` of `attr` name and `value` from `cls` that include
+        `substring` in `attr` name.
+    """
     for attr_name, attr in vars(cls).items():
         if substring in attr_name:
             yield attr_name, attr
@@ -523,6 +638,17 @@ def df_to_trimmed_multi_index(
     index: MultiIndex,
     multi_index_level: int = 1,
 ) -> DataFrame:
+    """Trim and index `df`.
+
+    Args:
+        df: `DataFrame` to trim and index.
+        columns: which columns to keep.
+        index: which rows to keep.
+        multi_index_level: which level of multi index to use.
+
+    Returns:
+        Trimmed and indexed `df`.
+    """
     trimmed_df: DataFrame = df.loc[
         index.get_level_values(multi_index_level),
         columns.get_level_values(multi_index_level),
@@ -563,6 +689,16 @@ def df_dict_to_multi_index(
     column_names: Sequence[str],
     invert: bool = True,
 ) -> DataFrame:
+    """Join a `dict` of `DataFames` into one.
+
+    Args:
+        nested_df: A `dict` with `DataFrame` values to join together.
+        column_names: column names to set for returned `DataFrame`.
+        invert: whether to invert the final `DataFrame`
+
+    Returns:
+        `DataFrame` from initial `nested_df`.
+    """
     df: DataFrame = DataFrame.from_dict(
         {
             (group, row[0]): row[1:]
@@ -668,6 +804,16 @@ def is_intable_from_str(x: str) -> bool:
 def gen_filter_by_func(
     iterable: Iterable, func: Callable[[Any], bool] = is_intable_from_str
 ) -> Generator[Any, None, None]:
+    """Yield value from `iterable` if `func` of `value` returns `True`.
+
+    Args:
+        iterable: An iterable of any `type`.
+        func: A function that returns a `True` or `False` of passed
+            elements in `iterable`.
+
+    Yields:
+        Elements from `iterable` that return `True` when passed to `func`.
+    """
     return (x for x in iterable if func(x))
 
 
@@ -699,6 +845,7 @@ def apply_func_to_df_var(
     axis="columns",
     **kwargs,
 ) -> DataFrame:
+    """Apply `func` to `df` `var_name`, specifying which `axis`."""
     return df.apply(lambda vector: func(vector[var_name], **kwargs), axis=axis)
 
 
@@ -713,52 +860,6 @@ def regions_type_to_list(regions: RegionsIterableType):
     else:
         return regions
 
-    # return  or attr_str
-    # try:
-    # except:
-    #     if strict:
-    #         raise AttributeError(f"Attribute {attr_str} not part of {cls}")
-    #     else:
-    #         logger.debug(f"Attribute {attr_str} not part of {cls}")
-
-    # if param_str.startswith(f"{self_str}"):
-    #     param_str = param_str[len(f"{self_str}."):]
-    # param_attr_tuple: tuple[str, ...] =  param_str.split('.')
-    # obj: Any = cls
-
-    # for i, attr_name in enumerate(param_attr_tuple):
-    #     if self_str and attr_name == self_str and i == 0:
-    #         obj = cls
-    #     # if  guessed_attr_name: str = param_str.split('.')
-    #     if hasattr(obj, attr_name):
-    #         obj = getattr(cls, attr_name)
-    #         assert False
-    #     else:
-    #         if strict:
-    #             raise AttributeError(f"Attribute {attr_name} not part of {obj}")
-    #         else:
-    #             logger.debug(f"Attribute {attr_name} not part of {obj}")
-    #             continue
-    # if obj is not None:
-    #     return param_str
-    # raise AttributeError(f"Failed to extract {param_str} from {obj}.")
-
-
-# def expand_df_dict_to_multi_index(df, )
-
-
-# def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
-#     return indexable[key] if key in indexable else {}
-# >>>>>>> Stashed changes
-
-
-# def y_ij_m_to_networkx(y_ij_m_results: Series,
-#                        city_column: str = CITY_COLUMN) -> DiGraph:
-#     flows: DiGraph()
-#     flows.add_nodes_from(y_ij_m_to_networkx.index.get_level_values(city_column))
-#     y_ij_m.apply(lambda row: flows.add_edge())
-#     flows.add_edges([])
-
 
 def df_columns_to_index(
     df: DataFrame, column_names: Sequence[str] | str
@@ -766,7 +867,7 @@ def df_columns_to_index(
     """Filter columns from a `DataFrame` to an `Index` or `MultiIndex`.
 
     Examples:
-
+        ```pytest
         >>> df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
         >>> str_index: Index = df_columns_to_index(
         ...     df,
@@ -790,6 +891,8 @@ def df_columns_to_index(
         Traceback (most recent call last):
         ...
         ValueError: `column_names` [] invalid: at least 1 required
+
+        ```
     """
     if isinstance(column_names, str):
         column_names = [column_names]
@@ -809,10 +912,10 @@ def load_series_from_csv(
     index: MultiIndex | Index | None = None,
     index_column_names: Sequence[str] | str | None = None,
 ) -> Series:
-    """Load a column of results for re-use (visualisation etc.)
+    """Load a column of results for re-use (visualisation etc.).
 
     Examples:
-
+        ```pytest
         >>> flows: Series = load_series_from_csv(
         ...     path='tests/test_3_city_yijm.csv',
         ...     column_name=FINAL_Y_IJ_M_COLUMN_NAME,
@@ -824,6 +927,8 @@ def load_series_from_csv(
         >>> three_city_df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
         >>> three_city_df.set_index(IJ_M_INDEX_NAMES, inplace=True)
         >>> assert (flows == three_city_df[FINAL_Y_IJ_M_COLUMN_NAME]).all()
+
+        ```
     """
     df: DataFrame = read_csv(path)
     if isinstance(index_column_names, str):
