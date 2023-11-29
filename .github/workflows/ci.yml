@@ -89,7 +89,7 @@ jobs:
   deploy:
     name: MkDocs deploy
     runs-on: ubuntu-latest
-    needs: [test, coverage]
+    needs: [coverage]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
