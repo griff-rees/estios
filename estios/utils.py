@@ -927,6 +927,7 @@ def load_series_from_csv(
         >>> three_city_df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
         >>> three_city_df.set_index(IJ_M_INDEX_NAMES, inplace=True)
         >>> assert (flows == three_city_df[FINAL_Y_IJ_M_COLUMN_NAME]).all()
+
         ```
     """
     df: DataFrame = read_csv(path)

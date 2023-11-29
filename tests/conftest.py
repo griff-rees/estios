@@ -164,7 +164,6 @@ def three_cities_results(
     worker_id: str,
 ) -> InterRegionInputOutput:
     """Three cities convergence results fixture."""
-
     # three_cities_io.import_export_convergence()
     # xdist_session_data_wrapper(
     #     tmp_path_factory=tmp_path_factory,
@@ -172,13 +171,13 @@ def three_cities_results(
     #     func=
     #
     # )
-
     three_cities_io.import_export_convergence()
     return three_cities_io
 
 
 @pytest.fixture
 def quarterly_2017_employment_dates():
+    """Return example employment config for all quarters of 2017."""
     return generate_employment_quarterly_dates(
         [
             2017,
@@ -188,16 +187,19 @@ def quarterly_2017_employment_dates():
 
 @pytest.fixture
 def all_cities() -> dict[str, str]:
+    """Return example config of all enabled Centre for Cities spec."""
     return get_all_centre_for_cities_dict()
 
 
 @pytest.fixture
 def all_cities_io(all_cities: dict[str, str]) -> InterRegionInputOutput:
+    """Return `InterRegionInputOutputUK2017` for all enabled Centre for Cities spec."""
     return InterRegionInputOutputUK2017(regions=all_cities)
 
 
 @pytest.fixture
 def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputUK2017` for `three_cities` 2018-2043 projections."""
     return annual_io_time_series_ons_2017(
         annual_config=ONS_PROJECTION_YEARS, regions=three_cities
     )
@@ -205,6 +207,7 @@ def three_cities_2018_2043(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
+    """Return `InterRegionInputOutputUK2017` for `three_cities` 2018-2021 projections."""
     return annual_io_time_series_ons_2017(
         annual_config=range(2018, 2021), regions=three_cities
     )
@@ -212,11 +215,13 @@ def three_cities_2018_2020(three_cities) -> InterRegionInputOutputTimeSeries:
 
 @pytest.fixture
 def ons_cpa_io_table() -> InputOutputTableUK2017:
+    """Return default `InputOutputTableUK2017` configuration instance."""
     return InputOutputTableUK2017()
 
 
 @pytest.fixture
 def month_day() -> MonthDay:
+    """Return a `MondayDay` instance for date configuration."""
     return MonthDay()
 
 
@@ -233,6 +238,7 @@ def _pop_projection_fixture(tmp_path_factory) -> Generator[MetaData, None, None]
 
 @pytest.fixture(scope="session")
 def pop_projection(tmp_path_factory, worker_id):
+    """Yield population projections from `_pop_projection_fixture`."""
     yield from xdist_session_data_wrapper(
         tmp_path_factory=tmp_path_factory,
         worker_id=worker_id,
@@ -251,6 +257,7 @@ def english_pop_projections(pop_projection) -> Generator[MetaData, None, None]:
 
 @pytest.fixture(scope="session")
 def uk_pua_manager(tmp_path_factory, worker_id) -> PUASManager:
+    """Return default `PUASManager` for working UK cities."""
     puas_manager: Generator[
         PUASManager | GenericRegionsManager, None, None
     ] = xdist_session_data_wrapper(
@@ -269,16 +276,19 @@ def uk_pua_manager(tmp_path_factory, worker_id) -> PUASManager:
 
 @pytest.fixture(scope="session")
 def working_puas_manager() -> PUASManager:
+    """Return a `PUASManager` for all cities categorised as `working`."""
     return get_working_cities_puas_manager()
 
 
 @pytest.fixture
 def ons_2018_projection(pop_projection, three_cities) -> ONSPopulationProjection:
+    """Return `ONSPopulationProjection` for `three_cities` from 2018."""
     return ONSPopulationProjection(regions=three_cities, meta_data=pop_projection)
 
 
 @pytest.fixture(scope="session")
 def york_leeds_bristol() -> list[str]:
+    """Return list of `York`, `Leeds` and `Bristol` city names."""
     return ["York", "Leeds", "Bristol"]
 
 
@@ -286,6 +296,7 @@ def york_leeds_bristol() -> list[str]:
 def ons_york_leeds_bristol_projection(
     pop_projection, york_leeds_bristol
 ) -> ONSPopulationProjection:
+    """Return `ONSPopulationProjection` for York, Leeds and Bristol."""
     return ONSPopulationProjection(regions=york_leeds_bristol, meta_data=pop_projection)
 
 
@@ -301,6 +312,7 @@ def pop_history(tmp_path_factory) -> Generator[DataFrame, None, None]:
 
 @pytest.fixture
 def pop_recent() -> DataFrame:
+    """Return contemporary `ONS` populations."""
     return load_contemporary_ons_population()
 
 
@@ -323,6 +335,7 @@ def correct_three_cities_pop_2017() -> Series:
 @pytest.mark.remote_data
 @pytest.fixture(scope="session")
 def nomis_2017_regional_employment_raw(tmp_path_factory) -> DataFrame:
+    """Return `NOMIS` 2017 population estimates."""
     return nomis_query(
         2017,
         nomis_table_code=NOMIS_SECTOR_EMPLOYMENT_TABLE_CODE,
@@ -335,6 +348,7 @@ def nomis_2017_regional_employment_raw(tmp_path_factory) -> DataFrame:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_regional_employment_filtered(tmp_path_factory) -> DataFrame:
+    """Return `NOMIS` 2017 regional population estimates filtered."""
     try:
         api_key = NOMIS_API_KEY
         assert api_key
@@ -349,6 +363,7 @@ def nomis_2017_regional_employment_filtered(tmp_path_factory) -> DataFrame:
 
 @pytest.fixture(scope="session")
 def ten_city_names(ten_regions: dict = TEN_UK_CITY_REGIONS) -> tuple[str, ...]:
+    """Return a `tuple` of all the `TEN_UK_CITY_REGIONS` names."""
     return tuple(ten_regions.keys())
 
 
@@ -356,6 +371,7 @@ def ten_city_names(ten_regions: dict = TEN_UK_CITY_REGIONS) -> tuple[str, ...]:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_10_cities_employment(tmp_path_factory, ten_city_names) -> DataFrame:
+    """Return a `DataFrame` of `TEN_UK_CITY_REGIONS` from 2017 NOMIS employment tables."""
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
     regional_employment_nomis_2017.path = "10-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
@@ -367,6 +383,7 @@ def nomis_2017_10_cities_employment(tmp_path_factory, ten_city_names) -> DataFra
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_3_cities_employment(tmp_path_factory, three_city_names) -> DataFrame:
+    """Return a `DataFrame` of `TEN_CITIES` from 2017 NOMIS employment tables."""
     regional_employment_nomis_2017 = deepcopy(NOMIS_REGIONAL_EMPLOYMENT_2017_METADATA)
     regional_employment_nomis_2017.path = "3-cities-test.csv"
     regional_employment_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
@@ -378,6 +395,7 @@ def nomis_2017_3_cities_employment(tmp_path_factory, three_city_names) -> DataFr
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_national_employment(tmp_path_factory) -> DataFrame:
+    """Return 2017 national employment from a NOMIS query saved locally."""
     national_nomis_2017 = deepcopy(NOMIS_NATIONAL_EMPLOYMENT_2017_METADATA)
     national_nomis_2017.set_folder(tmp_path_factory.mktemp("test-nomis"))
     return national_nomis_2017.read()
@@ -387,6 +405,7 @@ def nomis_2017_national_employment(tmp_path_factory) -> DataFrame:
 @pytest.mark.nomis
 @pytest.fixture(scope="session")
 def nomis_2017_nation_employment_table(tmp_path_factory) -> DataFrame:
+    """Return a `DataFrame` of 2017 national employment from NOMIS."""
     try:
         api_key = NOMIS_API_KEY
         assert api_key
@@ -883,16 +902,23 @@ def correct_three_cities_convergence_by_region(three_cities_io) -> Series:
 
 @pytest.fixture(scope="session")
 def correct_three_city_e_i_m_model(three_cities_results) -> DataFrame:
+    """Return correct `three_cities_results` of $e_i^{(m)}."""
     return three_cities_results.e_m_model
 
 
 @pytest.fixture(scope="session")
 def correct_three_city_y_ij_m_model(three_cities_results) -> DataFrame:
+    """Return correct `three_cities_results` `model` results of $y_{ij}^{(m)}$.
+
+    Note:
+        This assumes the `three_cities_results` model has no errors.
+    """
     return three_cities_results.y_ij_m_model
 
 
 @pytest.fixture
 def correct_three_city_y_ij_m(three_cities_results) -> Series:
+    """Return correct `three_cities_results` of $y_{ij}^{(m)}$."""
     return Series(
         [
             187110052.03173688,
