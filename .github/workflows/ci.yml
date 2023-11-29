@@ -42,7 +42,9 @@ jobs:
         uses: pre-commit/action@main
 
       - name: Install with all components for testing
-        run: poetry install --with docs --with dev --with jupyter --with server
+        run: |
+          pip install poetry
+          poetry install --with=dev,docs,server
 
       - name: Run pytest
         run: poetry run pytest
