@@ -86,6 +86,16 @@ class InputOutputBaseException(Exception):
 
 
 def set_attrs(attr_dict: dict[str, Any]):
+    """Decorator for callables attributes are added to is returned.
+
+    Args:
+        attr_dict: `dict` where key is `attr` name an value is
+            what is added to decorated callable returns.
+
+    Returns:
+        Wrapper to then add as decorator on functions or methods.
+    """
+
     def wrapper(cls):
         for attr_name, attr_val in attr_dict.items():
             # def getAttr(self, attr_name=attr_name):
@@ -174,6 +184,21 @@ def F_i_m_scaled_by_regions(
     national_population: float,
     sector_row_names: Sequence[str] | None = None,
 ) -> DataFrame:
+    """Apply `F_i_m_scaled` to regional populations relative to national.
+
+    Args:
+        final_demand: National level Input-Output table Final Demand.
+        regional_populations: Populations for each region.
+        national_population: National population.
+        sector_row_names: Sectors to include. By default this is
+            managed by the
+            `@infer_sector_names(sector_var="sector_row_names")`
+            decorator.
+
+    Returns:
+        A MultiIndex DataFrame with of Final Demand for each region
+        and sector with `dtype` `float64`.
+    """
     region_dict: dict[str | int, DataFrame] = {
         reg: F_i_m_scaled(
             final_demand=final_demand.loc[sector_row_names],
@@ -207,6 +232,21 @@ def E_i_m_scaled_by_regions(
     national_employment: Series,
     sector_row_names: Sequence[str] | None = None,
 ) -> DataFrame:
+    """Apply `E_i_m_scaled` to regional populations relative to national.
+
+    Args:
+        exports: National level Input-Output table exports.
+        regional_populations: Employment levels for each region.
+        national_population: National employment level.
+        sector_row_names: Sectors to include. By default this is
+            managed by the
+            `@infer_sector_names(sector_var="sector_row_names")`
+            decorator.
+
+    Returns:
+        A MultiIndex DataFrame with of Exports for each region
+        and sector with `dtype` `float64`.
+    """
     region_dict: dict[str | int, DataFrame] = {
         reg: E_i_m_scaled(
             exports=exports.loc[sector_row_names],
@@ -242,6 +282,21 @@ def M_i_m_scaled_by_regions(
         SECTOR_COLUMN_NAME,
     ),
 ) -> DataFrame | Series:
+    """Apply `M_i_m_scaled` to regional populations relative to national.
+
+    Args:
+        imports: National level Input-Output table imports.
+        regional_populations: Employment levels for each region.
+        national_population: National employment level.
+        sector_row_names: Sectors to include. By default this is
+            managed by the
+            `@infer_sector_names(sector_var="sector_row_names")`
+            decorator.
+
+    Returns:
+        A MultiIndex DataFrame with of Imports for each region
+        and sector with `dtype` `float64`.
+    """
     region_dict: dict[str | int, DataFrame] = {
         reg: M_i_m_scaled(
             imports=imports.loc[sector_row_names],
@@ -321,14 +376,13 @@ def I_m(
 def x_i_mn_summed(X_i_m: DataFrame, technical_coefficients: DataFrame) -> DataFrame:
     """Return sum of all total demands for good $m$ in region $i$.
 
-    Equation 1:
-        $x_i^{mn} = a_i^{mn}X_i^n$
+    Maths:
+        $x_i^{(mn)} = a_i^{(mn)}X_i^{(n)}$
 
-    Equation 2:
-        $X_i^{(m)} + m_i^{(m)} + M_i^{(m)} = F_i^{(m)} + e_i^{(m)} + E_i^{(m)} + \\sum_n{{a_i^{mn}X_i^n}}$
+        $X_i^{(m)} + m_i^{(m)} + M_i^{(m)} = F_i^{(m)} + e_i^{(m)} + E_i^{(m)} + \\sum_n{{a_i^{(mn)}X_i^{(n)}}}$
 
     Todo:
-        * Determine if adding gva here would be helpful
+        * Check if adding Gross Value Added (gva) would be helpful
     """
     return X_i_m.apply(
         lambda row: (row * technical_coefficients.T).sum(),
@@ -427,7 +481,8 @@ def calc_transport_table(
 
     Note:
         * `region_names_index_or_column_name` assumes `index` is simply
-        the DataFrame index."""
+          the DataFrame index.
+    """
     if distance_CRS:
         regions_df = regions_df.to_crs(distance_CRS)
     if region_names_column:
@@ -438,6 +493,11 @@ def calc_transport_table(
 
 
 def doubly_constrained(regions_df: DataFrame) -> DataFrame:
+    """Function for calculating doubly constrained flows.
+
+    Todo:
+        * Refactor to replace with `iteration_for_AiBj`
+    """
     pass
 
 
@@ -457,8 +517,8 @@ def region_and_sector_convergence(
 
     # Equation 14
     # (Rearranged equation 2)
-    # m_i^{(m)} = e_i^{(m)} + F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{mn}X_i^n} - X_i^{(m)} - M_i^{(m)}
-    # exogenous_i_m_constant = F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{mn}X_i^n} - X_i^{(m)} - M_i^{(m)}
+    # m_i^{(m)} = e_i^{(m)} + F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{(mn)}X_i^{(n)}} - X_i^{(m)} - M_i^{(m)}
+    # exogenous_i_m_constant = F_i^{(m)} + E_i^{(m)} + \sum_n{a_i^{(mn)}X_i^{(n)}} - X_i^{(m)} - M_i^{(m)}
     # convergence_by_region = Q_i/\sum_j{Q_j} * \sum_i{exogenous_i_m_constant_i}
 
     # Convergence element
@@ -729,6 +789,22 @@ def iteration_for_AiBj(
     include_national: bool = True,
     iteration_number: float = 20,
 ):
+    """Iterate convergence for a spatial doubly constrained effect.
+
+    Maths:
+        $b_{ij}^{(m)} = K * A_{i}^{(m)} * B_{j}^{(m)} * Q_{i}^{(m)} * P_{j} * c_{ij}^{-\\beta}$
+
+        $A_{i}^{(m)} = 1/\\sum_{j} B_{j}^{(m)}P_{j} c_{ij}^{-\\beta}$
+
+        $B_{j}^{(m)} = 1/\\sum_{i} A_{i}^{(m)}Q_{i}^{(m)} c_{ij}^{-\\beta}$
+
+        $K = 1/\\sum_{j}b_{ij}^{(m)}$
+
+        $y_{ij}^{(m)} = b_{ij}^{(m)} pE_{i}^{(m)}$
+
+        $\\sum_{j} y_{ij}^{(m)} = e_{i}^{(m)}$
+
+    """
     A_i_m_init = A_i_m_cal(
         city_distances=city_distances,
         city_employment=city_employment,

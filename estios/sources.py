@@ -184,6 +184,16 @@ class DataSaveReadCallable(Protocol):
 def save_pandas_to_csv(
     pandas_object: DataFrame | Series, local_path: FilePathType, **kwargs
 ) -> DataFrame | Series:
+    """Save `pandas_object` to `csv`.
+
+    Args:
+        pandas_object: `pandas` object with a `to_csv()` method.
+        local_path: path to save `pandas_object` to.
+        **kwargs: additional arguments to pass to 'to_csv()'
+
+    Returns:
+        The `pandas_object` that was originally passed.
+    """
     pandas_object.to_csv(local_path, **kwargs)
     return pandas_object
 
@@ -239,7 +249,28 @@ def download_and_save_file(
     expects_sheet_parameter: tuple[str, ...] = EXTENSIONS_EXPECT_SHEET_PARAMETER,
     **kwargs: Any,
 ) -> None:
-    """Download the file from `url_or_path` and save it to `local_path`"""
+    """Download the file from `url_or_path` and save it to `local_path`.
+
+    Args:
+        url_or_path: source of data, either a url or file `Path`.
+        local_path: `Path` to save file to and load file from. If
+            `zip_file_path` set, that takes precedent.
+        zip_file_path: `Path` to zip file, with precedent over
+            `local_path`.
+        get_and_save_func: called with `url_or_path` and `local_path`
+            (or `zip_file_path`) to retrieve data and save it
+            locally for future use.
+        user_agent: What shows up for querying datasets from an `API`
+            as the type of user (often to mimic a web browser or
+            a unix function called `curl`)
+        headers: Any additional headers to add for a remote `API`
+            via the `Request` call.
+        expects_sheet_parameter: a `tuple` of file extensions that
+            require a `sheet` parameter, usually versions
+            spreadsheets like `.xlsx`
+        **kwargs: additional arguments passed to both `Request` and
+            the `get_and_save_func`.
+    """
     if user_agent:
         logger.debug(f"Setting `User-Agent` to {user_agent} in headers`")
         headers["User-Agent"] = user_agent
@@ -645,6 +676,21 @@ def download_and_extract_zip_file(
 def read_package_data(
     file_name: FilePathType, folder: StablePathType = UK_DATA_PATH
 ) -> BytesIO:
+    """Read data stored directly in `estios`.
+
+    Args:
+        file_name: name of file locally stored and provided with `estios`.
+        folder: path that `file_name` is stored locally within `estios`.
+
+    Returns:
+        Raw data from passed `folder`/`file_name` for use within `estios`.
+
+    Raises:
+        NotImplementedError: raised if the `file_name` type is `IO`,
+            indicating a stream of information that is currently not
+            supported.
+
+    """
     if isinstance(file_name, IO):
         raise NotImplementedError(f"Currently no means of reading {file_name} types.")
     else:
@@ -660,6 +706,18 @@ def path_or_package_data(
     default_file: FilePathType,
     folder: StablePathType = UK_DATA_PATH,
 ) -> Union[FilePathType, BytesIO]:
+    """Return data from `path`, compensating if the file is part of `estios`.
+
+    Args:
+        path: Path to file to load.
+        default_file: What the expected package `path` for that file
+            is to check if it should be loaded directly from `estios`.
+        folder: Folder that `path` is in.
+
+    Returns:
+        A `FilePathType` of `path` for loading, including within
+        `estios` if `path` is part of the `estios` package.
+    """
     if path is default_file:
         logger.info(f"Loading from package data {default_file}.")
         return read_package_data(default_file, folder)
@@ -890,7 +948,7 @@ class ModelDataSourcesHandler:
         add_as_first_arg_if_not_kwarg: bool = True,
         **kwargs,
     ) -> SupportedAttrDataTypes | None:
-        """Apply post_read_func to meta_field"""
+        """Apply post_read_func to meta_field."""
         if force or self._auto_apply_post_read_func:
             meta_data = meta_data or getattr(self, meta_attr_name)
             assert meta_data.has_post_read_func

@@ -463,8 +463,8 @@ def generate_base_regions(
 
     Raises:
         AssertionError: if `ons_region_df` is not a `DataFrame`
-        (including if originally `None` and `load_contemporary_ons_population`
-        fails to return a `DataFrame`).
+            (including if originally `None` and `load_contemporary_ons_population`
+            fails to return a `DataFrame`).
 
     """
     if not ons_region_df:

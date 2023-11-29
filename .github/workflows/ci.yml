@@ -11,24 +11,26 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         python-version: ["3.11"]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: ["3.11."]
-      # - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-      # - uses: actions/cache@v3
-      #   with:
-      #     key: mkdocs-material-${{ env.cache_id }}
-      #     path: .cache
-      #     restore-keys: |
-      #       mkdocs-material-
+          python-version: ${{ matrix.python-version }}
+          # - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+          # - uses: actions/cache@v3
+          #   with:
+          #     key: mkdocs-material-${{ env.cache_id }}
+          #     path: .cache
+          #     restore-keys: |
+          #       mkdocs-material-
       - name: Run pre-commit tests
         uses: pre-commit/action@main
 

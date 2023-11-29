@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Tools for managing projections of time series.
+"""Tools for managing projections of time series.
 
 Todo:
     * Work out feasibility of tables for configuring runs
@@ -14,23 +13,25 @@ Potential table implementation:
     * Feasibility of iterating as subprocesses or async
 
 Index
+
 | year | "io_table_file_path"|
-------------------------------
+| ---- | --------------------|
 | 2017 | "a/path.xls"        |
 | 2018 | "another/path.xls"  |
 
 Index
-| year | "io_table_file_path"| National Population |
-----------------------------------------------------
-| 2017 | "a/path.xls"        |  200k               |
-| 2018 | None                |  220K               |
+
+| year | "io_table_file_path" | National Population |
+| ---- | -------------------- | ------------------- |
+| 2017 | "a/path.xls"         |  200k               |
+| 2018 | None                 |  220K               |
 
 Index
+
 | Beta | "io_table_file_path"  | delta function | Start Year |
-|------------------------------------------------------------|
+| ---- | --------------------- | -------------- | ---------- |
 | .2   | "a/path.xls"          |  linear        | 2017       |
 | .3   | "a/path.xls"          |  exponential   | 2017       |
-
 
 """
 

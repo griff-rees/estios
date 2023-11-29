@@ -308,22 +308,57 @@ def aggregate_rows(
 
 
 def trim_year_range_generator(
-    years: Iterable[Union[str, int]], first_year: int, last_year: int
+    years: Iterable[str | int], first_year: int, last_year: int
 ) -> Generator[int, None, None]:
+    """Trim `years` from earlier than `first_year` and older than `last_year`.
+
+    Args:
+        years: `Iterable` of `str` (of `int`) or `int`
+        first_year: `int` of earliest year to keep.
+        last_year: `int` of latest year to keep.
+
+    Yields:
+        Years in range as `int`s.
+    """
     for year in years:
         if first_year <= int(year) <= last_year:
             yield int(year)
 
 
-def iter_ints_to_list_strs(labels: Iterable[Union[str, int]]) -> list[str]:
+def iter_ints_to_list_strs(labels: Iterable[str | int]) -> list[str]:
+    """Return a list of `strs`, primarily intended to use as plot labels.
+
+    Args:
+        labels: `Iterable` of labels as `str` or `int`.
+
+    Returns:
+        `list` of `labels` as `strs`.
+    """
     return [str(label) for label in labels]
 
 
 def collect_dupes(sequence: Iterable) -> dict[Any, int]:
+    """Collect cases of duplicate values in passed `Iterable`.
+
+    Args:
+        sequence: `Iterable` of values to count dupes of.
+
+    Returns:
+        `dict` with keys as values from `sequence` which appear at least
+        twice and value for count of duplications of paired value.
+    """
     return {key: count for key, count in Counter(sequence).items() if count > 1}
 
 
 def str_keys_of_dict(dict_to_stringify) -> dict[str, Any]:
+    """Ensure passed `dict` keys are `strs`.
+
+    Args:
+        dict_to_stringify: `dict` instance to enforce `key` are `str`.
+
+    Returns:
+        `dict` with all keys now `strs`.
+    """
     return {str(key): val for key, val in dict_to_stringify.items()}
 
 
@@ -371,7 +406,6 @@ def filled_or_empty_dict(indexable: dict, key: str) -> dict[str, str]:
     Todo:
         Check if it should expect a `dict` of `dicts`.
     """
-
     return indexable[key] if key in indexable else {}
 
 
@@ -389,6 +423,15 @@ def sum_by_rows_cols(
 def ordered_iter_overlaps(
     iter_a: Iterable, iter_b: Iterable
 ) -> Generator[Any, None, None]:
+    """Generator of equal instances in the sampe postions of `iter_a` and `iter_b`.
+
+    Args:
+        iter_a: an iterable.
+        iter_b: an iterable with the same length as `iter_a`.
+
+    Yields:
+        Elements that are the same and in the same position of `iter_a` an `iter_b`.
+    """
     return (x for x, y in zip(iter_a, iter_b) if x == y)
 
 
@@ -404,7 +447,6 @@ def filter_df_by_strs_or_sequences(
 
     Returns:
         A `Series` or `DataFrame` filtered from `df`.
-
     """
     if isinstance(rows, str):
         rows = [rows]
@@ -510,7 +552,7 @@ def df_column_to_single_value(
     df: DataFrame,
     results_column_name: str,
 ) -> float:
-    """Apply query_str to df and extract the first elements"""
+    """Apply query_str to df and extract the first elements."""
     return df[results_column_name].values[0]
 
 
@@ -552,6 +594,16 @@ def field_names(field_sequence: Sequence[Field]) -> tuple[str, ...]:
 def filter_attrs_by_substring(
     cls: Any, substring: str
 ) -> Generator[tuple[str, Any], None, None]:
+    """Yield attributes of `cls` whose names include `substring`.
+
+    Args:
+        cls: an object.
+        substring: a `str` that might be inclued in `cls` attribute names.
+
+    Yields:
+        A `tuple` of `attr` name and `value` from `cls` that include
+        `substring` in `attr` name.
+    """
     for attr_name, attr in vars(cls).items():
         if substring in attr_name:
             yield attr_name, attr
@@ -752,6 +804,16 @@ def is_intable_from_str(x: str) -> bool:
 def gen_filter_by_func(
     iterable: Iterable, func: Callable[[Any], bool] = is_intable_from_str
 ) -> Generator[Any, None, None]:
+    """Yield value from `iterable` if `func` of `value` returns `True`.
+
+    Args:
+        iterable: An iterable of any `type`.
+        func: A function that returns a `True` or `False` of passed
+            elements in `iterable`.
+
+    Yields:
+        Elements from `iterable` that return `True` when passed to `func`.
+    """
     return (x for x in iterable if func(x))
 
 
@@ -805,7 +867,7 @@ def df_columns_to_index(
     """Filter columns from a `DataFrame` to an `Index` or `MultiIndex`.
 
     Examples:
-
+        ```pytest
         >>> df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
         >>> str_index: Index = df_columns_to_index(
         ...     df,
@@ -829,6 +891,8 @@ def df_columns_to_index(
         Traceback (most recent call last):
         ...
         ValueError: `column_names` [] invalid: at least 1 required
+
+        ```
     """
     if isinstance(column_names, str):
         column_names = [column_names]
@@ -848,10 +912,10 @@ def load_series_from_csv(
     index: MultiIndex | Index | None = None,
     index_column_names: Sequence[str] | str | None = None,
 ) -> Series:
-    """Load a column of results for re-use (visualisation etc.)
+    """Load a column of results for re-use (visualisation etc.).
 
     Examples:
-
+        ```pytest
         >>> flows: Series = load_series_from_csv(
         ...     path='tests/test_3_city_yijm.csv',
         ...     column_name=FINAL_Y_IJ_M_COLUMN_NAME,
@@ -863,6 +927,7 @@ def load_series_from_csv(
         >>> three_city_df: DataFrame = read_csv('tests/test_3_city_yijm.csv')
         >>> three_city_df.set_index(IJ_M_INDEX_NAMES, inplace=True)
         >>> assert (flows == three_city_df[FINAL_Y_IJ_M_COLUMN_NAME]).all()
+        ```
     """
     df: DataFrame = read_csv(path)
     if isinstance(index_column_names, str):

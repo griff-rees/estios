@@ -56,6 +56,15 @@ def generate_colour_scheme(
     regions: Iterable[str],
     scheme_options: Iterable[str] = DEFAULT_REGION_PALATE,
 ) -> dict[str, str]:
+    """Return a `dict` of region names and allocated colour.
+
+    Args:
+        regions: iterable of region names.
+        scheme_options: colour cycle to apply to regions.
+
+    Returns:
+        A `dict` of region names to colour values (in `str`).
+    """
     colour_cycle: cycle[str] = cycle(scheme_options)
     return {region: next(colour_cycle) for region in regions}
 
@@ -94,6 +103,20 @@ def mapbox_cities_fig(
     mapbox_style: str = MAPBOX_STYLE,
     **kwargs,
 ) -> Figure:
+    """Return a `scatter_mapbox` layer of cities scaled by `size_column`.
+
+    Args:
+        cities: `GeoDataFrame` of cities with coordinates and attributes.
+        colour_column: which `cities` column to set city colour by.
+        size_column: which column in `cities` indicates city size.
+        zoom: how far zoomed in the map should render by default.
+        mapbox_style: style configuration for map colours etc.
+        **kwargs: any additional parameters to pass to `scatter_mapbox`.
+
+    Returns:
+        Configured instances of `scatter_mapbox`, including with city
+        coordinates converted via `convert_geom_for_mapbox`.
+    """
     mapbox_cities = convert_geom_for_mapbox(cities)
     return scatter_mapbox(
         mapbox_cities,
@@ -110,12 +133,22 @@ def mapbox_cities_fig(
 
 
 def convert_geom_for_mapbox(
-    geo_df: Union[GeoDataFrame, Series],
+    geo_df: GeoDataFrame | Series,
     epsg_code: int = 4326,
-    initial_crs: str = CENTRE_FOR_CITIES_EPSG,
+    series_crs: str = CENTRE_FOR_CITIES_EPSG,
 ) -> GeoDataFrame:
+    """Convert `geo_df` geometry as necessry for `mapbox`.
+
+    Args:
+        geo_df: `GeoDataFrame` or `Series` to convert `geometry`.
+        epsg_code: setting of `epsg` for final results.
+        series_crs: `crs` to set first if passed as `Series`.
+
+    Returns:
+        `GeoDataFrame` with `geometry` converted for `mapbox`.
+    """
     if type(geo_df) is Series:
-        geo_df = GeoDataFrame(DataFrame(geo_df).T, crs=CENTRE_FOR_CITIES_EPSG)
+        geo_df = GeoDataFrame(DataFrame(geo_df).T, crs=series_crs)
     mapbox_geo_df: GeoDataFrame = geo_df.copy()
     mapbox_geo_df["lon"] = mapbox_geo_df.to_crs(epsg=epsg_code).geometry.x
     mapbox_geo_df["lat"] = mapbox_geo_df.to_crs(epsg=epsg_code).geometry.y
@@ -141,6 +174,27 @@ def add_mapbox_edges(
     # font_size: Optional[str] = None,
     **kwargs,
 ) -> Figure:
+    """Add line segments to a map layer for visualising trade flows.
+
+    Args:
+        origin_city: City line (flow) starts from.
+        cities: All other citeis (not `orgin_city`) for lines (flows) to go to.
+        fig: An existing `plotly` `Figure` instance to add this layer to.
+        weight: `Series` of weights to apply to each line/flow.
+        flow_type: Configuration `str` for rendering flow configuration
+            (like arrow for direction).
+        plot_line_scaling_func: Function to scale line width
+        render_below: Whether to render lines below or above another element
+            (likely city layer)
+        selected_sector: Which sector is selected for rendering.
+        plot_background_colour: Background colour for plot.
+        colour_palette: Plot colour palette
+        font_config: Font configuration
+        **kwargs: Additional parameters to pass to `mapbox_destinations`
+
+    Returns:
+        `Plotly` `Figure` with `mabpox` lines rendered.
+    """
     if fig is None:
         fig = Figure()
     # if reverse_render_order:
@@ -343,6 +397,19 @@ def time_series_line(
     labels: dict = {"AREA_NAME": "Region"},
     **kwargs,
 ) -> Figure:
+    """Return a `plotly` `Figure` with a `line` plot of a `time_series`.
+
+    Args:
+        time_series: `DataFrame` of values per region over time.
+        transpose: whether to transpose `times_series` prior to plotting.
+        labels: `dict` of plot label configuration.
+        **kwargs: additional parameters to apply to the `plotly` `line`
+            function call.
+
+    Returns:
+        A `plotly` `Figure` with a `plotly.line`, primarily designed for a
+        time series.
+    """
     if transpose:
         time_series = time_series.T
     return line(time_series, labels=labels, **kwargs)
@@ -350,6 +417,11 @@ def time_series_line(
 
 
 def flow_plot_pe(flow_result_list, geolist, year=None, color="red", save=False):
+    """Flow plot using `matplotlib`.
+
+    Warning:
+        Requires `matplotlib` imported as `plt` to work.
+    """
     color_index = 0
     for i in flow_result_list.Sector.unique():
         fig, ax = plt.subplots(figsize=(20, 30))
