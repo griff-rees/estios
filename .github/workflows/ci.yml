@@ -1,13 +1,20 @@
 name: ci
 on:
-  push:
-    branches:
-      - ['main', '41-set-up-test-coverage-ci']
   pull_request:
-    branches: [main]
+    branches: ['main', '41-set-up-test-coverage-ci']
+    paths-ignore: ['docs/**']
+
+  push:
+    branches: ['main', '41-set-up-test-coverage-ci']
+    paths-ignore: ['docs/**']
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
+
 
 jobs:
   test:
