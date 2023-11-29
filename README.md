@@ -1,4 +1,5 @@
 # Economic Spatial Temporal Input-Output Systems: ESTIOS
+[![DOI](https://zenodo.org/badge/10218779.svg)](https://zenodo.org/badge/latestdoi/10218779)
 
 This package combines classic work on Input-Output economics[^leontif] with transport costs[^wilson] and changes over time to estimate trade between different geographic regions (cities or towns or even [MSOAs](https://data.gov.uk/dataset/2cf1f346-2f74-4c06-bd4b-30d7e4df5ae7/middle-layer-super-output-area-msoa-boundaries)).
 
