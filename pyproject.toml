@@ -20,7 +20,7 @@ geopandas = "^0.13.2"
 plotly = "^5.18.0"
 typer = {version = "^0.4.2", extras = ["all"]}
 openpyxl = "^3.1.2"
-setuptools = "^69.0.2"
+setuptools = "^70.0.0"
 numpy = "^1.26.2"
 xlrd = "^2.0.1"
 # GDAL = {version = "3.5.3", platform = "darwin"}
