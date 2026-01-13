@@ -60,7 +60,7 @@ pytest-sugar = "^0.9.7"
 mypy = "^1.7.1"
 pytest-xdist = "^3.5.0"
 pymrio = "^0.4.8"
-filelock = "^3.13.1"
+filelock = "^3.20.3"
 
 [tool.poetry.group.docs]
 optional = true
