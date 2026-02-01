@@ -16,7 +16,7 @@ homepage = "https://griff-rees.github.io/estios"
 
 [tool.poetry.dependencies]
 python = "~3.11"
-geopandas = "^0.13.2"
+geopandas = "^1.1.2"
 plotly = "^5.18.0"
 typer = {version = "^0.4.2", extras = ["all"]}
 openpyxl = "^3.1.2"
