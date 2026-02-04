@@ -8,6 +8,7 @@ from typing import Final, Optional, Type, Union
 
 import uvicorn
 from dash import Dash, dcc, html
+from dash._jupyter import JupyterDash
 from dash.dash_table import DataTable, FormatTemplate
 from dash.dash_table.Format import Symbol
 from dash.dependencies import Input, Output
@@ -15,7 +16,6 @@ from dash.exceptions import PreventUpdate
 from dash_auth import BasicAuth
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from jupyter_dash import JupyterDash
 from pandas import DataFrame
 from plotly.graph_objects import Figure, layout
 from starlette.middleware.wsgi import WSGIMiddleware
@@ -395,7 +395,7 @@ def get_dash_app(
             Input("dropdown_city", "value"),
             Input("dropdown_sector", "value"),
             Input("n_flows", "value"),
-            Input("city_colour", "value")
+            Input("city_colour", "value"),
             # Input('in_vs_out_flow', 'value'),
         ],
     )
@@ -492,9 +492,9 @@ def get_jupyter_app(
 
 def get_server_dash(
     input_output_ts: Optional[InterRegionInputOutputTimeSeries] = None,
-    config_data: InputOutputConfigType
-    | DateConfigType
-    | None = CONFIG_2015_TO_2017_QUARTERLY,
+    config_data: (
+        InputOutputConfigType | DateConfigType | None
+    ) = CONFIG_2015_TO_2017_QUARTERLY,
     auth: bool = True,
     auth_db_path: DBPathType = DB_PATH,
     all_cities: bool = False,
