@@ -60,7 +60,7 @@ jobs:
         run: uv run pytest
 
       - name: Python Coverage Comment
-        uses: py-cov-action/python-coverage-comment-action@v2.2.0
+        uses: py-cov-action/python-coverage-comment-action@v3.40
 
       - name: Store Pull Request comment to be posted
         uses: actions/upload-artifact@v4
