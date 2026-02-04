@@ -1,11 +1,11 @@
 name: ci
 on:
   pull_request:
-    branches: ['main', '41-set-up-test-coverage-ci']
+    branches: ['main', '41-set-up-test-coverage-ci', 'uv-refactor']
     paths-ignore: ['docs/**']
 
   push:
-    branches: ['main', '41-set-up-test-coverage-ci']
+    branches: ['main', '41-set-up-test-coverage-ci', 'uv-refactor']
     paths-ignore: ['docs/**']
 
 concurrency:
@@ -17,6 +17,15 @@ permissions:
 
 
 jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v3
+      - name: Run pre-commit linting
+        uses: pre-commit/action@main
+
   test:
     strategy:
       fail-fast: true
@@ -27,10 +36,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
           # - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
           # - uses: actions/cache@v3
           #   with:
@@ -38,16 +50,14 @@ jobs:
           #     path: .cache
           #     restore-keys: |
           #       mkdocs-material-
-      - name: Run pre-commit tests
-        uses: pre-commit/action@main
+      # - name: Run pre-commit linting
+      #   uses: pre-commit/action@main
 
       - name: Install with all components for testing
-        run: |
-          pip install poetry
-          poetry install --with=dev,docs,server
+        run: uv sync --locked --all-extras --dev
 
       - name: Run pytest
-        run: poetry run pytest
+        run: uv run pytest
 
       - name: Python Coverage Comment
         uses: py-cov-action/python-coverage-comment-action@v2.2.0
@@ -64,10 +74,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
+      - uses: actions/checkout@v6
+
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
 
       - uses: actions/download-artifact@v3
         id: download
@@ -82,7 +92,7 @@ jobs:
           MERGE_COVERAGE_FILES: true
 
       - name: Store Pull Request comment to be posted
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
         with:
           name: python-coverage-comment-action
@@ -91,12 +101,10 @@ jobs:
   deploy:
     name: MkDocs deploy
     runs-on: ubuntu-latest
-    needs: [coverage]
+    needs: [coverage, lint]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.x
+      - uses: actions/checkout@v6
+
       - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
       - uses: actions/cache@v3
         with:
@@ -104,6 +112,10 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
-      - run: pip install poetry
-      - run: poetry install --with docs --with dev --with jupyter --with server
-      - run: poetry run mkdocs gh-deploy --force
+
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
+
+      # - run: uv sync --locked --all-extras --dev
+      - run: uv sync --with docs --with dev --with jupyter --with server
+      - run: uv run mkdocs gh-deploy --force
