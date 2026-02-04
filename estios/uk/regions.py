@@ -25,9 +25,9 @@ ONS_2017_REGION_GEOJSON_FILE_NAME: Final[str] = (
     "in_the_United_Kingdom.geojson"
 )
 
-ONS_GEOGRAPHY_LICENSE_URL: Final[
-    str
-] = "https://www.ons.gov.uk/methodology/geography/licences"
+ONS_GEOGRAPHY_LICENSE_URL: Final[str] = (
+    "https://www.ons.gov.uk/methodology/geography/licences"
+)
 
 ONSGeographyLicense: Final = DataLicense(
     name="Open Geography License",

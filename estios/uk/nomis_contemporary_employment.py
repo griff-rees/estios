@@ -25,8 +25,7 @@ load_dotenv()
 NOMIS_API_KEY: str = ""
 
 
-class APIKeyNomisError(Exception):
-    ...
+class APIKeyNomisError(Exception): ...
 
 
 try:
@@ -72,16 +71,16 @@ NOMIS_ITEM_PARAM_STR: Final[str] = "item"
 
 # K02000001 for all UK, but not available in NM_189_1
 #                  United Kingdom (not including Northern Ireland), all other local authorities (missing data from Northern Ireland)
-NOMIS_LOCAL_AUTHORITY_GEOGRAPHY_CODES_STR: Final[
-    str
-] = "K03000001,1879048193...1879048572"
+NOMIS_LOCAL_AUTHORITY_GEOGRAPHY_CODES_STR: Final[str] = (
+    "K03000001,1879048193...1879048572"
+)
 NOMIS_INDUSTRY_SECTIONS_BY_LETTER_CODES_STR: Final[str] = "150994945...150994965"
 NOMIS_EMPLOYMENT_STATUS_CODES_STR: Final[str] = "1,4"
 NOMIS_EMPLOYMENT_MEASURE_CODES_STR: Final[str] = "1,2"
 NOMIS_EMPLOYMENT_MEASURES_CODE_STR: Final[str] = "20100"
-NOMIS_EMPLOYMENT_SELECT_COLUMNS: Final[
-    str
-] = "date_name,geography_name,geography_code,industry_name,employment_status_name,measure_name,measures_name,obs_value,obs_status_name,industry_code"
+NOMIS_EMPLOYMENT_SELECT_COLUMNS: Final[str] = (
+    "date_name,geography_name,geography_code,industry_name,employment_status_name,measure_name,measures_name,obs_value,obs_status_name,industry_code"
+)
 
 NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT: dict[str, str] = {
     NOMIS_GEO_PARAM_STR: NOMIS_LOCAL_AUTHORITY_GEOGRAPHY_CODES_STR,
@@ -104,15 +103,15 @@ NOMIS_LETTER_SECTOR_QUERY_PARAM_DICT: dict[str, str] = {
 NOMIS_ALL_SEXES_VALUE: Final[str] = "Total"
 NOMIS_TOTAL_WORKFORCE_VALUE: Final[str] = "total workforce jobs"
 NOMIS_NATIONAL_EMPLOYMENT_TABLE_CODE: Final[str] = "NM_131_1"
-NOMIS_NATIONAL_GEOGRAPHY_CODES_STR: Final[
-    str
-] = "2092957699,2092957702,2092957701,2092957697,2092957700"
+NOMIS_NATIONAL_GEOGRAPHY_CODES_STR: Final[str] = (
+    "2092957699,2092957702,2092957701,2092957697,2092957700"
+)
 NOMIS_NATIONAL_GEOGRAPHY_DATE_STR: Final[str] = "latestMINUS21"
 NOMIS_NATIONAL_SEX_CODES_STR: Final[str] = "1...4,7"
 NOMIS_NATIONAL_ITEM_CODES_STR: Final[str] = "1...5"
-NOMIS_NATIONAL_EMPLOYMENT_SELECT_COLUMNS: Final[
-    str
-] = "date,date_name,geography,geography_name,geography_code,geography_typecode,industry,industry_name,industry_code,industry_typecode,sex_name,item_name,measures_name,obs_value,obs_status_name"
+NOMIS_NATIONAL_EMPLOYMENT_SELECT_COLUMNS: Final[str] = (
+    "date,date_name,geography,geography_name,geography_code,geography_typecode,industry,industry_name,industry_code,industry_typecode,sex_name,item_name,measures_name,obs_value,obs_status_name"
+)
 NOMIS_NATIONAL_LETTER_SECTOR_QUERY_PARAM_DICT: dict[str, str] = {
     NOMIS_GEO_PARAM_STR: NOMIS_NATIONAL_GEOGRAPHY_CODES_STR,
     NOMIS_INDUSTRY_PARAM_STR: NOMIS_INDUSTRY_SECTIONS_BY_LETTER_CODES_STR,
@@ -143,8 +142,7 @@ NOMIS_FINANCIAL_QUARTER_ORDER.rotate()
 @overload
 def uk_quarter_indexing(
     month_or_date: date | str | int, quarter_names: Sequence[str], as_str: Literal[True]
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
@@ -152,8 +150,7 @@ def uk_quarter_indexing(
     month_or_date: date | str | int,
     quarter_names: Sequence[str],
     as_str: Literal[False],
-) -> int:
-    ...
+) -> int: ...
 
 
 def uk_quarter_indexing(
@@ -280,9 +277,9 @@ def nomis_query(
         query_params["ITEM"] = "1,3"
         query_params["MEASURES"] = "20100,404423937...404423945"
         # query_params["measures"] = "20100,20701"
-        query_params[
-            "select"
-        ] = "date_name,geography_name,geography_code,item_name,measures_name,obs_value,obs_status_name"
+        query_params["select"] = (
+            "date_name,geography_name,geography_code,item_name,measures_name,obs_value,obs_status_name"
+        )
         # https://www.nomisweb.co.uk/api/v01/dataset/NM_100_1.data.csv?&select=date_name,geography_name,geography_code,cell_name,measures_name,obs_value,obs_status_name
     else:
         logger.info(f"Querying with:\n{pformat(query_params)}")

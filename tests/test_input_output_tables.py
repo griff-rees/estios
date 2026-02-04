@@ -72,7 +72,6 @@ REAL_EST_AGG: str = "Real estate"
 
 
 class TestLoadingONSIOTableData:
-
     """Test loading and manipulating an InputOutputCPATable from ONS data."""
 
     def test_repr(self, ons_io_2017_table) -> None:
@@ -165,7 +164,6 @@ class TestLoadingONSIOTableData:
 
 
 class TestLoadingCSVIOTable:
-
     """Test loading a csv for an InputOutputTable.
 
     Table from An input-output table for 1841 by
@@ -259,7 +257,6 @@ class TestLoadingCSVIOTable:
 
 
 class TestLoadingEmploymentData:
-
     """Test UK jobs time series data processing/managing."""
 
     DATE_1997: str = "1997-03-01"
@@ -301,7 +298,6 @@ class TestLoadingEmploymentData:
 
 @pytest.mark.remote_data
 class TestInputOutputOECD:
-
     """Test importing and querying OECD Input-Output data via pymrio."""
 
     @pytest.mark.slow("default is very slow")

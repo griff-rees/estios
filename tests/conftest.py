@@ -101,10 +101,8 @@ def xdist_session_data_wrapper(
         if fn.is_file():
             data = json.loads(fn.read_text())
         else:
-            data = (
-                yield from func(*args, **kwargs)
-                if is_generator
-                else func(*args, **kwargs)
+            data = yield from (
+                func(*args, **kwargs) if is_generator else func(*args, **kwargs)
             )
             fn.write_text(json.dumps(data))
     if is_generator:
@@ -258,14 +256,14 @@ def english_pop_projections(pop_projection) -> Generator[MetaData, None, None]:
 @pytest.fixture(scope="session")
 def uk_pua_manager(tmp_path_factory, worker_id) -> PUASManager:
     """Return default `PUASManager` for working UK cities."""
-    puas_manager: Generator[
-        PUASManager | GenericRegionsManager, None, None
-    ] = xdist_session_data_wrapper(
-        tmp_path_factory=tmp_path_factory,
-        func=generate_uk_puas,
-        worker_id=worker_id,
-        is_generator=False,
-        include_fixture_path=False,
+    puas_manager: Generator[PUASManager | GenericRegionsManager, None, None] = (
+        xdist_session_data_wrapper(
+            tmp_path_factory=tmp_path_factory,
+            func=generate_uk_puas,
+            worker_id=worker_id,
+            is_generator=False,
+            include_fixture_path=False,
+        )
     )
     if isinstance(puas_manager, Generator):
         assert False

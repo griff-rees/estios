@@ -288,7 +288,6 @@ def test_3_city_distance_table(region_geo_data, three_city_names) -> None:
 
 
 class TestProportionalProjection:
-
     """Test projecting proportionately"""
 
     national_populations: Series = Series([i * 1000 for i in range(1, 5)])

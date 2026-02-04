@@ -126,7 +126,6 @@ logger.warning(
 
 @dataclass(repr=False)
 class InputOutputTableUK1841(InputOutputTable):
-
     """UK InputOutputTable 1841 estimate from Horrel et. al.
 
     Todo:
@@ -159,7 +158,6 @@ class InputOutputOECDTableUK2017(InputOutputTableOECD):
 
 @dataclass(kw_only=True, repr=False)
 class InputOutputTableUK2017(InputOutputTable):
-
     """UK InputOutputCPATable 2017 estimate from the ONS."""
 
     # meta_data: MetaData = ons_IO_2017.ONS_IO_TABLE_2017_METADATA
@@ -198,9 +196,9 @@ class InputOutputTableUK2017(InputOutputTable):
     sector_codes_skip: Sequence[str] = field(
         default_factory=lambda: [INTERMEDIATE_DEMAND_BASE_PRICE_CODE]
     )
-    _aggregate_sectors_func: Callable[
-        ..., DataFrame
-    ] | None = aggregate_sectors_by_dict_with_prefix
+    _aggregate_sectors_func: Callable[..., DataFrame] | None = (
+        aggregate_sectors_by_dict_with_prefix
+    )
     _aggregate_sectors_kwargs: dict[str, Any] = field(
         default_factory=lambda: {"sector_code_prefix": CPA_COLUMN_NAME}
     )

@@ -29,21 +29,21 @@ UK_CITY_SECTOR_YEARS: Final[list] = [2011, 2017]
 CITY_SECTOR_REGION_PREFIX: Final[str] = "towncity:"
 
 # Note: These are *template* str that may be superfluous
-CITY_SECTOR_AVERAGE_EARNINGS_COLUMN_STR: Final[
-    str
-] = "Average Weekly Workplace Earnings YEAR  (Â£)"
+CITY_SECTOR_AVERAGE_EARNINGS_COLUMN_STR: Final[str] = (
+    "Average Weekly Workplace Earnings YEAR  (Â£)"
+)
 CITY_SECTOR_POPULATION_COLUMN_STR: Final[str] = "Population YEAR"  # 1981 - 2019
-CITY_SECTOR_EDUCATION_COLUMN_STR: Final[
-    str
-] = "Pupils achieving 9-4 grades in Maths & English at GCSE YEAR  (%)"  # 2017 - 2019
+CITY_SECTOR_EDUCATION_COLUMN_STR: Final[str] = (
+    "Pupils achieving 9-4 grades in Maths & English at GCSE YEAR  (%)"  # 2017 - 2019
+)
 
-CITY_SECTOR_AVERAGE_EARNINGS_COLUMN: Final[
-    str
-] = "Average Weekly Workplace Earnings 2017  (Â£)"
+CITY_SECTOR_AVERAGE_EARNINGS_COLUMN: Final[str] = (
+    "Average Weekly Workplace Earnings 2017  (Â£)"
+)
 CITY_SECTOR_POPULATION_COLUMN: Final[str] = "Population 2017"  # 1981 - 2019
-CITY_SECTOR_EDUCATION_COLUMN: Final[
-    str
-] = "Pupils achieving 9-4 grades in Maths & English at GCSE 2017  (%)"  # 2017 - 2019
+CITY_SECTOR_EDUCATION_COLUMN: Final[str] = (
+    "Pupils achieving 9-4 grades in Maths & English at GCSE 2017  (%)"  # 2017 - 2019
+)
 
 COVID_FLAGS_COLUMN: Final[str] = "COVID_FLAGS"
 

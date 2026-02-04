@@ -19,9 +19,9 @@ from ..utils import df_column_to_single_value
 logger = getLogger(__name__)
 
 UK_CURRENCY_ABBREVIATION: Final[str] = "GBR"
-PANDAS_REGION_YEAR_QUERY_STR: Final[
-    str
-] = "LOCATION == @currency_abbrev & TIME == @year"
+PANDAS_REGION_YEAR_QUERY_STR: Final[str] = (
+    "LOCATION == @currency_abbrev & TIME == @year"
+)
 
 OECD_DATE_CITATION_FORMAT: Final[str] = "%d %B %y"
 VALUE_COLUMN_NAME: Final[str] = "Value"
@@ -35,8 +35,9 @@ def oecd_query_to_float(
     year: int,
     query_str: str = PANDAS_REGION_YEAR_QUERY_STR,
     currency_abbrev: str = UK_CURRENCY_ABBREVIATION,
-    post_processing: None
-    | Callable[[DataFrame, str], DataFrame] = df_column_to_single_value,
+    post_processing: (
+        None | Callable[[DataFrame, str], DataFrame]
+    ) = df_column_to_single_value,
     results_column_name: str = VALUE_COLUMN_NAME,
 ) -> DataFrame | float:
     """Convert returns from an `OECD` query to `float`.
@@ -110,14 +111,14 @@ def gen_oecd_cite_str(
 
 
 OECD_PPP_DOI: Final[str] = "10.1787/1290ee5a-en"
-OECD_PPP_CITE_PREFIX: Final[
-    str
-] = f"OECD (2022), Purchasing power parities (PPP) (indicator). doi: {OECD_PPP_DOI}"
+OECD_PPP_CITE_PREFIX: Final[str] = (
+    f"OECD (2022), Purchasing power parities (PPP) (indicator). doi: {OECD_PPP_DOI}"
+)
 
 OECD_GDP_LONG_TERM_FORECAST_DOI: Final[str] = "10.1787/d927bc18-en"
-OECD_GDP_LONG_TERM_CITE_PREFIX: Final[
-    str
-] = f"OECD (2022), Real GDP long-term forecast (indicator). doi: {OECD_GDP_LONG_TERM_FORECAST_DOI}"
+OECD_GDP_LONG_TERM_CITE_PREFIX: Final[str] = (
+    f"OECD (2022), Real GDP long-term forecast (indicator). doi: {OECD_GDP_LONG_TERM_FORECAST_DOI}"
+)
 
 FIRST_YEAR: Final[int] = 1990
 LAST_YEAR: Final[int] = 2060

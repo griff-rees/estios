@@ -85,16 +85,13 @@ class NotValidCitationError(Exception):
     pass
 
 
-class AutoDownloadPermissionError(Exception):
-    ...
+class AutoDownloadPermissionError(Exception): ...
 
 
-class NoDataLoadedError(Exception):
-    ...
+class NoDataLoadedError(Exception): ...
 
 
-class NoDataReturnedError(Exception):
-    ...
+class NoDataReturnedError(Exception): ...
 
 
 @dataclass
@@ -138,7 +135,6 @@ def extract_file_name_from_url(url: FileOrURLType) -> str:
 
 
 class DataSaveReadCallable(Protocol):
-
     """A protocol for standardising different ways of managing data sources."""
 
     def __call__(
@@ -147,8 +143,7 @@ class DataSaveReadCallable(Protocol):
         local_path: FilePathType | None = None,
         # zip_file_path: Optional[FilePathType] = None,
         **kwargs: Any,
-    ) -> None | Request:
-        ...
+    ) -> None | Request: ...
 
     # @overload
     # def __call__(
@@ -316,7 +311,6 @@ def download_and_save_file(
 
 @dataclass
 class DataLicense:
-
     """Class for standardising data license references."""
 
     name: str
@@ -353,7 +347,6 @@ OECDTermsAndConditions = DataLicense(
 
 @dataclass
 class MetaData:
-
     """Manage info on source material.
 
     Todo:
@@ -758,20 +751,18 @@ def pandas_from_path_or_package(
 MetaFileOrDataFrameType = SupportedAttrDataTypes | FilePathType | MetaData
 
 
-class OverwriteRawMetaError(Exception):
-    ...
+class OverwriteRawMetaError(Exception): ...
 
 
 @dataclass
 class ModelDataSourcesHandler:
-
     """A mixin class for handling MetaFieldOrFrameType attributes."""
 
     _: KW_ONLY
     _default_data_source_parser: Callable = pandas_from_path_or_package
-    _filter_fields_by_type_func: Callable[
-        [Any, Type], tuple[Field, ...]
-    ] = filter_fields_by_type
+    _filter_fields_by_type_func: Callable[[Any, Type], tuple[Field, ...]] = (
+        filter_fields_by_type
+    )
     _filter_fields_by_types_func: Callable[
         [Any, tuple[Type, ...]], tuple[Field, ...]
     ] = filter_fields_by_types

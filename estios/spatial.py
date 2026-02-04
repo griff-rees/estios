@@ -65,7 +65,6 @@ class NullCodeException(Exception):
 
 
 class RegionsManagerMixin:
-
     """Base mixin methods for RegionsManager inheritance."""
 
     meta_data: MetaData | None
@@ -126,7 +125,6 @@ class RegionsManagerMixin:
 
 
 class RegionsManager(RegionsManagerMixin, RegionsManagerType):
-
     """Class for managing and indexing Regions."""
 
     pass

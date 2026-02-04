@@ -46,7 +46,6 @@ logger = getLogger(__name__)
 
 
 class TemporalConfigProtocol(Protocol):
-
     """A protocol for standardising different ways of managing data sources."""
 
     def __call__(
@@ -56,8 +55,7 @@ class TemporalConfigProtocol(Protocol):
         io_model_config_index: Optional[int] = None,
         input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput,
         **kwargs: Any,
-    ) -> InterRegionInputOutputTimeSeries:
-        ...
+    ) -> InterRegionInputOutputTimeSeries: ...
 
 
 def date_io_time_series(

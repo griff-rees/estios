@@ -95,9 +95,9 @@ INTERMEDIATE_COLUMN_NAME: Final[str] = "Intermediate/final use w/purchaser's pri
 TOTAL_OUTPUT_COLUMN_NAME: Final[str] = "Total Purchase"
 GROSS_CAPITAL_FORMATION_COLUMN_NAME: Final[str] = "Gross fixed capital formation"
 INVENTORY_CHANGE_COLUMN_NAME: Final[str] = "changes in inventories"
-ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME: Final[
-    str
-] = "Acquisitions less disposals of valuables"
+ACQUISITION_NET_VALUABLES_DISPOSAL_COLUMN_NAME: Final[str] = (
+    "Acquisitions less disposals of valuables"
+)
 
 INTERMEDIATE_DEMAND_BASE_PRICE_ROW_NAME: Final[str] = "Intermediate Demand base price"
 INTERMEDIATE_DEMAND_PRICE_ROW_NAME: Final[str] = "Intermediate Demand purchase price"
@@ -108,16 +108,16 @@ NET_SUBSIDIES_ROW_NAME: Final[str] = "Net subsidies"
 
 INTERMEDIATE_ROW_NAME: Final[str] = INTERMEDIATE_COLUMN_NAME
 
-CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME: Final[
-    str
-] = "Use of imported products, cif"
+CPA_IMPORTS_COST_INSURANCE_FREIGHT_ROW_NAME: Final[str] = (
+    "Use of imported products, cif"
+)
 CPA_TAXES_NET_SUBSIDIES_ROW_NAME: Final[str] = "Taxes less subsidies on products"
-CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[
-    str
-] = "Total intermediate/final use at purchaser's prices"
-CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[
-    str
-] = "Total intermediate use at purchaser's prices"
+CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE: Final[str] = (
+    "Total intermediate/final use at purchaser's prices"
+)
+CPA_TOTAL_INTERMEDIATE_AT_PURCHASERS_PRICE_FIXED: Final[str] = (
+    "Total intermediate use at purchaser's prices"
+)
 
 
 DEFAULT_DOG_LEG_ROWS: Final[tuple[str, ...]] = (
@@ -149,12 +149,12 @@ DEFAULT_IO_MODEL_ATTR_LABELS: Final[tuple[str, str, str]] = (
     IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME,
 )
 
-IO_TABLE_ALL_INPUT_ROW_ATTR: Final[
-    str
-] = f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_ROW_LABELS_ATTR_NAME}"
-IO_TABLE_ALL_INPUT_COLUMN_ATTR: Final[
-    str
-] = f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME}"
+IO_TABLE_ALL_INPUT_ROW_ATTR: Final[str] = (
+    f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_ROW_LABELS_ATTR_NAME}"
+)
+IO_TABLE_ALL_INPUT_COLUMN_ATTR: Final[str] = (
+    f"_{IO_TABLE_ATTR_NAME}__{IO_TABLE_ALL_INPUT_COLUMN_LABELS_ATTR_NAME}"
+)
 
 
 def post_read_io_table_wrapper(
@@ -244,7 +244,6 @@ def aggregate_sectors_by_dict_with_prefix(
 
 
 class PyMRIOManager(IOSystem):
-
     """Wrapper for managing `pymrio` with InputOutputTable."""
 
     # io_host: InputOutputTable
@@ -360,7 +359,6 @@ class PyMRIOManager(IOSystem):
 
 @dataclass(kw_only=True)
 class InputOutputTable(ModelDataSourcesHandler):
-
     """Manage processing and aggregating Input Output Tables.
 
     Todo:
@@ -421,29 +419,21 @@ class InputOutputTable(ModelDataSourcesHandler):
     _aggregate_io_table_func: Callable[..., DataFrame | InputOutputTable] | None = None
     _aggregate_io_table_kwargs: dict[str, Any] = field(default_factory=dict)
 
-    class NullIOTableError(Exception):
-        ...
+    class NullIOTableError(Exception): ...
 
-    class SectorNotInIOTable(Exception):
-        ...
+    class SectorNotInIOTable(Exception): ...
 
-    class NoSectorAggregationDictError(Exception):
-        ...
+    class NoSectorAggregationDictError(Exception): ...
 
-    class FullIOTableNotSet(Exception):
-        ...
+    class FullIOTableNotSet(Exception): ...
 
-    class BaseIOTableNotSet(Exception):
-        ...
+    class BaseIOTableNotSet(Exception): ...
 
-    class MissingRowOrColumn(Exception):
-        ...
+    class MissingRowOrColumn(Exception): ...
 
-    class MissingRowOrColumnName(Exception):
-        ...
+    class MissingRowOrColumnName(Exception): ...
 
-    class IOTableIndexingError(Exception):
-        ...
+    class IOTableIndexingError(Exception): ...
 
     # @property
     # def full_io_table_scaled(self) -> DataFrame:
@@ -883,9 +873,9 @@ def aggregate_io_table(
             )
             if isinstance(dog_leg_columns, dict):
                 for dog_leg_column, source_column_name in dog_leg_columns.items():
-                    aggregated_sector_io_table.loc[
-                        sector_row, dog_leg_column
-                    ] = full_io_table.loc[sector_row_names, source_column_name].sum()
+                    aggregated_sector_io_table.loc[sector_row, dog_leg_column] = (
+                        full_io_table.loc[sector_row_names, source_column_name].sum()
+                    )
             else:
                 raise NotImplementedError(
                     "Not implemented means of managing `dog_leg_columns` "
@@ -893,9 +883,9 @@ def aggregate_io_table(
                 )
         if isinstance(dog_leg_rows, dict):
             for dog_leg_row, source_row_name in dog_leg_rows.items():
-                aggregated_sector_io_table.loc[
-                    dog_leg_row, sector_column
-                ] = full_io_table.loc[source_row_name, sector_column_names].sum()
+                aggregated_sector_io_table.loc[dog_leg_row, sector_column] = (
+                    full_io_table.loc[source_row_name, sector_column_names].sum()
+                )
         else:
             raise NotImplementedError(
                 "Not implemented means of managing `dog_leg_rows` "
@@ -909,7 +899,7 @@ def _pymrio_download_wrapper(
     local_path: MetaFileOrDataFrameType = DEFAULT_OECD_STORAGE_PATH,
     pymrio_download_func=download_oecd,
     metadata_file_name: Path = Path("metadata.json"),
-    **kwargs
+    **kwargs,
     # pymrio_parse_func=parse_oecd,
     # download_kwargs: dict | None = None,
     # parse_kwargs: dict | None =
@@ -976,7 +966,6 @@ OECD_INPUT_OUTPUT_TABLES: MetaData = MetaData(
 
 @dataclass(kw_only=True)
 class InputOutputTableOECD(InputOutputTable):
-
     """Add OECD query infrastructure via `pymrio`."""
 
     raw_io_table: MetaFileOrDataFrameType = field(
@@ -991,7 +980,6 @@ class InputOutputTableOECD(InputOutputTable):
 # @dataclass(kw_only=True)
 @dataclass(kw_only=True, repr=False)
 class InputOutputCPATable(InputOutputTable):
-
     """Manage processing and aggregating CPA format Input Output Tables.
 
     Note:
@@ -1013,12 +1001,12 @@ class InputOutputCPATable(InputOutputTable):
     cpa_column_name: str = CPA_COLUMN_NAME
     sector_prefix_str: str = CPA_COLUMN_NAME
     # full_io_table_func: Callable[...,  DataFrame] = arrange_cpa_io_table
-    _aggregate_sectors_func: Callable[
-        ..., AggregatedSectorDictType
-    ] = aggregate_sectors_by_dict_with_prefix
-    _aggregate_io_table_func: Callable[
-        ..., DataFrame | InputOutputTable
-    ] | None = aggregate_io_table
+    _aggregate_sectors_func: Callable[..., AggregatedSectorDictType] = (
+        aggregate_sectors_by_dict_with_prefix
+    )
+    _aggregate_io_table_func: Callable[..., DataFrame | InputOutputTable] | None = (
+        aggregate_io_table
+    )
     # process_base_io_table_func = arrange_cpa_io_table
     # process_base_io_table_kwargs: dict = field(default_factory=dict(cpa_row_name=CPA_COLUMN_NAME,))
     # sector_aggregation_dict: Optional[AggregatedSectorDictType] = field(
@@ -1034,10 +1022,12 @@ class InputOutputCPATable(InputOutputTable):
     #     default_factory=lambda: UK_DOG_LEG_CODES["rows"]
     # )
 
-    _first_code_row: int = 1  # from ons_IO_2017.FIRST_CODE_ROW, avoiding circular import until refactor concluded
-    _io_table_code_to_labels_func: Callable[
-        [DataFrame, str], DataFrame
-    ] = cpa_io_table_to_codes
+    _first_code_row: int = (
+        1  # from ons_IO_2017.FIRST_CODE_ROW, avoiding circular import until refactor concluded
+    )
+    _io_table_code_to_labels_func: Callable[[DataFrame, str], DataFrame] = (
+        cpa_io_table_to_codes
+    )
     # _table_load_func: Callable[..., DataFrame] = load_io_table_excel
 
     def __post_init__(self) -> None:

@@ -50,9 +50,11 @@ ONS_PROJECTION_YEARS: Final[list[int]] = list(range(FIRST_YEAR, LAST_YEAR + 1))
 RETIREMENT_AGE_INCREASE_YEAR: Final[int] = 2028
 
 PENSION_AGES: Final[dict] = {
-    year: NATIONAL_RETIREMENT_AGE
-    if year < RETIREMENT_AGE_INCREASE_YEAR
-    else NATIONAL_RETIREMENT_AGE + 1
+    year: (
+        NATIONAL_RETIREMENT_AGE
+        if year < RETIREMENT_AGE_INCREASE_YEAR
+        else NATIONAL_RETIREMENT_AGE + 1
+    )
     for year in ONS_PROJECTION_YEARS
 }
 
@@ -63,9 +65,9 @@ AGE_COLUMN_NAME: Final[str] = "AGE_GROUP"
 ALL_AGES_ROW_INDEX: Final[str] = ONS_2017_ALL_AGES_COLUMN_NAME
 # AGE_ROW_NAMES_FILTER: Final[list[str]] = ["90 and over", ALL_AGES_ROW_INDEX]
 SEX_FILTER_STR: Final[str] = "and SEX == 'persons'"
-ALL_AGES_FILTER_STR: Final[
-    str
-] = f"{AGE_COLUMN_NAME} == '{ALL_AGES_ROW_INDEX}' {SEX_FILTER_STR}"
+ALL_AGES_FILTER_STR: Final[str] = (
+    f"{AGE_COLUMN_NAME} == '{ALL_AGES_ROW_INDEX}' {SEX_FILTER_STR}"
+)
 YOUNGEST_AGE_INT: Final[int] = 0
 OLDEST_AGE_INT: Final[int] = 89
 
@@ -322,7 +324,6 @@ class PopulationProjection:
 
 @dataclass
 class ONSPopulationProjection(PopulationProjection):
-
     """ONS data file customisation of PopulationProjection class.
 
     Todo:

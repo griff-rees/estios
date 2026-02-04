@@ -30,7 +30,6 @@ from estios.utils import field_names, filter_fields_by_type
 
 @pytest.mark.remote_data
 class TestDownloadingDataFiles:
-
     """Test downloading and storing datafiles, skipping if no internet connection."""
 
     jpg_url: str = "https://commons.wikimedia.org/wiki/File:Wassily_Leontief_1973.jpg"
@@ -99,7 +98,9 @@ class TestDownloadingDataFiles:
         )  # Previous result: 63388
 
     def test_extract_file_name_from_url_query_path(self, caplog) -> None:
-        correct_uri_path: str = "/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea11principalprojectionuksummary/2018based/ukpppsummary18.xls"
+        correct_uri_path: str = (
+            "/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea11principalprojectionuksummary/2018based/ukpppsummary18.xls"
+        )
         caplog.set_level(DEBUG)
         assert ONS_UK_POPULATION_META_DATA.path
         assert isinstance(ONS_UK_POPULATION_META_DATA.path, Path)
@@ -196,7 +197,6 @@ ONS_UK_POPULATION_PROJECTIONS_BY_REGION_FROM_2018._post_read_kwargs = dict(
 
 
 class TestMetaSourceManager:
-
     """Assess basic features of managing data sources through MetaFileOrDataFrameType inheritance."""
 
     META_DATA_FIELD_LOG: str = (

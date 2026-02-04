@@ -154,7 +154,6 @@ def test_retirement_age_dict() -> None:
 
 @pytest.mark.remote_data
 class TestONSEnglandPopulationProjection:
-
     """Test processing ONSPopulation Projections from 2018."""
 
     def test_loading_populations(self, ons_2018_projection, ons_2018_years) -> None:
@@ -284,7 +283,6 @@ class TestONSEnglandPopulationProjection:
 
 @pytest.mark.remote_data
 class TestONSWholeUKPopulationProjection:
-
     """Test loading ONS UK population"""
 
     @classmethod
@@ -316,7 +314,6 @@ class TestONSWholeUKPopulationProjection:
 
 # @pytest.mark.remote_data
 class TestONSRegionPopulationContemporary:
-
     """Test extracting regional working population for 2017.
 
     Todo:
@@ -356,7 +353,6 @@ class TestONSRegionPopulationContemporary:
 
 @pytest.mark.remote_data
 class TestGDPProjections:
-
     """Test extracting OECD UK GDP projections calculated via PPP to pounds."""
 
     CORRECT_2021_CONV_RATE: Series = Series(
@@ -468,7 +464,6 @@ def test_nomis_date_query() -> None:
 @pytest.mark.remote_data
 @pytest.mark.nomis
 class TestNomisRegionalEmployment:
-
     """Test querying Nomis for spatial and temporal employment estimates."""
 
     FULL_REGION_ROWS_COUNT: Final[int] = 32004

@@ -81,8 +81,7 @@ def X_i_m_scaled(
     return total_production * employment / national_employment
 
 
-class InputOutputBaseException(Exception):
-    ...
+class InputOutputBaseException(Exception): ...
 
 
 def set_attrs(attr_dict: dict[str, Any]):
@@ -708,9 +707,11 @@ def A_i_m_cal(
     )
     A_i_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
     A_i_m["Distance"] = A_i_m.apply(
-        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
-        if national_column_name not in row.name
-        else national_distance,
+        lambda row: (
+            city_distances["Distance"][row.name[0]][row.name[1]]
+            if national_column_name not in row.name
+            else national_distance
+        ),
         axis=1,
     )
     if include_national:
@@ -752,15 +753,19 @@ def B_j_m_cal(
     )
     B_j_m: DataFrame = DataFrame({"Q_i^m": None}, index=ijm_index)
     B_j_m["Distance"] = B_j_m.apply(
-        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
-        if national_column_name not in row.name
-        else national_distance,
+        lambda row: (
+            city_distances["Distance"][row.name[0]][row.name[1]]
+            if national_column_name not in row.name
+            else national_distance
+        ),
         axis=1,
     )
     B_j_m["Q_i^m"] = B_j_m.apply(
-        lambda row: city_employment.loc[row.name[0]][row.name[2]]
-        if f"{national_column_name}" != row.name[0]
-        else national_employment[row.name[2]],
+        lambda row: (
+            city_employment.loc[row.name[0]][row.name[2]]
+            if f"{national_column_name}" != row.name[0]
+            else national_employment[row.name[2]]
+        ),
         axis=1,
     )
     B_j_m["c_{ij}^-β"] = B_j_m["Distance"] ** (-1 * beta)
@@ -883,9 +888,11 @@ def b_ij_m_cal(
     )
     b_ij_m: DataFrame = DataFrame({"P_i^m": None}, index=ijm_index)
     b_ij_m["Distance"] = b_ij_m.apply(
-        lambda row: city_distances["Distance"][row.name[0]][row.name[1]]
-        if national_column_name not in row.name
-        else national_distance,
+        lambda row: (
+            city_distances["Distance"][row.name[0]][row.name[1]]
+            if national_column_name not in row.name
+            else national_distance
+        ),
         axis=1,
     )
     b_ij_m["c_{ij})^-β"] = b_ij_m["Distance"] ** (-1 * beta)
@@ -895,9 +902,11 @@ def b_ij_m_cal(
         )
     b_ij_m["P_i^m"] = b_ij_m.apply(lambda row: city_population.loc[row.name[1]], axis=1)
     b_ij_m["Q_i^m"] = b_ij_m.apply(
-        lambda row: city_employment.loc[row.name[0]][row.name[2]]
-        if f"{national_column_name}" != row.name[0]
-        else national_employment[row.name[2]],
+        lambda row: (
+            city_employment.loc[row.name[0]][row.name[2]]
+            if f"{national_column_name}" != row.name[0]
+            else national_employment[row.name[2]]
+        ),
         axis=1,
     )
     b_ij_m["A_i^m"] = A_i_m["A_i^m"]

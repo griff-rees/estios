@@ -214,9 +214,9 @@ def add_mapbox_edges(
                 mode="lines",
                 line={
                     "width": plot_line_scaling_func(dest_city_row["weight"]),
-                    "color": colour_palette[dest_city_row.name]
-                    if colour_palette
-                    else None,
+                    "color": (
+                        colour_palette[dest_city_row.name] if colour_palette else None
+                    ),
                 },
                 # name=f"{mapbox_origin.iloc[0].index} {flow_type} {dest_city_row.index}"
                 # name=f"{dest_city_row.name} {flow_type} £{dest_city_row['weight']:,.2f}",

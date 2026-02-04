@@ -4,6 +4,7 @@ Core tests of running regional input output modelling.
 Todo:
     * test raising NullRawRegionError and RawRegionTypeError,
 """
+
 import pytest
 from pandas import DataFrame, Series, read_csv
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -19,7 +20,6 @@ def test_version() -> None:
 
 
 class TestInputOutputModel:
-
     """Test constructing and running a 3 city InterRegionInputOutput model."""
 
     # @pytest.mark.skip(f"Cache currently interferes with 3 city results")
@@ -475,7 +475,6 @@ class TestInputOutputModel:
 
 
 class TestInputOutputModelAllCities:
-
     """Test results for 48 cities in England over 10 aggregated sectors."""
 
     def test_all_city_construction(self, all_cities_io) -> None:

@@ -23,9 +23,9 @@ AUTHORS: Final[dict[str, str]] = {
 }
 DOI: Final[str] = "10.2307/2597593"
 
-ABSTRACT: Final[
-    str
-] = "An input-output table for the UK for 1841 shows the country's economic structure and the interdependence and linkages between industries. Using estimates of the capital and labour employed, the productivity of each industry can be identified. The early industrial economy exhibited considerable interrelatedness between industries, and the importance of the linkages of the metal industries is confirmed. But the economy was bifurcated into agriculture-based and mineral-based industries with the latter having less important backward linkages and lower productivity than the former."
+ABSTRACT: Final[str] = (
+    "An input-output table for the UK for 1841 shows the country's economic structure and the interdependence and linkages between industries. Using estimates of the capital and labour employed, the productivity of each industry can be identified. The early industrial economy exhibited considerable interrelatedness between industries, and the importance of the linkages of the metal industries is confirmed. But the economy was bifurcated into agriculture-based and mineral-based industries with the latter having less important backward linkages and lower productivity than the former."
+)
 
 CSV_FILE_NAME: Final[PathLike] = Path("uk-input-output-1841-Horrell-Humphries-Weal.csv")
 FIRST_CODE_ROW: Final[int] = 0

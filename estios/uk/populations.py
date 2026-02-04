@@ -180,9 +180,7 @@ def get_nation_employment_by_sector(
     quarter: str = "June",  # Mid year easest for comparison
     nation_names: Sequence[str] | str | None = UK_NATION_NAMES,
     # sector_codes: Sequence[str] = None,
-    column_names: Sequence[str]
-    | str
-    | None = [
+    column_names: Sequence[str] | str | None = [
         NOMIS_OBSERVATION_VALUE_COLUMN_NAME,
         NOMIS_INDUSTRY_CODE_COLUMN_NAME,
     ],

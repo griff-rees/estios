@@ -32,7 +32,6 @@ from estios.utils import (  # download_and_extract_zip_file,
 
 
 class TestMultiIndexGenerators:
-
     """Test i_m, ij and ij_m MultiIndex generator functions."""
 
     def test_i_m_index(self, three_city_names, ten_sector_aggregation_names) -> None:
@@ -78,7 +77,6 @@ class TestMultiIndexGenerators:
 
 
 class TestEnforcingStrPrefixSuffix:
-
     """Test enforcing prefix and suffix of strings."""
 
     def test_add_start_str(self) -> None:

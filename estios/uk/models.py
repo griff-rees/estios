@@ -37,7 +37,6 @@ from .utils import UK_NAME, UK_NATIONAL_COLUMN_NAME
 
 @dataclass(repr=False, kw_only=True)
 class InterRegionInputOutputUK2017(InterRegionInputOutput):
-
     """InterRegionInputOutput customised for 2017 UK defaults.
 
     Todo:
@@ -85,9 +84,9 @@ class InterRegionInputOutputUK2017(InterRegionInputOutput):
     national_population: float = UK_NATIONAL_POPULATION_2017
     national_gva_row_name: str = GROSS_VALUE_ADDED_ROW_NAME
     national_net_subsidies_row_name: str = NET_SUBSIDIES_COLUMN_NAME
-    national_gov_investment_column_names: tuple[
-        str, ...
-    ] = ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
+    national_gov_investment_column_names: tuple[str, ...] = (
+        ons_IO_2017.UK_GOV_INVESTMENT_COLUMN_NAMES
+    )
 
     export_column_names: list[str] = field(
         default_factory=lambda: UK_EXPORT_COLUMN_NAMES

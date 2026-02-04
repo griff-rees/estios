@@ -740,8 +740,7 @@ def value_in_dict_vals(value: Any, dictionary: dict) -> bool:
     return any(matches)
 
 
-class GetAttrStrictError(Exception):
-    ...
+class GetAttrStrictError(Exception): ...
 
 
 def get_attr_from_str(

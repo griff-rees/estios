@@ -99,7 +99,6 @@ NamesListType = list[str] | Collection[str]
 
 @dataclass(kw_only=True)
 class InterRegionInputOutputBaseClass(ModelDataSourcesHandler):
-
     """Bass attributes for InputOutput Model and TimeSeries.
 
     Todo:
@@ -246,7 +245,6 @@ class MissingIOTable(Exception):
 
 @dataclass(kw_only=True, repr=False)
 class InterRegionInputOutput(InterRegionInputOutputBaseClass):
-
     """Manage Inter Region input output model runs.
 
     Note:
@@ -259,9 +257,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
         * Remove regional attributes and regional spatial path to ease copying
     """
 
-    national_employment_path: Optional[
-        PathLike
-    ] = None  # UK_JOBS_BY_SECTOR_XLS_FILE_NAME
+    national_employment_path: Optional[PathLike] = (
+        None  # UK_JOBS_BY_SECTOR_XLS_FILE_NAME
+    )
     employment_date: Optional[DateType] = None  # EMPLOYMENT_QUARTER_DEC_2017
     io_table_kwargs: dict[str, Any] = field(default_factory=dict)
     region_attributes_path: PathLike | None = None  # CENTRE_FOR_CITIES_CSV_FILE_NAME
@@ -271,9 +269,9 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
     _io_table_cls: Type[InputOutputTable] = InputOutputCPATable
     _raw_region_data: Optional[DataFrame] = None
-    _region_load_func: Callable[
-        ..., GeoDataFrame
-    ] = load_and_join_centre_for_cities_data
+    _region_load_func: Callable[..., GeoDataFrame] = (
+        load_and_join_centre_for_cities_data
+    )
     _load_path_or_package_func: Callable[..., DataFrame] = pandas_from_path_or_package
 
     def __post_init__(self) -> None:
@@ -717,14 +715,13 @@ class InterRegionInputOutput(InterRegionInputOutputBaseClass):
 
 @dataclass
 class InterRegionInputOutputTimeSeries(MutableSequence):
-
     """Input-Output models over time."""
 
     io_models: list[InterRegionInputOutput] = field(default_factory=list)
     annual: bool = False
-    _io_model_config_index: Optional[
-        int
-    ] = None  # This assumes they are in chronological order and the last (*most recent one*) is the default for projections into the future
+    _io_model_config_index: Optional[int] = (
+        None  # This assumes they are in chronological order and the last (*most recent one*) is the default for projections into the future
+    )
     _input_output_model_cls: Type[InterRegionInputOutput] = InterRegionInputOutput
 
     def __post_init__(self) -> None:
@@ -830,34 +827,30 @@ class InterRegionInputOutputTimeSeries(MutableSequence):
             return self.regions
 
     @overload
-    def __getitem__(self, index: int) -> InterRegionInputOutput:
-        ...
+    def __getitem__(self, index: int) -> InterRegionInputOutput: ...
 
     @overload
-    def __getitem__(self, index: slice) -> list[InterRegionInputOutput]:
-        ...
+    def __getitem__(self, index: slice) -> list[InterRegionInputOutput]: ...
 
     def __getitem__(self, index):
         return self.io_models[index] if self.io_models else None
 
     @overload
-    def __setitem__(self, i: int, item: InterRegionInputOutput) -> None:
-        ...
+    def __setitem__(self, i: int, item: InterRegionInputOutput) -> None: ...
 
     @overload
-    def __setitem__(self, s: slice, items: Iterable[InterRegionInputOutput]) -> None:
-        ...
+    def __setitem__(
+        self, s: slice, items: Iterable[InterRegionInputOutput]
+    ) -> None: ...
 
     def __setitem__(self, index, item):
         self.io_models[index] = item
 
     @overload
-    def __delitem__(self, i: int) -> None:
-        ...
+    def __delitem__(self, i: int) -> None: ...
 
     @overload
-    def __delitem__(self, s: slice) -> None:
-        ...
+    def __delitem__(self, s: slice) -> None: ...
 
     def __delitem__(self, index):
         del self.io_models[index]

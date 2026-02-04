@@ -32,7 +32,6 @@ def test_add_mapbox_edges(three_cities_results: InterRegionInputOutput) -> None:
 
 
 class TestGenerateColourScheme:
-
     """Test generating colour schemes for region visualisation harmony."""
 
     def test_default(self, three_cities) -> None:
@@ -55,7 +54,6 @@ class TestGenerateColourScheme:
 
 
 class TestDrawEgoFlowsNetwork:
-
     """Test using draw_ego_flows_network edges with model results."""
 
     def test_draw_default(self, three_cities_results: InterRegionInputOutput) -> None:
@@ -87,7 +85,6 @@ class TestDrawEgoFlowsNetwork:
 
 
 class TestPlotIterations:
-
     """Test plotting model iterations.
 
     Todo:
@@ -115,7 +112,6 @@ class TestPlotIterations:
 
 
 class TestSectorFlowsBarChart:
-
     """Test plotting Flows Bar Chart"""
 
     def test_MultiIndex(self, three_cities_results) -> None:

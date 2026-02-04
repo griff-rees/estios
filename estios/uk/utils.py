@@ -59,9 +59,9 @@ assert isinstance(
 PUA_KEY: Final[str] = CENTRE_FOR_CITIES_2022_CITY_REGIONS_METADATA.dict_key_appreviation
 
 assert isinstance(ONS_CONTEMPORARY_POPULATION_META_DATA.dict_key_appreviation, str)
-CONTMEPORARY_KEY: Final[
-    str
-] = ONS_CONTEMPORARY_POPULATION_META_DATA.dict_key_appreviation
+CONTMEPORARY_KEY: Final[str] = (
+    ONS_CONTEMPORARY_POPULATION_META_DATA.dict_key_appreviation
+)
 REGION_MAPPER_KEYS: Final[tuple[str, ...]] = (PUA_KEY, CONTMEPORARY_KEY)
 
 NO_CONTEMPORARY_KEY: Final[str] = f"no {CONTMEPORARY_KEY}"
@@ -122,7 +122,6 @@ def load_contemporary_ons_population(
 
 @dataclass
 class PrimaryUrbanArea(Region):
-
     """UK Primary Urban Area Region."""
 
     local_authorities: RegionsManager = field(default_factory=lambda: RegionsManager())
@@ -176,7 +175,6 @@ PUAS_MANAGER_REGION_NAME: Final[str] = f"{UK_NATIONAL_COLUMN_NAME} {PUA_ACRONYM_
 
 @dataclass(repr=False)
 class PUASManager(RegionsManagerMixin, UserDict[str, PrimaryUrbanArea]):
-
     """Custom RegionsManager for PrimaryUrbanArea classes.
 
     Todo:

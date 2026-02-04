@@ -24,7 +24,6 @@ from estios.uk.scenarios import (
 
 
 class TestAnnualProjection:
-
     """Test examples of annual Input-Output models."""
 
     # TEST_REGIONS: Final[list[str]] = ["York", "Leeds", "Bristol"]
@@ -103,7 +102,6 @@ class TestAnnualProjection:
 
 
 class TestInputOutputTimeSeries:
-
     """Test a TimeSeries of InputOutput models."""
 
     def test_one_time_point(self) -> None:
