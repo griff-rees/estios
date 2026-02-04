@@ -42,11 +42,11 @@ repos:
   hooks:
     - id: black
 
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.1
-  hooks:
-    - id: mypy
-      verbose: true
-      entry: bash -c 'mypy "$@" || true' --
-      additional_dependencies:
-        - types-python-dateutil
+# - repo: https://github.com/pre-commit/mirrors-mypy
+#   rev: v1.19.1
+#   hooks:
+#     - id: mypy
+#       verbose: true
+#       entry: bash -c 'mypy "$@" || true' --
+#       additional_dependencies:
+#         - types-python-dateutil
